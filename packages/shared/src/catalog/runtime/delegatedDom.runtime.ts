@@ -4880,16 +4880,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             "data-quiet": isQuiet ? "true" : undefined,
           },
         },
-        // (ADR-326 Phase 2 — a `columns` field's open content is its Popover node (RAC draws it while
-        //  open); the `tree` · `drill` lazy chunk still builds its own until Phase 3.)
-        ...renderAll(
-          input,
-          mode === "columns"
-            ? children(input)
-            : children(input).filter(
-                (child) => catalogTypeName(input.root, child) !== "Popover",
-              ),
-        ),
+        // (ADR-326 — the open content is its Popover node: RAC draws it while open.)
+        ...renderAll(input),
       );
     },
   },

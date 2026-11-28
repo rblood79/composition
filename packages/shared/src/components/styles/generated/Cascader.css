@@ -167,101 +167,40 @@
   gap: var(--spacing-sm);
 }
 
-.react-aria-CascaderItem .react-aria-Text[slot="label"] {
-  color: inherit;
+.react-aria-Popover[data-trigger="Cascader"] .react-aria-Dialog {
+  display: contents;
 }
 
-.react-aria-Popover.cascader-panel {
-  min-width: var(--trigger-width);
-}
-
-.react-aria-Popover.cascader-panel .react-aria-Dialog {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs);
-  outline: none;
-}
-
-.react-aria-Popover.cascader-panel :is(.react-aria-Tree, .react-aria-GridList) {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  outline: none;
-  border: none;
-}
-
-.react-aria-Popover.cascader-panel :is(.react-aria-TreeItem, .react-aria-GridListItem) {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  min-height: var(--catalog-token-size-height-M);
-  padding: 0 var(--spacing-sm);
-  border-radius: var(--catalog-token-radius-md);
-  font-size: var(--catalog-token-text-sm);
-  color: var(--fg);
-  outline: none;
-  cursor: default;
-}
-
-.react-aria-Popover.cascader-panel .react-aria-TreeItem {
-  padding-left: calc((var(--tree-item-level, 1) - 1) * var(--spacing-md) + var(--spacing-sm));
-}
-
-.react-aria-Popover.cascader-panel :is(.react-aria-TreeItem, .react-aria-GridListItem):is([data-focused], [data-hovered]) {
+.react-aria-Popover[data-trigger="Cascader"] .react-aria-CascaderItem:where([data-hovered]:not([data-disabled])) {
   background: var(--collection-item-focus);
 }
 
-.react-aria-Popover.cascader-panel :is(.react-aria-TreeItem, .react-aria-GridListItem)[data-selected] {
-  color: var(--accent-content);
-  font-weight: 700;
+.react-aria-Popover[data-trigger="Cascader"] .react-aria-CascaderItem[data-level] {
+  padding-inline-start: calc((var(--tree-item-level, 1) - 1) * var(--spacing-md) + var(--spacing-sm));
 }
 
-.react-aria-Popover.cascader-panel :is(.react-aria-TreeItem, .react-aria-GridListItem)[data-disabled] {
-  color: var(--fg-muted);
-}
-
-.react-aria-Popover.cascader-panel :is(.react-aria-Button[slot="chevron"], .cascader-back) {
+.react-aria-Popover[data-trigger="Cascader"] .react-aria-CascaderItem .react-aria-Button[slot="chevron"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--spacing-xl);
-  height: var(--spacing-xl);
+  grid-column: 1;
   padding: 0;
   border: none;
   background: transparent;
   color: inherit;
-  border-radius: var(--catalog-token-radius-sm);
+  outline: none;
 }
 
-.react-aria-Popover.cascader-panel .react-aria-TreeItem[data-expanded] .react-aria-Button[slot="chevron"] .react-aria-Icon {
+.react-aria-Popover[data-trigger="Cascader"] .react-aria-CascaderItem[data-expanded] .react-aria-Button[slot="chevron"] .react-aria-Icon {
   transform: rotate(90deg);
 }
 
-.react-aria-Popover.cascader-panel .react-aria-Icon[slot="descriptor"] {
-  margin-left: auto;
+.react-aria-Popover[data-trigger="Cascader"]:has(.react-aria-SearchField:not([data-empty])) :is(.react-aria-Breadcrumbs, [slot="back"]) {
+  display: none !important;
 }
 
-.react-aria-Popover.cascader-panel .react-aria-Breadcrumbs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-xs);
-  margin: 0;
-  padding: 0 var(--spacing-xs);
-  list-style: none;
-  font-size: var(--catalog-token-text-sm);
-}
-
-.react-aria-Popover.cascader-panel .react-aria-Breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.react-aria-Popover.cascader-panel .react-aria-Breadcrumb [data-current] {
-  font-weight: 700;
-  color: var(--fg);
+.react-aria-CascaderItem .react-aria-Text[slot="label"] {
+  color: inherit;
 }
 
 .react-aria-Cascader[data-label-position="side"] {

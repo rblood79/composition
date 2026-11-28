@@ -424,6 +424,9 @@ try {
   await pub.keyboard.press("Enter");
   await pub.waitForSelector('[role="grid"]', { timeout: 10000 });
   await settle(pub, 400);
+  // (The search field takes focus on open — 2026-11-28 사용자 결정; the level's first row, as the
+  //  tree's step does. ADR-326 Phase 3 G3.)
+  await pub.locator('[role="grid"] [role="row"]').first().focus();
   await pub.keyboard.press("Enter");
   await settle(pub, 600);
   const drillRows = await pub.locator('[role="grid"] [role="row"]').allTextContents();

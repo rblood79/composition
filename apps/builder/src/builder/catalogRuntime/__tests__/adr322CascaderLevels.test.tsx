@@ -33,7 +33,6 @@ afterEach(() => {
 // (The open contents are lazy chunks — their first import outlasts a few frames.)
 beforeAll(async () => {
   await import("../../../../../../packages/shared/src/catalog/runtime/cascaderMenu.components");
-  await import("../../../../../../packages/shared/src/catalog/runtime/cascaderPanel.components");
 });
 
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 600)));
@@ -69,14 +68,14 @@ function field(
   levels: CatalogCascaderLevels,
   keys: string[] = [],
   onChange = vi.fn(),
-) {
-  // (The first level only: 서울 · 부산 are branches whose level is not loaded, 세종 a leaf.)
-  const table = cascaderTable([
+  // (By default the first level only: 서울 · 부산 are branches whose level is not loaded, 세종 a leaf.)
+  start: Parameters<typeof cascaderTable>[0] = [
     { key: "11", name: "서울", hasChildItems: true },
     { key: "26", name: "부산", hasChildItems: true },
     { key: "36", name: "세종" },
-  ]);
-  return render(
+  ],
+) {
+  const element = (items: Parameters<typeof cascaderTable>[0] = start) =>
     createElement(
       CatalogCascaderField,
       {
@@ -84,7 +83,7 @@ function field(
         placeholder: "Choose",
         description: "",
         errorMessage: "",
-        table,
+        table: cascaderTable(items),
         mode,
         display: {},
         keys,
@@ -102,27 +101,29 @@ function field(
           catalogId: "value",
         }),
       ),
-      // (ADR-326 Phase 2 — a `columns` field's open content is its nodes: the Popover > the search
-      //  field + the list box body, as the catalog renderer draws them.)
-      mode === "columns"
-        ? createElement(CatalogPopover, {
-            children: createElement(
-              Fragment,
-              null,
-              createElement(SearchField, {}, createElement(Input)),
-              createElement(CatalogCascaderListHost, {
-                base: {
-                  className: "react-aria-CascaderList",
-                  "data-size": "M",
-                },
-                // (These items carry no record — a row is its name.)
-                renderRow: () => createElement(Fragment),
-              }),
-            ),
-          })
-        : null,
-    ),
-  );
+      // (ADR-326 — the open content is its nodes: the Popover > the search field + the list box
+      //  body, as the catalog renderer draws them.)
+      createElement(CatalogPopover, {
+        children: createElement(
+          Fragment,
+          null,
+          createElement(SearchField, {}, createElement(Input)),
+          createElement(CatalogCascaderListHost, {
+            base: {
+              className: "react-aria-CascaderList",
+              "data-size": "M",
+            },
+            // (These items carry no record — a row is its name.)
+            renderRow: () => createElement(Fragment),
+          }),
+        ),
+      }),
+    );
+  const view = render(element());
+  /** The session's level arrives — the field draws the table that holds it. */
+  const arrive = (items: Parameters<typeof cascaderTable>[0]) =>
+    act(() => view.rerender(element(items)));
+  return Object.assign(view, { arrive });
 }
 
 describe("ADR-322 G6 — levels loaded one by one (the field's side)", () => {
@@ -229,6 +230,73 @@ describe("ADR-322 G6 — levels loaded one by one (the field's side)", () => {
         (row) => row.textContent,
       ),
     ).toEqual(["서울", "Loading…", "부산", "세종"]);
+    view.unmount();
+  });
+
+  // (ADR-326 Phase 3 판독 1 수리 — a level arriving past 50 items keeps the focused row.)
+  it("tree: a branch's level arriving with 48 rows (51 items in all) keeps focus on the branch row", async () => {
+    const states = new Map<string, CatalogCascaderLevelState>();
+    const { levels, notify } = levelsOf(states);
+    const view = field("tree", levels);
+    const user = userEvent.setup();
+    view.container.querySelector("button")!.focus();
+    await user.keyboard("{Enter}");
+    await settle();
+    (
+      document.querySelector('[role="treegrid"] [role="row"]') as HTMLElement
+    ).focus();
+    await user.keyboard("{ArrowRight}");
+    await settle();
+    states.set("11", "loaded");
+    await view.arrive([
+      {
+        key: "11",
+        name: "서울",
+        children: Array.from({ length: 48 }, (_, i) => ({
+          key: `11-${i}`,
+          name: `구 ${i}`,
+        })),
+      },
+      { key: "26", name: "부산", hasChildItems: true },
+      { key: "36", name: "세종" },
+    ]);
+    notify();
+    await settle();
+    expect(document.activeElement?.getAttribute("role")).toBe("row");
+    expect(document.activeElement?.textContent).toBe("서울");
+    view.unmount();
+  });
+
+  // (ADR-326 Phase 3 수리 검증 — the virtualizer's choice is a level's own: a small level's
+  //  choice does not carry into a big one entered from it.)
+  it("drill: entering a 1,000-row level from a 1-row level draws it in the virtualizer", async () => {
+    const states = new Map<string, CatalogCascaderLevelState>([
+      ["11", "loaded"],
+    ]);
+    const { levels } = levelsOf(states);
+    const view = field("drill", levels, [], vi.fn(), [
+      {
+        key: "11",
+        name: "서울",
+        children: Array.from({ length: 1000 }, (_, i) => ({
+          key: `11-${i}`,
+          name: `구 ${i}`,
+        })),
+      },
+    ]);
+    const user = userEvent.setup();
+    view.container.querySelector("button")!.focus();
+    await user.keyboard("{Enter}");
+    await settle();
+    await user.keyboard("{Tab}");
+    await user.keyboard("{Enter}");
+    await settle();
+    // (jsdom has no viewport — the virtualizer draws every row, each in its positioned box.)
+    const row = document.querySelector('[role="grid"] [role="row"]');
+    expect(row?.textContent).toBe("구 0");
+    expect((row?.parentElement as HTMLElement | null)?.style.position).toBe(
+      "absolute",
+    );
     view.unmount();
   });
 

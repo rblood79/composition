@@ -744,7 +744,8 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     const iconSize = px(base?.iconSize) ?? 10;
     return {
       replace: true,
-      layout: { display: "inline-flex", alignItems: "center" },
+      // (S2 `breadcrumbStyles` `flexShrink: 0` — the Breadcrumb rule's.)
+      layout: { display: "inline-flex", alignItems: "center", flexShrink: "0" },
       visual: { ...(ratio ? { lineHeight: ratio } : {}), gap },
       parts: [
         {

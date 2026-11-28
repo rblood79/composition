@@ -15,6 +15,7 @@ import {
 import { useCascaderForm } from "./cascaderForm.components";
 import { Provider } from "react-aria-components";
 import {
+  Dialog,
   DialogContext,
   OverlayTriggerStateContext,
 } from "react-aria-components/Dialog";
@@ -33,6 +34,7 @@ import { TextContext } from "react-aria-components/Text";
 import { useMenuTriggerState } from "react-stately/useMenuTriggerState";
 import {
   CASCADER_DEFAULT_SEPARATOR,
+  cascaderTrail,
   cascaderValueRefusal,
   cascaderValueText,
   type CascaderTable,
@@ -48,27 +50,26 @@ import type { CascaderListBodyProps } from "./cascaderMenu.components";
  * help and error text (`TextContext` slots · `FieldErrorContext`); the open Button takes RAC
  * `MenuTrigger`'s trigger (react-aria `useMenuTrigger` + `useMenuTriggerState` — its props through
  * `ButtonContext`, as RAC Select passes its trigger's: the label row's help button keeps its own
- * press, `slot={null}`). The `columns` open content is the field's nodes (ADR-326 Phase 2): the field
- * gives `MenuTrigger`'s contexts always and the Popover node opens with them; its search scope and list
- * box body load with the first open (`cascaderMenu.components.tsx`). The field writes no role, `aria-*`
+ * press, `slot={null}`). The open content is the field's nodes (ADR-326): the field gives
+ * `MenuTrigger`'s (`columns`) · `DialogTrigger`'s (`tree` · `drill`) contexts always and the Popover
+ * node opens with them; its search scope and list box body load with the first open
+ * (`cascaderMenu.components.tsx`). The field writes no role, `aria-*`
  * attribute or key handler of its own (HC2 — those are RAC's · react-aria's).
  */
 
-// (ADR-326 Phase 2 — `columns`: the Popover node's search scope, loaded with the first open.)
+// (ADR-326 — the Popover node's search scope, loaded with the first open.)
 const CascaderOpenScope = lazy(() =>
   import("./cascaderMenu.components").then((module) => ({
     default: module.CascaderOpenScope,
   })),
 );
-// (ADR-322 Phase 3 — the `tree` · `drill` modes: RAC `Popover` > `Dialog` > `Tree` · `GridList`, their
-//  own chunk. ADR-326 Phase 3 draws them from the nodes too.)
-const CatalogCascaderPanel = lazy(() => import("./cascaderPanel.components"));
 
 /**
  * ADR-326 §4.3 — what the field gives its open content's list box node (`cascaderlist`): the table,
- * the picked keys and a pick, its levels and words. Given while the field is a `columns` one.
+ * the picked keys and a pick, its levels and words, its mode.
  */
 export interface CascaderOpenValue {
+  readonly mode: CascaderMode;
   readonly table: CascaderTable;
   readonly keys: readonly string[];
   readonly multiple: boolean;
@@ -79,6 +80,45 @@ export interface CascaderOpenValue {
 }
 
 const CascaderOpenContext = createContext<CascaderOpenValue | null>(null);
+
+/**
+ * ADR-326 Phase 3 — a `tree` · `drill` field's view while open (its search scope's state — the lazy
+ * chunk gives it through the Provider the field hands it; it outlives a search): `drill` — the level
+ * shown, whether the user moved since the open (the list then takes focus), a move, and the level's
+ * trail (§4.4 — `cascaderTrail`); `tree` — the expanded branches.
+ */
+export interface CascaderViewValue {
+  readonly level: string | null;
+  readonly moved: boolean;
+  readonly enter: (level: string | null) => void;
+  readonly trail: ReturnType<typeof cascaderTrail>;
+  readonly expanded: ReadonlySet<string>;
+  readonly setExpanded: (expanded: ReadonlySet<string>) => void;
+  /** Keeps a collection of its own (the trail's folder Menu) off the search's RAC `Autocomplete`. */
+  readonly isolate: (node: ReactNode) => ReactElement;
+}
+export const CascaderViewContext = createContext<CascaderViewValue | null>(
+  null,
+);
+
+/**
+ * ADR-326 §4.4 — a trail's crumb texts by crumb record id (given around the whole Breadcrumbs: RAC
+ * draws a collection's items outside the wrappers around them — `BreadcrumbsRun`).
+ */
+export const CascaderCrumbTextContext = createContext<
+  ReadonlyMap<string, string> | undefined
+>(undefined);
+
+/** A trail crumb's label: the position's path text while its field is open, else the record's. */
+export function CatalogCascaderCrumbText({
+  crumb,
+  fallback,
+}: {
+  readonly crumb: string;
+  readonly fallback: ReactNode;
+}) {
+  return useContext(CascaderCrumbTextContext)?.get(crumb) ?? fallback;
+}
 
 /** One shown row as the catalog renderer drew its item record (`cascaderitem`). */
 export interface CascaderRowInput {
@@ -116,15 +156,17 @@ const CascaderListBody = lazy(() =>
  * renderer's — `delegatedDom.runtime.ts` `cascaderlist`): the field's open values, then the lazy body.
  */
 export function CatalogCascaderListHost(
-  props: Omit<CascaderListBodyProps, "open" | "Row">,
+  props: Omit<CascaderListBodyProps, "open" | "Row" | "view">,
 ) {
   const open = useContext(CascaderOpenContext);
+  const view = useContext(CascaderViewContext);
   if (!open) return null;
   return (
     <Suspense fallback={null}>
       <CascaderListBody
         {...props}
         open={open}
+        view={view}
         Row={CascaderRowContext.Provider}
       />
     </Suspense>
@@ -297,14 +339,32 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
       write(current.filter((selected) => selected !== key));
     else write([...current, key]);
   };
-  // (ADR-326 Phase 2 — `columns`: the contexts RAC `MenuTrigger` gives its Popover and Menu, given
-  //  always — the Popover node opens with them, `trigger: "Cascader"`; its children take the search
-  //  scope · the open values.)
-  const opened = menuMode ? (
+  const open: CascaderOpenValue = {
+    mode,
+    table,
+    keys: current,
+    multiple,
+    label: label || placeholder,
+    onPick,
+    separator:
+      typeof display.separator === "string"
+        ? display.separator
+        : CASCADER_DEFAULT_SEPARATOR,
+    levels,
+  };
+  // (ADR-326 — the contexts RAC `MenuTrigger` (`columns`) · `DialogTrigger` (`tree` · `drill`) give
+  //  their Popover and its content, given always — the Popover node opens with them, `trigger:
+  //  "Cascader"`; its children take the search scope (and a Dialog's) · the open values.)
+  const opened = (
     <Provider
       values={[
-        [MenuContext, { ...menuProps, ref: scrollRef }],
-        [DialogContext, null],
+        [MenuContext, menuMode ? { ...menuProps, ref: scrollRef } : null],
+        [
+          DialogContext,
+          menuMode
+            ? null
+            : { ...overlayProps, "aria-labelledby": dialogTriggerId },
+        ],
         [OverlayTriggerStateContext, state],
         [RootMenuTriggerStateContext, state],
         [
@@ -312,34 +372,43 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
           {
             trigger: "Cascader",
             triggerRef,
-            scrollRef,
             placement: "bottom start",
-            "aria-labelledby": menuProps["aria-labelledby"],
+            ...(menuMode
+              ? {
+                  scrollRef,
+                  "aria-labelledby": menuProps["aria-labelledby"],
+                }
+              : { id: overlayProps.id, "aria-labelledby": dialogTriggerId }),
           },
         ],
       ]}
     >
-      <CatalogPopoverContentContext.Provider value={CASCADER_POPOVER_CONTENT}>
-        <CascaderOpenContext.Provider
-          value={{
-            table,
-            keys: current,
-            multiple,
-            label: label || placeholder,
-            onPick,
-            separator:
-              typeof display.separator === "string"
-                ? display.separator
-                : CASCADER_DEFAULT_SEPARATOR,
-            levels,
-          }}
-        >
+      <CatalogPopoverContentContext.Provider
+        value={{
+          trigger: "Cascader",
+          // (`tree` · `drill`: RAC `Dialog` (the `DialogTrigger` contexts) — no box of its own. It is
+          //  here, not in the lazy chunk: the Popover looks for a dialog inside as it mounts, and is
+          //  one itself without — the first open suspends the chunk.)
+          wrap: (content: ReactNode) => {
+            const scope = (
+              <Suspense fallback={null}>
+                <CascaderOpenScope
+                  open={open}
+                  View={CascaderViewContext.Provider}
+                >
+                  {content}
+                </CascaderOpenScope>
+              </Suspense>
+            );
+            return menuMode ? scope : <Dialog>{scope}</Dialog>;
+          },
+        }}
+      >
+        <CascaderOpenContext.Provider value={open}>
           {field}
         </CascaderOpenContext.Provider>
       </CatalogPopoverContentContext.Provider>
     </Provider>
-  ) : (
-    field
   );
   return (
     <Provider
@@ -372,38 +441,9 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
       ]}
     >
       {opened}
-      {!menuMode && state.isOpen && (
-        <Suspense fallback={null}>
-          <CatalogCascaderPanel
-            state={state}
-            triggerRef={triggerRef}
-            menuProps={menuProps}
-            overlayProps={overlayProps}
-            dialogTriggerId={dialogTriggerId}
-            mode={mode}
-            table={table}
-            keys={current}
-            multiple={multiple}
-            separator={display.separator}
-            label={label || placeholder}
-            levels={levels}
-            write={write}
-          />
-        </Suspense>
-      )}
     </Provider>
   );
 }
-
-/** The Popover node's children of a `columns` Cascader, in its search scope (a lazy chunk). */
-const CASCADER_POPOVER_CONTENT = {
-  trigger: "Cascader",
-  wrap: (children: ReactNode) => (
-    <Suspense fallback={null}>
-      <CascaderOpenScope>{children}</CascaderOpenScope>
-    </Suspense>
-  ),
-};
 
 /**
  * The value text in a Cascader's open Button (RAC `SelectValue`'s element and class — the field's

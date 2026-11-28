@@ -11,6 +11,7 @@ import {
   useState,
   type ElementType,
   type ReactElement,
+  type ReactNode,
 } from "react";
 
 import { catalogGroupDisabledKeys } from "./groupSelection";
@@ -52,6 +53,11 @@ import {
   catalogBreadcrumbsVisibleCount,
 } from "./breadcrumbsCollapse";
 import { parseGapValue } from "@composition/rendering";
+import { resolveStaticItemKey } from "../slotRoles";
+import {
+  CascaderCrumbTextContext,
+  CascaderViewContext,
+} from "./cascader.components";
 import { CatalogCalendarPickerContext } from "./calendarPickerContext";
 import { catalogDeviceScaledCss } from "./deviceTypography";
 import { useCatalogDeviceUnit } from "./deviceUnit.runtime";
@@ -518,17 +524,39 @@ export function BreadcrumbsRun({
   ...authored
 }: { input: DelegatedDomInput } & AuthoredDomAttributes): ReactElement {
   const props = input.node.props;
-  const crumbs = childrenOf(input.root, input.node).filter(
+  const nodes = childrenOf(input.root, input.node).filter(
     (child) => catalogTypeName(input.root, child) === "Breadcrumb",
   );
+  // (ADR-326 §4.4 — a `drill` Cascader's trail: its four crumb positions hold the open level's
+  //  path (`cascaderTrail`) — the positions in use are drawn, each with its crumb's text, and the
+  //  folder menu holds the path's crumbs that do not show.)
+  const drill = useContext(CascaderViewContext);
+  const popover = input.root.domInputs.get(input.node.parentId);
+  const field = popover && input.root.domInputs.get(popover.parentId);
+  const trail =
+    drill && field && catalogTypeName(input.root, field) === "Cascader"
+      ? drill.trail
+      : undefined;
+  const crumbs = trail
+    ? trail.slots.flatMap((at, index) =>
+        at === undefined || !nodes[index] ? [] : [nodes[index]],
+      )
+    : nodes;
+  const positions = trail
+    ? trail.slots.filter((at): at is number => at !== undefined)
+    : [];
+  const entries = trail
+    ? trail.crumbs.map((crumb) => ({ ...crumb, href: undefined }))
+    : nodes.map((crumb) => ({
+        key: String(resolveStaticItemKey(crumb.props, crumb.id)),
+        ...breadcrumbMenuItem(input, crumb),
+      }));
   const unit = useCatalogDeviceUnit();
   const listRef = useRef<HTMLOListElement | null>(null);
   // (What the crumbs show: a crumb added, removed or relabelled is measured again.)
   const signature = [
     str(props.size || "M"),
-    ...crumbs.map(
-      (crumb) => `${crumb.id}\u0001${breadcrumbMenuItem(input, crumb).text}`,
-    ),
+    ...entries.map((entry) => `${entry.key}\u0001${entry.text}`),
   ].join("\u0000");
   const [epoch, setEpoch] = useState(0);
   const key = `${signature}\u0002${epoch}`;
@@ -569,6 +597,7 @@ export function BreadcrumbsRun({
         list.getBoundingClientRect().width,
         parseGapValue(style).column,
         CATALOG_BREADCRUMB_MENU.button * unit,
+        entries.length,
       ),
     });
   });
@@ -586,8 +615,20 @@ export function BreadcrumbsRun({
   }, []);
   const collapse = measuring
     ? undefined
-    : catalogBreadcrumbsCollapse(crumbs, measured!.visible);
+    : catalogBreadcrumbsCollapse(entries, measured!.visible);
+  // (S2 `Breadcrumbs.tsx:195` — a folder menu item and a shown crumb call the list's `onAction` with
+  //  the crumb's key; a trail's crumb key is the level it goes to.)
+  const keyOf = new Map(
+    crumbs.map((crumb, index) => [
+      String(resolveStaticItemKey(crumb.props, crumb.id)),
+      trail ? trail.crumbs[positions[index]!]!.key : undefined,
+    ]),
+  );
+  const onAction = trail
+    ? (key: Key) => drill!.enter(keyOf.get(String(key)) || null)
+    : (authored.onAction as ((key: Key) => void) | undefined);
   const isDisabled = bool(props.isDisabled);
+  const within = (node: ReactNode) => (trail ? drill!.isolate(node) : node);
   const menu = () => {
     // (The separator after the folder: the first crumb's separator Icon — S2's Chevron.)
     const separator = childrenOf(input.root, crumbs[0]!).find(
@@ -613,64 +654,69 @@ export function BreadcrumbsRun({
           ),
         },
       },
-      createElement(
-        AriaMenuTrigger,
-        null,
+      // (A trail's folder Menu stays off its field's search — `CascaderViewValue.isolate`.)
+      within(
         createElement(
-          AriaButton as ElementType,
-          {
-            className: "react-aria-ActionButton",
-            "data-variant": "default",
-            "data-size": "M",
-            "data-quiet": true,
-            "aria-label": "More items",
-            isDisabled,
-            style: {
-              boxSizing: "border-box",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              width: catalogDeviceScaledCss(CATALOG_BREADCRUMB_MENU.button),
-              height: catalogDeviceScaledCss(CATALOG_BREADCRUMB_MENU.button),
-            },
-          },
-          createElement(Icon, {
-            // (The Breadcrumbs' `menuIcon` — S2's FolderBreadcrumb by default.)
-            iconName: glyphs.icon,
-            style: { fontSize: glyph, width: glyph, height: glyph },
-          }),
-        ),
-        createElement(
-          AriaPopover as ElementType,
-          // (S2 `BreadcrumbMenu`'s Menu is the default M — the generated Menu sheet's popover box.)
-          {
-            className: "react-aria-Popover",
-            placement: "bottom start",
-            "data-size": "M",
-          },
+          AriaMenuTrigger,
+          null,
           createElement(
-            AriaMenu as ElementType,
+            AriaButton as ElementType,
             {
-              className: "react-aria-Menu",
+              className: "react-aria-ActionButton",
+              "data-variant": "default",
+              "data-size": "M",
+              "data-quiet": true,
               "aria-label": "More items",
+              isDisabled,
+              style: {
+                boxSizing: "border-box",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+                width: catalogDeviceScaledCss(CATALOG_BREADCRUMB_MENU.button),
+                height: catalogDeviceScaledCss(CATALOG_BREADCRUMB_MENU.button),
+              },
+            },
+            createElement(Icon, {
+              // (The Breadcrumbs' `menuIcon` — S2's FolderBreadcrumb by default.)
+              iconName: glyphs.icon,
+              style: { fontSize: glyph, width: glyph, height: glyph },
+            }),
+          ),
+          createElement(
+            AriaPopover as ElementType,
+            // (S2 `BreadcrumbMenu`'s Menu is the default M — the generated Menu sheet's popover box.)
+            {
+              className: "react-aria-Popover",
+              placement: "bottom start",
               "data-size": "M",
             },
-            ...(collapse?.hidden ?? []).map((crumb) => {
-              const { text, href } = breadcrumbMenuItem(input, crumb);
-              return createElement(
-                AriaMenuItem as ElementType,
-                {
-                  key: crumb.id,
-                  id: crumb.id,
-                  href,
-                  textValue: text,
-                  className: "react-aria-MenuItem",
-                  "data-size": "M",
-                },
-                text,
-              );
-            }),
+            createElement(
+              AriaMenu as ElementType,
+              {
+                className: "react-aria-Menu",
+                "aria-label": "More items",
+                "data-size": "M",
+                onAction: trail
+                  ? (key: Key) => drill!.enter(String(key) || null)
+                  : onAction,
+              },
+              ...(collapse?.hidden ?? []).map(({ key, text, href }) => {
+                return createElement(
+                  AriaMenuItem as ElementType,
+                  {
+                    key,
+                    id: key,
+                    href,
+                    textValue: text,
+                    className: "react-aria-MenuItem",
+                    "data-size": "M",
+                  },
+                  text,
+                );
+              }),
+            ),
           ),
         ),
       ),
@@ -691,11 +737,12 @@ export function BreadcrumbsRun({
         menu(),
         ...renderAll(
           input,
-          crumbs.slice(1).filter((crumb) => !collapse.hidden.includes(crumb)),
+          crumbs.slice(Math.max(1, crumbs.length - measured!.visible)),
         ),
       ]
     : renderAll(input, crumbs);
-  return createElement(
+  // (A trail position's crumb shows its path text — its label Text reads it, `_cascaderCrumb`.)
+  const list = createElement(
     Breadcrumbs as ElementType,
     {
       ...marker(input),
@@ -711,7 +758,22 @@ export function BreadcrumbsRun({
       isDisabled,
       // (What the runtime adds on the element — a rule's `onAction` — reaches RAC.)
       ...authored,
+      onAction,
     },
     ...rendered,
   );
+  return trail
+    ? createElement(
+        CascaderCrumbTextContext.Provider,
+        {
+          value: new Map(
+            crumbs.map((crumb, index) => [
+              crumb.id,
+              trail.crumbs[positions[index]!]!.text,
+            ]),
+          ),
+        },
+        list,
+      )
+    : list;
 }

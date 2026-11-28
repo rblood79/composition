@@ -13,6 +13,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-326 Phase 3 — Cascader tree · drill 열린 목록을 원본 노드로] - 2026-11-28
+
+ADR-326 Phase 3 닫힘. 「tree」 · 「drill」 방식 Cascader 의 열린 목록도 원본의 노드 (Popover · 검색 칸 · 경로 줄 · 「뒤로」 버튼 · 목록 · 항목) 로 그린다 — 세 방식이 같은 구조다.
+
+### Changed
+
+- drill 의 경로 줄이 Breadcrumbs 컴포넌트 그대로다 — 간격 · 글자가 페이지의 Breadcrumbs 와 같고, 깊은 경로는 첫 단계 + 폴더 메뉴 + 끝 단계로 접히며 폴더 메뉴의 단계를 눌러 그 단계로 간다.
+- 항목에 쓴 모양 (배경 · 글자색 · 실행 중 숨김) 이 tree · drill 의 행에도 그려진다.
+- tree · drill 의 열린 상자 폭이 필드 폭과 같다 (columns 와 같은 열린 상자).
+- 한 단계에 행이 50 개가 넘는 목록은 보이는 행만 그린다 (1,000 행 단계도 Select 1,000 개 목록과 비슷하게 열린다 — drill 은 들어간 단계마다 정한다).
+- drill 경로 조각에 직접 넣은 글자는 경로 이름으로 덮이지 않는다 (조각의 앞 · 뒤 어디에 넣어도).
+- Breadcrumbs: 접힌 폴더 메뉴의 항목이 Breadcrumbs 의 동작 (`onAction`) 을 부르고, 조각이 좁은 줄에서 줄어들지 않는다 (S2 와 같게).
+
 ## [ADR-326 §4.3 개정 — Cascader 행을 항목 노드의 일반 렌더 경로로] - 2026-11-28
 
 ADR-326 §4.3 개정 (사용자 결정 「시제품 후 개정」). 「columns」 열린 목록의 각 행을 그 항목 노드의 catalog 렌더 경로로 그린다 — 보이는 행만 만드는 구조는 그대로다. 행이 상태 값 · size · 작성 style · 실행 중 style 을 다른 노드와 같은 길로 받는다.

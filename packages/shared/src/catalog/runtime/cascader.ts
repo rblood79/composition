@@ -1,6 +1,7 @@
 import type { CatalogCascaderLevels } from "./cascaderLevels";
 import { catalogSelectionCountText } from "../document/selectionCountValue";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { CASCADER_TRAIL_SLOTS } from "../document/cascaderOrigins";
 
 /**
  * ADR-322 — Cascader: a field that drills into a hierarchy (breakdown §4.2). Pure over consumer
@@ -438,4 +439,106 @@ export function catalogCascaderOfTriggerPart(
   if (!button || typeOf(button) !== "Button") return undefined;
   const field = get(button.parentId);
   return field && typeOf(field) === CASCADER_TYPE ? field : undefined;
+}
+
+/** The key of the trail's first crumb — the top level (no item's path id is empty). */
+export const CASCADER_TRAIL_ROOT = "";
+
+/**
+ * ADR-326 §4.4 — a `drill` level's trail: the whole path (`crumbs` — the field's label, then the
+ * level's ancestors down to it) and which crumb each of the four positions holds (`slots` — every
+ * crumb while four or fewer, else the first, the one before the last and the last in positions
+ * 1 · 3 · 4). The folder menu's crumbs are not chosen here — after the fit (Round 2 m5).
+ */
+export function cascaderTrail(
+  table: CascaderTable,
+  level: string | null,
+  rootLabel: string,
+): {
+  readonly crumbs: readonly { readonly key: string; readonly text: string }[];
+  readonly slots: readonly (number | undefined)[];
+} {
+  const crumbs: { key: string; text: string }[] = [];
+  for (
+    let at = level === null ? undefined : table.byPathId.get(level);
+    at;
+    at =
+      at.parentPathId === null ? undefined : table.byPathId.get(at.parentPathId)
+  )
+    crumbs.unshift({ key: at.pathId, text: at.name });
+  crumbs.unshift({ key: CASCADER_TRAIL_ROOT, text: rootLabel });
+  const last = crumbs.length - 1;
+  return {
+    crumbs,
+    slots:
+      crumbs.length <= CASCADER_TRAIL_SLOTS
+        ? Array.from({ length: CASCADER_TRAIL_SLOTS }, (_, index) =>
+            index <= last ? index : undefined,
+          )
+        : [0, undefined, last - 1, last],
+  };
+}
+
+/**
+ * ADR-326 §4.5 — what a just-opened field shows (the DOM's first state; the Canvas's open view in
+ * Phase 4): `tree` expands the picked items' ancestors, `drill` stands at the first picked item's
+ * level (the top without one). A key that names no single pickable item picks nothing.
+ */
+export function cascaderOpeningView(
+  table: CascaderTable,
+  keys: readonly string[],
+): { readonly expanded: ReadonlySet<string>; readonly level: string | null } {
+  const picked = keys.flatMap((key) => {
+    const match = cascaderValueMatch(table, key);
+    return match.kind === "item" ? [match.entry] : [];
+  });
+  const expanded = new Set<string>();
+  for (const entry of picked)
+    for (
+      let at = entry.parentPathId;
+      at !== null;
+      at = table.byPathId.get(at)?.parentPathId ?? null
+    )
+      expanded.add(at);
+  return { expanded, level: picked[0]?.parentPathId ?? null };
+}
+
+/** The Breadcrumb origin's label position — a trail crumb's derived words (ADR-326 §4.4). */
+const CASCADER_CRUMB_LABEL =
+  "lib:template:component-breadcrumb-item-default__label";
+
+/**
+ * ADR-326 §4.4 — a `drill` Cascader's trail crumb label: the origin's label Text of a Breadcrumb of the
+ * Breadcrumbs node in the field's Popover. Its text is the open level's path (the DOM's running level —
+ * `CascaderCrumbTextContext`).
+ */
+export function catalogCascaderTrailCrumbText(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): boolean {
+  if (typeOf(node) !== "Text") return false;
+  // (The place first — a few lookups up the parents; the crumb's children are read only for a
+  //  trail crumb, not for every Text's siblings.)
+  const crumb = get(node.parentId);
+  const trail =
+    crumb && typeOf(crumb) === "Breadcrumb" ? get(crumb.parentId) : undefined;
+  const popover =
+    trail && typeOf(trail) === "Breadcrumbs" ? get(trail.parentId) : undefined;
+  const field =
+    popover && typeOf(popover) === "Popover"
+      ? get(popover.parentId)
+      : undefined;
+  if (!crumb || !field || typeOf(field) !== CASCADER_TYPE) return false;
+  // (The crumb's label is the origin's Text — a Text the author put in keeps its words, before or
+  //  after it. A crumb given a child of its own holds copies of its parts (new ids, no template):
+  //  there the label is the first Text without words — the origin writes `""`, its words derived.)
+  const texts = crumb.children.flatMap((id) => {
+    const child = get(id);
+    return child && typeOf(child) === "Text" ? [child] : [];
+  });
+  const label =
+    texts.find((text) => text.sourceId === CASCADER_CRUMB_LABEL) ??
+    texts.find((text) => !(text.templateProps ?? text.props).children);
+  return label?.id === node.id;
 }

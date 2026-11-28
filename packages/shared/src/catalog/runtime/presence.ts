@@ -18,6 +18,7 @@ import {
   cascaderTableOf,
   cascaderValueText,
   catalogCascaderOfTriggerPart,
+  catalogCascaderTrailCrumbText,
 } from "./cascader";
 import { catalogStepDerived, catalogStepListDerived } from "./stepList";
 import {
@@ -3559,6 +3560,10 @@ function derivedPropsBeforeSkeleton(
       ? { isDisabled: true }
       : {}),
     ...pickerPart,
+    // (ADR-326 §4.4 — a `drill` Cascader's trail crumb label: the open level's path text, DOM.)
+    ...(catalogCascaderTrailCrumbText(node, get, typeOf)
+      ? { _cascaderCrumb: true }
+      : {}),
     // (ADR-315 Phase 4 — a pinned Table column's edge: the Column · Cell rule's `pinned-edge` line.
     //  The column projection marks the record, `tableColumns.ts`.)
     ...(node.props[CATALOG_COLUMN_PINNED_EDGE_PROP] === true &&

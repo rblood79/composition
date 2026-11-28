@@ -78,17 +78,23 @@ export function catalogBreadcrumbMenuGlyphs(
  * (`widths` — each crumb box with every crumb shown, the last one current) and are at most four;
  * otherwise as many trailing crumbs (1 · 2) as fit after the first crumb and the folder button.
  * S2 measures `offsetWidth + 1` per crumb and the list's `offsetWidth` · `gap` as integers.
+ * `total` = the crumbs of the whole path when only some are laid out (ADR-326 §4.4 — a Cascader
+ * trail's four positions: the first and the last two of a longer path) — more than four collapse.
  */
 export function catalogBreadcrumbsVisibleCount(
   widths: readonly number[],
   listWidth: number,
   gap: number,
   folderWidth: number,
+  total = widths.length,
 ): number {
-  const size = widths.length;
+  const size = total;
   if (!size) return 0;
   // (A list with no laid-out box — no layout yet, a jsdom document — keeps every crumb.)
-  if (!(listWidth > 0)) return size;
+  if (!(listWidth > 0))
+    return size <= MAX_VISIBLE_ITEMS
+      ? widths.length
+      : Math.min(MAX_VISIBLE_ITEMS - 2, widths.length - 1);
   const crumbs = widths.map((width) => Math.floor(width) + 1);
   const containerWidth = Math.floor(listWidth);
   const containerGap = Math.floor(gap);
@@ -97,7 +103,7 @@ export function catalogBreadcrumbsVisibleCount(
     totalWidth <= containerWidth - size * containerGap &&
     size <= MAX_VISIBLE_ITEMS
   )
-    return size;
+    return widths.length;
   const [widthOfFirst, ...rest] = crumbs;
   // (S2's folder gap is the hidden ActionButton's start margin — 0.)
   let availableWidth =

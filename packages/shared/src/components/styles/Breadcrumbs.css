@@ -19,6 +19,8 @@
     .react-aria-Breadcrumb {
       display: inline-flex;
       align-items: center;
+      /* S2 `breadcrumbStyles` `flexShrink: 0` (catalog `Breadcrumb.containerStyles`). */
+      flex-shrink: 0;
       gap: calc(
         1em *
           (

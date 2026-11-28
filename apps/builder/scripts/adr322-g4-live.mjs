@@ -342,14 +342,44 @@ try {
   await field(0).locator("button").first().click();
   await pub.waitForSelector('[role="menu"]', { timeout: 10000 });
   await settle(pub, 400);
-  const firstLevel = await pub
-    .locator('[role="menu"]')
-    .first()
-    .locator('[role^="menuitem"]')
-    .count();
+  // (A level over 50 rows draws the rows in view — ADR-326 Phase 3: the first and, scrolled to the
+  //  end, the last of the 120.)
+  const menuRows = () =>
+    pub.evaluate(() =>
+      [
+        ...document
+          .querySelector('[role="menu"]')
+          .querySelectorAll('[role^="menuitem"]'),
+      ].map((row) => row.textContent.trim()),
+    );
+  const top = await menuRows();
+  // (Scroll down a box at a time, gathering every row drawn on the way.)
+  const seen = new Set(top);
+  for (let i = 0; i < 80; i++) {
+    const moved = await pub.evaluate(() => {
+      const menu = document.querySelector('[role="menu"]');
+      const before = menu.scrollTop;
+      menu.scrollTop = before + menu.clientHeight;
+      return menu.scrollTop !== before;
+    });
+    await settle(pub, 120);
+    for (const row of await menuRows()) seen.add(row);
+    if (!moved) break;
+  }
+  const all = [...seen].sort();
+  const firstLevel = {
+    first: top[0],
+    last: all[all.length - 1],
+    count: all.length,
+    drawn: top.length,
+  };
   record(
-    "1 평면 표 120 행 — 값 「R120 / R120-1」 · 첫 단계 항목 120",
-    flatValue === "R120 / R120-1" && firstLevel === 120,
+    "1 평면 표 120 행 — 값 「R120 / R120-1」 · 첫 단계 R001 … R120 (보이는 행만 그림)",
+    flatValue === "R120 / R120-1" &&
+      firstLevel.first === "R001" &&
+      firstLevel.last === "R120" &&
+      firstLevel.count === 120 &&
+      firstLevel.drawn < 120,
     { flatValue, firstLevel },
   );
   await pub.keyboard.press("Escape");

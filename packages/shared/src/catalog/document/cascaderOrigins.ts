@@ -262,7 +262,7 @@ export const CASCADER_TEMPLATES: readonly LibraryTemplateNode[] = [
     crumb(index + 1),
   ),
   {
-    // (Quiet, icon only — one level up; its name is the i18n 「Back」.)
+    // (Quiet, icon only — one level up; its name is the i18n 「Back」 the field's `back` slot gives.)
     id: `${T}__back`,
     definitionId: "lib:definition:origin-component-actionbutton",
     children: [],
@@ -271,7 +271,6 @@ export const CASCADER_TEMPLATES: readonly LibraryTemplateNode[] = [
       isQuiet: true,
       label: "",
       icon: "chevron-left",
-      "aria-label": "Back",
     },
     presentWith: CASCADER_DRILL_BINDING,
     visual: {},

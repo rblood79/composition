@@ -206,6 +206,12 @@ try {
   await pub.keyboard.press("Enter");
   await pub.waitForSelector('[role="grid"]', { timeout: 10000 });
   await settle(pub, 400);
+  // (The search field takes focus on open — always there, 2026-11-28 사용자 결정; Tab into the level,
+  //  as the tree's step does. ADR-326 Phase 3 G3.)
+  if (!/^row:/.test(await focused(pub))) {
+    await pub.keyboard.press("Tab");
+    await settle(pub);
+  }
   const drillFirst = await focused(pub);
   await pub.keyboard.press("Enter");
   await settle(pub, 300);
@@ -219,7 +225,7 @@ try {
   await pub.keyboard.press("Enter");
   await settle(pub, 600);
   record(
-    "D1 drill — Enter 로 열기 (첫 행 focus) · Enter 들어가기 · ↓ Enter · Enter 고르기 → 닫힘 · 값",
+    "D1 drill — Enter 로 열기 (검색 칸 → Tab 첫 행) · Enter 들어가기 · ↓ Enter · Enter 고르기 → 닫힘 · 값",
     /Electronics/.test(drillFirst) &&
       /Computers/.test(drillSecond) &&
       /Smartphones/.test(drillThird) &&

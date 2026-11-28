@@ -1,20 +1,16 @@
-import { withCascaderOverlay } from "./cascaderOverlay.components";
-import { useContext, useState, type ReactElement } from "react";
-import { Breadcrumb, Breadcrumbs } from "react-aria-components/Breadcrumbs";
-import { Button } from "react-aria-components/Button";
+import { useContext, useState, type ReactElement, type ReactNode } from "react";
+import { Provider } from "react-aria-components";
 import {
-  Dialog,
-  OverlayTriggerStateContext,
-} from "react-aria-components/Dialog";
+  FieldInputContext,
+  SelectableCollectionContext,
+} from "react-aria-components/Autocomplete";
+import { Button } from "react-aria-components/Button";
+import { OverlayTriggerStateContext } from "react-aria-components/Dialog";
 import { GridList, GridListItem } from "react-aria-components/GridList";
-import { Link } from "react-aria-components/Link";
-import { Popover } from "react-aria-components/Popover";
 import { Tree, TreeItem, TreeItemContent } from "react-aria-components/Tree";
 import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
-import { Icon } from "../../components/Icon";
 import type { CascaderEntry } from "./cascader";
-import type { CascaderContentProps } from "./cascader.components";
-import { CascaderSearch } from "./cascaderSearch.components";
+import type { CascaderListBodyProps } from "./cascaderMenu.components";
 import {
   cascaderPicked,
   CASCADER_LEVEL_ITEM,
@@ -23,47 +19,89 @@ import {
   useCascaderLevelStatus,
   useCascaderLevels,
 } from "./cascaderOpen";
-import { useCatalogLocalized } from "./localizedStrings";
 
 /**
- * ADR-322 Phase 3 — a Cascader's open content in the `tree` and `drill` modes (breakdown §3): RAC
- * `Popover` > `Dialog` (the field's `DialogTrigger` contexts — named by its trigger) >
+ * ADR-326 Phase 3 — the `CascaderList` node's content in the `tree` and `drill` modes (the field's
+ * Popover node > RAC `Dialog` — the search scope's, `cascaderMenu.components.tsx`):
  *
- * - `tree`: RAC `Tree` in RAC `Virtualizer` (Phase 0 P4 — 5,000 items drawn whole exceed HC5, the
- *   virtualized tree opens at ×0.07 of the Select baseline) — only expanded branches' items are in
- *   the collection (Phase 5 G5); the picked item's ancestors start expanded; a branch row expands
- *   (RAC's arrows · chevron), a leaf row is picked.
- * - `drill`: RAC `Breadcrumbs` (the way back to any level) + a back `Button` + RAC `GridList` of the
- *   current level — a row's action goes into a branch or picks a leaf; the list keeps focus as the
- *   level changes (`autoFocus`).
+ * - `tree`: RAC `Tree` (the node's element) in RAC `Virtualizer` (ADR-322 Phase 0 P4 — 5,000 items
+ *   drawn whole exceed HC5) — only expanded branches' items are in the collection; the picked item's
+ *   ancestors start expanded (`cascaderOpeningView`); a branch row expands (RAC's arrows · chevron
+ *   button), a leaf row is picked.
+ * - `drill`: RAC `GridList` (the node's element) of the current level — the level is the search
+ *   scope's (its trail · 「Back」 nodes move it too); a row's action goes into a branch or picks a leaf.
  *
- * Both lists take `escapeKeyBehavior: "none"` (Phase 0 finding 1 — with a selection, RAC's default
- * spends Esc on clearing it and the popover does not close). Items are known by path id; an item
- * whose key another item carries cannot be picked (`disabledKeys`, Decision 4). The picked value is
- * RAC's single selection (controlled — a branch's selection is not a value and changes nothing).
+ * A row is its item record drawn by the catalog renderer (§4.3 개정 — the same `cascaderitem` path as
+ * the `columns` rows): its props and parts as a RAC `TreeItem` · `GridListItem`. Rows without a record
+ * (「<branch> 전체」 · a level's status) take the item's class and size. Both lists take
+ * `escapeKeyBehavior: "none"` (ADR-322 Phase 0 — with a selection RAC's default spends Esc on clearing
+ * it). Items are known by path id; an item whose key another item carries cannot be picked.
  */
+
+/**
+ * ADR-326 Phase 3 HC5 — a level of more rows than this draws the rows in view (RAC `Virtualizer`):
+ * each row is its record drawn by the catalog renderer — a level of a thousand drawn whole took ×3 a
+ * Select 1,000's open. A shorter one is drawn whole: its height follows its rows, and a measuring
+ * virtualizer resizing its own scroll box loops the ResizeObserver (WebKit reports it as an error).
+ */
+const CASCADER_VIRTUAL_ROWS = 50;
+
+/**
+ * A level's list, in a virtualizer when it holds more rows than `CASCADER_VIRTUAL_ROWS` as it mounts
+ * — decided once: a virtualizer put in around a mounted list (a level's rows arriving later) remounts
+ * it, and the row holding focus goes.
+ */
+export function CascaderInView({
+  rows,
+  children,
+}: {
+  readonly rows: number;
+  readonly children: ReactElement;
+}): ReactElement {
+  const [inView] = useState(() => rows > CASCADER_VIRTUAL_ROWS);
+  return inView ? (
+    <Virtualizer layout={ListLayout} layoutOptions={{ estimatedRowHeight: 32 }}>
+      {children}
+    </Virtualizer>
+  ) : (
+    children
+  );
+}
 
 /** The stand-in child of a closed tree branch (never drawn — a closed branch's rows are hidden). */
 const CASCADER_COLLAPSED_ITEM = "\u001eclosed";
 
-const BACK: Readonly<Record<string, string>> = {
-  en: "Back",
-  ko: "뒤로",
-};
+/**
+ * A collection off the search's RAC `Autocomplete` (the drill level · the trail's folder Menu): on it
+ * the input's virtual focus goes to that collection — the results' Menu lost it, the folder Menu's
+ * press did not reach its item.
+ */
+export const isolate = (node: ReactNode): ReactElement => (
+  <Provider
+    values={[
+      [SelectableCollectionContext, null],
+      [FieldInputContext, null],
+    ]}
+  >
+    {node}
+  </Provider>
+);
+
+type BodyProps = CascaderListBodyProps;
+
+/** A row without a record (「전체」 · a status · an item no node draws): the item's class and size. */
+export const plainRow = (base: Record<string, unknown>) => ({
+  className: "react-aria-CascaderItem",
+  "data-size": base["data-size"],
+});
 
 /**
  * The shared part: the picked items, the items that cannot be picked, and a pick (single: the value,
- * then the popover closes; multiple: a toggle — 사용자 결정 3). A selection change (Space · a row press)
- * picks what it added or removed — only pickable items (a leaf, any item while branches are —
- * 사용자 결정 2).
+ * then the popover closes; multiple: a toggle — ADR-322 사용자 결정 3). A selection change (Space · a
+ * row press) picks what it added or removed — only pickable items.
  */
-function usePanel({
-  table,
-  keys,
-  multiple,
-  onPick,
-  levels,
-}: CascaderContentProps) {
+function usePanel({ open }: BodyProps) {
+  const { table, keys, multiple, onPick, levels } = open;
   const state = useContext(OverlayTriggerStateContext);
   useCascaderLevels(levels);
   const picked = cascaderPicked(table, keys);
@@ -86,16 +124,17 @@ function usePanel({
         : key,
     );
   };
-  // (Phase 6 — a branch whose level is not here yet: opening it asks it; its one status row is
-  //  「Loading…」 (disabled) or 「Retry」.)
+  // (ADR-322 Phase 6 — a branch whose level is not here yet: opening it asks it; its one status row
+  //  is 「Loading…」 (disabled) or 「Retry」.)
   const waits = (entry: CascaderEntry | undefined) =>
-    !!entry && !!levels && entry.hasChildren && !childrenOf(entry.pathId).length;
-  const statusOf = (id: string) =>
-    id.endsWith(CASCADER_LEVEL_STATUS)
+    !!entry &&
+    !!levels &&
+    entry.hasChildren &&
+    !childrenOf(entry.pathId).length;
+  const retry = (id: string) => {
+    const branch = id.endsWith(CASCADER_LEVEL_STATUS)
       ? table.byPathId.get(id.slice(0, -CASCADER_LEVEL_STATUS.length))
       : undefined;
-  const retry = (id: string) => {
-    const branch = statusOf(id);
     if (branch) levels?.load(branch.levelKey);
     return !!branch;
   };
@@ -103,8 +142,7 @@ function usePanel({
     if (selection === "all") return;
     const next = new Set([...(selection as Iterable<unknown>)].map(String));
     const before = new Set(picked.map((entry) => entry.pathId));
-    for (const id of next)
-      if (!before.has(id) && !retry(id)) pick(entryOf(id));
+    for (const id of next) if (!before.has(id) && !retry(id)) pick(entryOf(id));
     if (multiple)
       for (const id of before) if (!next.has(id)) pick(table.byPathId.get(id));
   };
@@ -117,150 +155,128 @@ function usePanel({
     onSelectionChange,
     waits,
     retry,
-    close: () => state?.close(),
   };
 }
 
-/** The levels under the search field (Phase 5 — breakdown §4.4; always there — 2026-11-28 사용자 결정). */
-const withSearch = (
-  props: CascaderContentProps,
-  close: () => void,
-  levels: ReactElement,
-): ReactElement => (
-  <CascaderSearch
-    content={props}
-    separator={props.separator}
-    inside={false}
-    onPicked={close}
-    levels={levels}
-  />
-);
-
-function CascaderTree(props: CascaderContentProps): ReactElement {
-  const { table, label, multiple, levels } = props;
-  const { picked, blocked, childrenOf, onSelectionChange, waits, close } =
+export function CascaderTreeBody(props: BodyProps): ReactElement | null {
+  const { open, base, Row, renderRow, view } = props;
+  const { table, label, multiple, levels } = open;
+  const { picked, blocked, childrenOf, onSelectionChange, waits } =
     usePanel(props);
   const status = useCascaderLevelStatus();
-  const statusRow = (entry: CascaderEntry): ReactElement => {
-    const text =
-      levels?.stateOf(entry.levelKey) === "error"
-        ? status.retry
-        : status.loading;
-    return (
-      <TreeItem
-        key={`${entry.pathId}${CASCADER_LEVEL_STATUS}`}
-        id={`${entry.pathId}${CASCADER_LEVEL_STATUS}`}
-        textValue={text}
-      >
-        <TreeItemContent>{text}</TreeItemContent>
-      </TreeItem>
-    );
-  };
-  const ancestors = new Set<string>();
-  for (const entry of picked)
-    for (
-      let at = entry.parentPathId;
-      at !== null;
-      at = table.byPathId.get(at)?.parentPathId ?? null
-    )
-      ancestors.add(at);
   // (Only an expanded branch's items go into RAC's collection — 5,000 items in four levels open as
-  //  the first level's few: G5 HC5. A closed branch holds one stand-in child: RAC 1.22.1's
+  //  the first level's few: ADR-322 G5 HC5. A closed branch holds one stand-in child: RAC 1.22.1's
   //  `useTreeItem` counts child nodes for `aria-expanded` · → (TreeItem's `hasChildItems` only draws
-  //  the chevron), and a closed branch's children are never drawn — expanding swaps in the real ones.)
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(
-    () => ancestors,
-  );
-  const collapsedChild = (entry: CascaderEntry): ReactElement => (
-    <TreeItem
-      key={`${entry.pathId}${CASCADER_COLLAPSED_ITEM}`}
-      id={`${entry.pathId}${CASCADER_COLLAPSED_ITEM}`}
-      textValue=""
-    >
-      <TreeItemContent>{null}</TreeItemContent>
+  //  the chevron), and a closed branch's children are never drawn — expanding swaps in the real ones.
+  //  The expanded set is the search scope's — it outlives a search.)
+  if (!view) return null;
+  const { expanded, setExpanded } = view;
+  const plain = (id: string, text: string): ReactElement => (
+    <TreeItem {...plainRow(base)} key={id} id={id} textValue={text}>
+      <TreeItemContent>{text}</TreeItemContent>
     </TreeItem>
   );
+  const statusRow = (entry: CascaderEntry): ReactElement =>
+    plain(
+      `${entry.pathId}${CASCADER_LEVEL_STATUS}`,
+      levels?.stateOf(entry.levelKey) === "error"
+        ? status.retry
+        : status.loading,
+    );
+  const nested = (entry: CascaderEntry): ReactElement | null =>
+    entry.hasChildren ? (
+      expanded.has(entry.pathId) ? (
+        waits(entry) ? (
+          statusRow(entry)
+        ) : (
+          <>{items(entry)}</>
+        )
+      ) : (
+        plain(`${entry.pathId}${CASCADER_COLLAPSED_ITEM}`, "")
+      )
+    ) : null;
+  // (A branch's chevron button holds its record's chevron Icon — RAC Tree's expand button; a leaf
+  //  draws none.)
   const items = (parent: CascaderEntry | null): ReactElement[] =>
-    childrenOf(parent?.pathId ?? null).map((entry) => (
-      <TreeItem
-        key={entry.pathId}
-        id={entry.pathId}
-        textValue={entry.name}
-        hasChildItems={entry.hasChildren}
-      >
-        <TreeItemContent>
-          {({ hasChildItems }) => (
-            <>
-              {hasChildItems ? (
-                <Button slot="chevron">
-                  <Icon iconName="chevron-right" />
-                </Button>
-              ) : null}
-              {entry.name}
-            </>
-          )}
-        </TreeItemContent>
-        {entry.hasChildren
-          ? expanded.has(entry.pathId)
-            ? waits(entry)
-              ? statusRow(entry)
-              : items(entry)
-            : collapsedChild(entry)
-          : null}
-      </TreeItem>
-    ));
-  return (
-    <Popover className="react-aria-Popover cascader-panel">
-      <Dialog>
-        {withSearch(
-          props,
-          close,
-          <Virtualizer
-            layout={ListLayout}
-            layoutOptions={{ estimatedRowHeight: 32 }}
-          >
-            <Tree
-              aria-label={label}
-              // (The search field takes focus on open — Phase 5; ↓ moves into the list.)
-              selectionMode={multiple ? "multiple" : "single"}
-              selectedKeys={picked.map((entry) => entry.pathId)}
-              disabledKeys={[
-                ...blocked,
-                ...[...expanded].flatMap((id) => {
-                  const entry = table.byPathId.get(id);
-                  return entry &&
-                    waits(entry) &&
-                    levels?.stateOf(entry.levelKey) !== "error"
-                    ? [`${id}${CASCADER_LEVEL_STATUS}`]
-                    : [];
-                }),
-              ]}
-              expandedKeys={expanded}
-              onExpandedChange={(keys) => {
-                const next = new Set([...keys].map(String));
-                // (Phase 6 — an expanded branch whose level is not here asks it.)
-                for (const id of next)
-                  if (!expanded.has(id)) {
-                    const entry = table.byPathId.get(id);
-                    if (waits(entry)) levels?.load(entry!.levelKey);
-                  }
-                setExpanded(next);
-              }}
-              escapeKeyBehavior="none"
-              onSelectionChange={onSelectionChange}
-              style={{ maxHeight: 320, overflow: "auto" }}
+    childrenOf(parent?.pathId ?? null).map((entry) =>
+      entry.recordId ? (
+        <Row
+          key={entry.pathId}
+          value={(row) => (
+            <TreeItem
+              {...row.props}
+              id={entry.pathId}
+              textValue={entry.name}
+              hasChildItems={entry.hasChildren}
             >
-              {items(null)}
-            </Tree>
-          </Virtualizer>,
-        )}
-      </Dialog>
-    </Popover>
+              <TreeItemContent>
+                {entry.hasChildren ? (
+                  <Button key="chevron" slot="chevron">
+                    {row.chevron}
+                  </Button>
+                ) : null}
+                {row.parts.filter((part) => !row.chevron.includes(part))}
+              </TreeItemContent>
+              {nested(entry)}
+            </TreeItem>
+          )}
+        >
+          {renderRow(entry.recordId)}
+        </Row>
+      ) : (
+        <TreeItem
+          {...plainRow(base)}
+          key={entry.pathId}
+          id={entry.pathId}
+          textValue={entry.name}
+          hasChildItems={entry.hasChildren}
+        >
+          <TreeItemContent>{entry.name}</TreeItemContent>
+          {nested(entry)}
+        </TreeItem>
+      ),
+    );
+  return (
+    <CascaderInView rows={table.entries.length}>
+      <Tree
+        {...base}
+        aria-label={label}
+        selectionMode={multiple ? "multiple" : "single"}
+        selectedKeys={picked.map((entry) => entry.pathId)}
+        disabledKeys={[
+          ...blocked,
+          ...[...expanded].flatMap((id) => {
+            const entry = table.byPathId.get(id);
+            return entry &&
+              waits(entry) &&
+              levels?.stateOf(entry.levelKey) !== "error"
+              ? [`${id}${CASCADER_LEVEL_STATUS}`]
+              : [];
+          }),
+        ]}
+        expandedKeys={expanded}
+        onExpandedChange={(next) => {
+          const shown = new Set([...next].map(String));
+          // (ADR-322 Phase 6 — an expanded branch whose level is not here asks it.)
+          for (const id of shown)
+            if (!expanded.has(id)) {
+              const entry = table.byPathId.get(id);
+              if (waits(entry)) levels?.load(entry!.levelKey);
+            }
+          setExpanded(shown);
+        }}
+        escapeKeyBehavior="none"
+        onSelectionChange={onSelectionChange}
+      >
+        {items(null)}
+      </Tree>
+    </CascaderInView>
   );
 }
 
-function CascaderDrill(props: CascaderContentProps): ReactElement {
-  const { table, label, multiple } = props;
+export function CascaderDrillBody(props: BodyProps): ReactElement | null {
+  const { open, base, Row, renderRow, view } = props;
+  const { table, label, multiple, levels } = open;
   const {
     picked,
     blocked,
@@ -270,34 +286,15 @@ function CascaderDrill(props: CascaderContentProps): ReactElement {
     onSelectionChange,
     waits,
     retry,
-    close,
   } = usePanel(props);
-  const back = useCatalogLocalized(BACK);
   const status = useCascaderLevelStatus();
-  const { levels } = props;
   const levelName = useCascaderLevelName();
-  const [level, setLevelState] = useState<string | null>(
-    picked[0]?.parentPathId ?? null,
-  );
-  // (The search field takes focus on open; once a level changes the list — remounted by its key —
-  //  takes it: the picked row, else the first, RAC's `autoFocus`.)
-  const [moved, setMoved] = useState(false);
-  const setLevel = (next: string | null) => {
-    setMoved(true);
-    setLevelState(next);
-  };
+  if (!view) return null;
+  const { level, moved, enter } = view;
   const parent = level === null ? undefined : table.byPathId.get(level);
-  // (Phase 6 — a level entered whose items are not here yet asks them.)
-  const enter = (entry: CascaderEntry) => {
-    if (waits(entry)) levels?.load(entry.levelKey);
-    setLevel(entry.pathId);
-  };
   const statusId = parent ? `${parent.pathId}${CASCADER_LEVEL_STATUS}` : "";
   const failed = !!parent && levels?.stateOf(parent.levelKey) === "error";
-  const trail: CascaderEntry[] = [];
-  for (let at = parent; at; at = table.byPathId.get(at.parentPathId ?? ""))
-    trail.unshift(at);
-  // (사용자 결정 2 — a pickable branch's own row first in its level: 「<branch> 전체」.)
+  // (ADR-322 사용자 결정 2 — a pickable branch's own row first in its level: 「<branch> 전체」.)
   const own = parent?.pickable
     ? `${parent.pathId}${CASCADER_LEVEL_ITEM}`
     : undefined;
@@ -307,110 +304,70 @@ function CascaderDrill(props: CascaderContentProps): ReactElement {
       .map((entry) => entry.pathId),
     ...(own && parent && picked.includes(parent) ? [own] : []),
   ];
-  return (
-    <Popover className="react-aria-Popover cascader-panel">
-      <Dialog>
-        {withSearch(
-          props,
-          close,
-          <>
-            <Breadcrumbs>
-              <Breadcrumb id="">
-                <Link onPress={() => setLevel(null)}>{label}</Link>
-              </Breadcrumb>
-              {trail.map((entry) => (
-                <Breadcrumb key={entry.pathId} id={entry.pathId}>
-                  <Icon iconName="chevron-right" />
-                  <Link onPress={() => enter(entry)}>
-                    {entry.name}
-                  </Link>
-                </Breadcrumb>
-              ))}
-            </Breadcrumbs>
-            <Button
-              className="react-aria-Button cascader-back"
-              aria-label={back}
-              isDisabled={!parent}
-              onPress={() => setLevel(parent?.parentPathId ?? null)}
-            >
-              <Icon iconName="chevron-left" />
-            </Button>
-            <GridList
-              key={level ?? ""}
-              aria-label={parent ? parent.name : label}
-              autoFocus={
-                moved ? (selected.length ? true : "first") : undefined
-              }
-              escapeKeyBehavior="none"
-              selectionMode={multiple ? "multiple" : "single"}
-              selectedKeys={selected}
-              disabledKeys={[
-                ...blocked,
-                ...(own && parent && (parent.duplicate || parent.isDisabled)
-                  ? [own]
-                  : []),
-                ...(waits(parent) && !failed ? [statusId] : []),
-              ]}
-              onSelectionChange={onSelectionChange}
-              onAction={(key) => {
-                if (retry(String(key))) return;
-                const entry = entryOf(key);
-                if (
-                  !String(key).endsWith(CASCADER_LEVEL_ITEM) &&
-                  entry?.hasChildren
-                )
-                  enter(entry);
-                else pick(entry);
-              }}
-            >
-              {[
-                ...(own && parent
-                  ? [
-                      <GridListItem
-                        key={own}
-                        id={own}
-                        textValue={levelName(parent.name)}
-                      >
-                        {levelName(parent.name)}
-                      </GridListItem>,
-                    ]
-                  : []),
-                ...(waits(parent)
-                  ? [
-                      <GridListItem
-                        key={statusId}
-                        id={statusId}
-                        textValue={failed ? status.retry : status.loading}
-                      >
-                        {failed ? status.retry : status.loading}
-                      </GridListItem>,
-                    ]
-                  : []),
-                ...childrenOf(level).map((entry) => (
+  const plain = (id: string, text: string): ReactElement => (
+    <GridListItem {...plainRow(base)} key={id} id={id} textValue={text}>
+      {text}
+    </GridListItem>
+  );
+  // (The level keeps its own focus — off the search's RAC `Autocomplete`, as before ADR-326: on it the
+  //  input's virtual focus went to the grid and stayed off when the results' Menu took its place.)
+  return isolate(
+    // (A level changed — the list remounts and, once the user moved, takes focus: the picked row,
+    //  else the first, RAC's `autoFocus`; on open the search field has it. The key is on the
+    //  virtualizer's choice too — a level decides it for its own rows.)
+    <CascaderInView key={level ?? ""} rows={childrenOf(level).length}>
+      <GridList
+        {...base}
+        aria-label={parent ? parent.name : label}
+        autoFocus={moved ? (selected.length ? true : "first") : undefined}
+        escapeKeyBehavior="none"
+        selectionMode={multiple ? "multiple" : "single"}
+        selectedKeys={selected}
+        disabledKeys={[
+          ...blocked,
+          ...(own && parent && (parent.duplicate || parent.isDisabled)
+            ? [own]
+            : []),
+          ...(waits(parent) && !failed ? [statusId] : []),
+        ]}
+        onSelectionChange={onSelectionChange}
+        onAction={(key) => {
+          if (retry(String(key))) return;
+          const entry = entryOf(key);
+          if (!String(key).endsWith(CASCADER_LEVEL_ITEM) && entry?.hasChildren)
+            enter(entry.pathId);
+          else pick(entry);
+        }}
+      >
+        {[
+          ...(own && parent ? [plain(own, levelName(parent.name))] : []),
+          ...(waits(parent)
+            ? [plain(statusId, failed ? status.retry : status.loading)]
+            : []),
+          ...childrenOf(level).map((entry) =>
+            entry.recordId ? (
+              <Row
+                key={entry.pathId}
+                value={(row) => (
                   <GridListItem
-                    key={entry.pathId}
+                    {...row.props}
                     id={entry.pathId}
                     textValue={entry.name}
                   >
-                    {entry.name}
-                    {entry.hasChildren ? (
-                      <Icon iconName="chevron-right" slot="descriptor" />
-                    ) : null}
+                    {entry.hasChildren
+                      ? row.parts
+                      : row.parts.filter((part) => !row.chevron.includes(part))}
                   </GridListItem>
-                )),
-              ]}
-            </GridList>
-          </>,
-        )}
-      </Dialog>
-    </Popover>
+                )}
+              >
+                {renderRow(entry.recordId)}
+              </Row>
+            ) : (
+              plain(entry.pathId, entry.name)
+            ),
+          ),
+        ]}
+      </GridList>
+    </CascaderInView>,
   );
 }
-
-export default withCascaderOverlay(({ mode, ...content }) =>
-  mode === "tree" ? (
-    <CascaderTree {...content} />
-  ) : (
-    <CascaderDrill {...content} />
-  ),
-);

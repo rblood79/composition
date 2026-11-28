@@ -2224,11 +2224,13 @@ function overlayExternalPartRules(parentType: string): CompiledPartRule[] {
     if (Object.keys(result.visual).length || Object.keys(result.layout).length)
       out.push({ childType, ...(via ? { via } : {}), ...result });
   };
+  // (A block of the Popover box itself — its trigger, then attribute conditions only: a block for
+  //  something inside it (a Cascader's `:has(…) :is(…)` while searching) is not the box's.)
+  const box = `.react-aria-Popover[data-trigger="${parentType}"]`;
   for (const block of blocks) {
     if (
-      !block.selector.includes(
-        `.react-aria-Popover[data-trigger="${parentType}"]`,
-      )
+      !block.selector.startsWith(box) ||
+      !/^(?:\[[^\]]+\])*$/.test(block.selector.slice(box.length))
     )
       continue;
     compile("Popover", block.styles as Record<string, string>);

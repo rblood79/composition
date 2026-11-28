@@ -1,5 +1,8 @@
 import { catalogS2RacProps } from "../bindings/s2RacProps";
-import { CatalogCascaderValue } from "./cascader.components";
+import {
+  CatalogCascaderCrumbText,
+  CatalogCascaderValue,
+} from "./cascader.components";
 import type { CatalogFilterBarAccess } from "./filterBarAccess";
 import type { CatalogCascaderLevels } from "./cascaderLevels";
 import { catalogResizableLayout } from "./resizablePanels";
@@ -1520,7 +1523,13 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             const words =
               node.derivedProps?.isSkeleton === true
                 ? catalogSkeletonText(text)
-                : text;
+                : node.derivedProps?._cascaderCrumb === true
+                  ? // (ADR-326 §4.4 — a trail crumb's text: the open level's path.)
+                    createElement(CatalogCascaderCrumbText, {
+                      crumb: node.parentId,
+                      fallback: text,
+                    })
+                  : text;
             return detachedSlot(resolution)
               ? createElement(
                   element,

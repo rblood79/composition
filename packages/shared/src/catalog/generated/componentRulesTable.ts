@@ -1630,128 +1630,6 @@ const BUTTON_GROUP_CONTAINER_STYLES = {
 } satisfies ComponentRule["containerStyles"];
 
 /**
- * ADR-322 Phase 3 — the look of a Cascader's `tree` · `drill` panel (`.react-aria-Popover.cascader-panel`):
- * rows as the field's M control (`size.height.M` · `text-sm`), the focus paint of a collection item,
- * the Tree's level indent and a quiet chevron that turns when expanded, the drill's quiet back button
- * and breadcrumb row.
- */
-const CASCADER_PANEL_STYLES = [
-  {
-    selector: ".react-aria-Popover.cascader-panel",
-    styles: { "min-width": "var(--trigger-width)" },
-    nested: [
-      {
-        selector: ".react-aria-Dialog",
-        styles: {
-          display: "flex",
-          "flex-direction": "column",
-          gap: "var(--spacing-xs)",
-          padding: "var(--spacing-xs)",
-          outline: "none",
-        },
-      },
-      {
-        selector: ":is(.react-aria-Tree, .react-aria-GridList)",
-        styles: {
-          width: "100%",
-          display: "flex",
-          "flex-direction": "column",
-          outline: "none",
-          border: "none",
-        },
-      },
-      {
-        selector: ":is(.react-aria-TreeItem, .react-aria-GridListItem)",
-        styles: {
-          display: "flex",
-          "align-items": "center",
-          gap: "var(--spacing-xs)",
-          "min-height": "var(--catalog-token-size-height-M)",
-          padding: "0 var(--spacing-sm)",
-          "border-radius": "var(--catalog-token-radius-md)",
-          "font-size": "var(--catalog-token-text-sm)",
-          color: "var(--fg)",
-          outline: "none",
-          cursor: "default",
-        },
-      },
-      {
-        selector: ".react-aria-TreeItem",
-        styles: {
-          "padding-left":
-            "calc((var(--tree-item-level, 1) - 1) * var(--spacing-md) + var(--spacing-sm))",
-        },
-      },
-      {
-        selector:
-          ":is(.react-aria-TreeItem, .react-aria-GridListItem):is([data-focused], [data-hovered])",
-        styles: { background: "var(--collection-item-focus)" },
-      },
-      {
-        selector:
-          ":is(.react-aria-TreeItem, .react-aria-GridListItem)[data-selected]",
-        // (ADR-290 — a DOM state's accent text is the content role.)
-        styles: { color: "var(--accent-content)", "font-weight": "700" },
-      },
-      {
-        selector:
-          ":is(.react-aria-TreeItem, .react-aria-GridListItem)[data-disabled]",
-        styles: { color: "var(--fg-muted)" },
-      },
-      {
-        selector: ':is(.react-aria-Button[slot="chevron"], .cascader-back)',
-        styles: {
-          display: "inline-flex",
-          "align-items": "center",
-          "justify-content": "center",
-          width: "var(--spacing-xl)",
-          height: "var(--spacing-xl)",
-          padding: "0",
-          border: "none",
-          background: "transparent",
-          color: "inherit",
-          "border-radius": "var(--catalog-token-radius-sm)",
-        },
-      },
-      {
-        selector:
-          '.react-aria-TreeItem[data-expanded] .react-aria-Button[slot="chevron"] .react-aria-Icon',
-        styles: { transform: "rotate(90deg)" },
-      },
-      {
-        selector: '.react-aria-Icon[slot="descriptor"]',
-        styles: { "margin-left": "auto" },
-      },
-      {
-        selector: ".react-aria-Breadcrumbs",
-        styles: {
-          display: "flex",
-          "flex-wrap": "wrap",
-          "align-items": "center",
-          gap: "var(--spacing-xs)",
-          margin: "0",
-          padding: "0 var(--spacing-xs)",
-          "list-style": "none",
-          "font-size": "var(--catalog-token-text-sm)",
-        },
-      },
-      {
-        selector: ".react-aria-Breadcrumb",
-        styles: {
-          display: "flex",
-          "align-items": "center",
-          gap: "var(--spacing-xs)",
-        },
-      },
-      {
-        selector: ".react-aria-Breadcrumb [data-current]",
-        styles: { "font-weight": "700", color: "var(--fg)" },
-      },
-    ],
-  },
-];
-
-/**
  * The picker's open box (the RAC reference's `.select-popover` · S2 Picker): the trigger's width at
  * least, 300 high at most — Select's and a Cascader's (ADR-326 §4.6).
  */
@@ -1763,9 +1641,12 @@ const PICKER_POPOVER_BOX = {
 };
 
 /**
- * ADR-326 Phase 2 — a `columns` Cascader's open box (its Popover node, `trigger: "Cascader"`): the
- * picker box over the Popover's own 8 inset — the search field, then (8 below) the list box
- * scrolling in the rest (the search stays). One edge — the Popover's; the list box draws none.
+ * ADR-326 — a Cascader's open box (its Popover node, `trigger: "Cascader"`): the picker box over the
+ * Popover's own 8 inset — the search field, (`drill`) the trail and 「Back」, then (8 below) the list
+ * box scrolling in the rest (the search stays). One edge — the Popover's; the list box draws none.
+ * The `tree` · `drill` RAC Dialog has no box (its parts are the Popover's — the Canvas has no Dialog);
+ * while the search field holds a query the trail and 「Back」 step aside (the results take the list
+ * box's place — RAC SearchField's `data-empty`).
  */
 const CASCADER_POPOVER_STYLES = [
   {
@@ -1775,6 +1656,54 @@ const CASCADER_POPOVER_STYLES = [
       overflow: "hidden",
       gap: "var(--spacing-sm)",
     },
+    nested: [
+      {
+        selector: ".react-aria-Dialog",
+        styles: { display: "contents" },
+      },
+      // (A `tree` · `drill` row's pointer hover — RAC Tree · GridList rows hover without focus; a
+      //  Menu row's hover is its focus. An authored Hover paint goes over it, `!important`.)
+      {
+        selector:
+          ".react-aria-CascaderItem:where([data-hovered]:not([data-disabled]))",
+        styles: { background: "var(--collection-item-focus)" },
+      },
+      // (A `tree` row: its level's indent (RAC's `--tree-item-level`) — in the open box, over the
+      //  size block's padding — and the expand button holding the item's chevron Icon, turned while
+      //  expanded.)
+      {
+        selector: ".react-aria-CascaderItem[data-level]",
+        styles: {
+          "padding-inline-start":
+            "calc((var(--tree-item-level, 1) - 1) * var(--spacing-md) + var(--spacing-sm))",
+        },
+      },
+      {
+        selector: '.react-aria-CascaderItem .react-aria-Button[slot="chevron"]',
+        styles: {
+          display: "inline-flex",
+          "align-items": "center",
+          "justify-content": "center",
+          "grid-column": "1",
+          padding: "0",
+          border: "none",
+          background: "transparent",
+          color: "inherit",
+          outline: "none",
+        },
+      },
+      {
+        selector:
+          '.react-aria-CascaderItem[data-expanded] .react-aria-Button[slot="chevron"] .react-aria-Icon',
+        styles: { transform: "rotate(90deg)" },
+      },
+    ],
+  },
+  {
+    selector:
+      '.react-aria-Popover[data-trigger="Cascader"]:has(.react-aria-SearchField:not([data-empty])) :is(.react-aria-Breadcrumbs, [slot="back"])',
+    // (A searching state over the nodes' own inline layout — as the disabled paint is.)
+    styles: { display: "none !important" },
   },
   // (A row's label takes the row's color — `MANUAL_ITEM_LABEL_COLORS.CascaderItem`, every level.)
   {
@@ -3085,6 +3014,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "inline-flex",
         alignItems: "center",
+        // S2 `breadcrumbStyles` `flexShrink: 0` (`Breadcrumbs.tsx:261`) — a crumb keeps its width in a
+        //   full row (the collapse judgement measures it so — ADR-326 Phase 0 P6).
+        flexShrink: 0,
       },
       stateStyles: {
         ...FOCUS_RING_STATE,
@@ -11978,11 +11910,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       ...SELECT_RULE.structure,
       composition: {
         ...SELECT_RULE.structure?.composition,
-        // ADR-322 Phase 3: the open content of the `tree` · `drill` modes (`cascaderPanel.components.tsx`
-        //   — RAC Tree · GridList · Breadcrumbs built from the items, not nodes: the Canvas never draws
-        //   them, R6) takes its look here, as Select's picker Popover does. The `columns` Menu takes
-        //   the Menu · MenuItem sheets as they are.
-        externalStyles: [...CASCADER_POPOVER_STYLES, ...CASCADER_PANEL_STYLES],
+        // ADR-326 §4.6: the open box (its Popover node) — one block, and its parts' rules.
+        externalStyles: CASCADER_POPOVER_STYLES,
         // (A delegation prefix is one rule's — the trigger's variables take the field's name.)
         delegation: renamedDelegation(
           SELECT_RULE.structure?.composition?.delegation,

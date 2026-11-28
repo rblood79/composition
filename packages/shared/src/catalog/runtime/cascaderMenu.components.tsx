@@ -7,7 +7,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { Provider } from "react-aria-components";
+import { DEFAULT_SLOT, Provider } from "react-aria-components";
 import { Autocomplete } from "react-aria-components/Autocomplete";
 import { ButtonContext } from "react-aria-components/Button";
 import { FieldErrorContext } from "react-aria-components/FieldError";
@@ -19,7 +19,19 @@ import { SearchFieldContext } from "react-aria-components/SearchField";
 import { Text, TextContext } from "react-aria-components/Text";
 import { Icon } from "../../components/Icon";
 import type { CascaderEntry } from "./cascader";
-import type { CascaderOpenValue, CascaderRowDraw } from "./cascader.components";
+import type {
+  CascaderViewValue,
+  CascaderOpenValue,
+  CascaderRowDraw,
+} from "./cascader.components";
+import { cascaderOpeningView, cascaderTrail } from "./cascader";
+import {
+  CascaderInView,
+  CascaderDrillBody,
+  CascaderTreeBody,
+  isolate,
+  plainRow,
+} from "./cascaderPanel.components";
 import {
   cascaderSearch,
   CASCADER_SEARCH_LIMIT,
@@ -36,17 +48,19 @@ import {
 import { catalogLocalized } from "./localizedStrings";
 
 /**
- * ADR-326 Phase 2 — a Cascader's open content in the `columns` mode, drawn from its nodes (breakdown
- * §4.3): the field gives RAC `MenuTrigger`'s contexts always (`cascader.components.tsx`), the
- * `Popover` node opens with them (`trigger: "Cascader"`), and this chunk — loaded with the first open —
- * gives two parts:
+ * ADR-326 — a Cascader's open content, drawn from its nodes (breakdown §4.3): the field gives RAC
+ * `MenuTrigger`'s (`columns`) · `DialogTrigger`'s (`tree` · `drill` — and the RAC `Dialog`) contexts
+ * always (`cascader.components.tsx`), the `Popover` node opens with them (`trigger: "Cascader"`), and
+ * this chunk — loaded with the first open — gives two parts:
  *
  * - `CascaderOpenScope` wraps the Popover node's children: RAC `Autocomplete` over the SearchField
  *   node and the list box node (the input keeps focus, the list takes virtual focus — Phase 0 P2).
  *   The query lives here (the Popover draws its children only while open — a reopened field starts
- *   with an empty search, Phase 0 m1). The field's contexts for its own parts (the trigger's Button,
- *   its Label · help text · error) stop here.
- * - `CascaderListBody` is the `CascaderList` node: RAC `Menu` (the node's element — its catalog id,
+ *   with an empty search, Phase 0 m1), and a `drill` field's level (its trail · 「Back」 nodes and its
+ *   list read it — Phase 3). The field's contexts for its own parts (the trigger's Button, its
+ *   Label · help text · error) stop here.
+ * - `CascaderListBody` is the `CascaderList` node: `tree` · `drill` — RAC `Tree` · `GridList`
+ *   (`cascaderPanel.components.tsx`); `columns` — RAC `Menu` (the node's element — its catalog id,
  *   `react-aria-CascaderList`); an item with child items is a RAC `SubmenuTrigger` (its `MenuItem` +
  *   `Popover` > `Menu` of the next level — → · ← move between levels, RAC's). With a query the node
  *   is the results `Menu` instead (ADR-322 Phase 5).
@@ -71,15 +85,11 @@ export interface CascaderListBodyProps {
     readonly value: CascaderRowDraw;
     readonly children: ReactNode;
   }>;
+  /** A `tree` · `drill` field's view (the search scope's — `CascaderViewContext`, given as a prop too). */
+  readonly view: CascaderViewValue | null;
 }
 
 type LevelProps = CascaderListBodyProps;
-
-/** A row without a record (「전체」 · a status · an item no node draws): the item's class and size. */
-const plainRow = (base: Record<string, unknown>) => ({
-  className: "react-aria-CascaderItem",
-  "data-size": base["data-size"],
-});
 
 /**
  * An item's row. With a record: the record drawn by the catalog renderer — its props (catalog id ·
@@ -126,19 +136,72 @@ function itemRow(
 /** The search query of an open field (its search scope's — both parts are this chunk's). */
 const CascaderQueryContext = createContext("");
 
+const BACK: Readonly<Record<string, string>> = { en: "Back", ko: "뒤로" };
+
 /** The Popover node's children inside the search scope (see the file note). */
 export function CascaderOpenScope({
+  open,
+  View,
   children,
 }: {
+  readonly open: CascaderOpenValue;
+  /** The first screen's view context (given as a prop — see `cascader.components.tsx`). */
+  readonly View: ComponentType<{
+    readonly value: CascaderViewValue;
+    readonly children: ReactNode;
+  }>;
   readonly children: ReactNode;
 }): ReactElement {
   const [query, setQuery] = useState("");
   const { locale } = useLocale();
   const strings = catalogLocalized(CASCADER_SEARCH_STRINGS, locale);
+  // (ADR-326 Phase 3 — a `drill` field's level: the just-opened level (`cascaderOpeningView`), moved
+  //  by a branch row, a trail crumb and 「Back」; a level whose items are not here yet asks them.)
+  const { table, label, levels } = open;
+  const [opening] = useState(() => cascaderOpeningView(table, open.keys));
+  const [level, setLevel] = useState(opening.level);
+  // (`tree` — the expanded branches, kept over a search: the results take the list box's place.)
+  const [expanded, setExpanded] = useState(opening.expanded);
+  const [moved, setMoved] = useState(false);
+  const enter = (next: string | null) => {
+    const entry = next === null ? undefined : table.byPathId.get(next);
+    if (
+      entry &&
+      levels &&
+      entry.hasChildren &&
+      !(table.byParent.get(entry.pathId) ?? []).length
+    )
+      levels.load(entry.levelKey);
+    setMoved(true);
+    setLevel(next);
+  };
+  const parent = level === null ? undefined : table.byPathId.get(level);
+  const drill = open.mode === "drill";
+  const scope = (
+    <Autocomplete inputValue={query} onInputChange={setQuery}>
+      {children}
+    </Autocomplete>
+  );
   return (
     <Provider
       values={[
-        [ButtonContext, null],
+        // (The field's own Button props stop here; a `drill` field's 「Back」 node is the `back`
+        //  slot — one level up, RAC's Button context.)
+        [
+          ButtonContext,
+          drill
+            ? {
+                slots: {
+                  [DEFAULT_SLOT]: {},
+                  back: {
+                    "aria-label": catalogLocalized(BACK, locale),
+                    isDisabled: !parent,
+                    onPress: () => enter(parent?.parentPathId ?? null),
+                  },
+                },
+              }
+            : null,
+        ],
         [LabelContext, null],
         [TextContext, null],
         [FieldErrorContext, null],
@@ -147,9 +210,23 @@ export function CascaderOpenScope({
         [CascaderQueryContext, query],
       ]}
     >
-      <Autocomplete inputValue={query} onInputChange={setQuery}>
-        {children}
-      </Autocomplete>
+      {open.mode === "columns" ? (
+        scope
+      ) : (
+        <View
+          value={{
+            level,
+            moved,
+            enter,
+            trail: cascaderTrail(table, level, label),
+            expanded,
+            setExpanded,
+            isolate,
+          }}
+        >
+          {scope}
+        </View>
+      )}
     </Provider>
   );
 }
@@ -212,83 +289,89 @@ function Levels(props: LevelProps) {
       : undefined;
     const statusId = parent ? `${parent.pathId}${CASCADER_LEVEL_STATUS}` : "";
     const failed = !!parent && levels?.stateOf(parent.levelKey) === "error";
+    // (A long level draws the rows in view — ADR-326 Phase 3 HC5.)
     return (
-      <Menu
-        {...(parent ? {} : base)}
-        aria-label={parent ? parent.name : label}
-        escapeKeyBehavior="none"
-        selectionMode={multiple ? "multiple" : "single"}
-        selectedKeys={[
-          ...picked
-            .filter(
-              (entry) => entry.parentPathId === here && !entry.hasChildren,
+      <CascaderInView rows={childrenOf(here).length}>
+        <Menu
+          {...(parent ? {} : base)}
+          aria-label={parent ? parent.name : label}
+          escapeKeyBehavior="none"
+          selectionMode={multiple ? "multiple" : "single"}
+          selectedKeys={[
+            ...picked
+              .filter(
+                (entry) => entry.parentPathId === here && !entry.hasChildren,
+              )
+              .map((entry) => entry.pathId),
+            ...(own && parent && picked.includes(parent) ? [own] : []),
+          ]}
+          disabledKeys={[
+            ...blocked,
+            ...(own && parent && (parent.duplicate || parent.isDisabled)
+              ? [own]
+              : []),
+            ...(parent && waits(parent) && !failed ? [statusId] : []),
+          ]}
+          onAction={(key) => {
+            const id = String(key);
+            if (id.endsWith(CASCADER_LEVEL_STATUS)) {
+              if (parent) levels?.load(parent.levelKey);
+              return;
+            }
+            const entry = table.byPathId.get(
+              id.endsWith(CASCADER_LEVEL_ITEM)
+                ? id.slice(0, -CASCADER_LEVEL_ITEM.length)
+                : id,
+            );
+            if (
+              entry &&
+              (id.endsWith(CASCADER_LEVEL_ITEM) || !entry.hasChildren)
             )
-            .map((entry) => entry.pathId),
-          ...(own && parent && picked.includes(parent) ? [own] : []),
-        ]}
-        disabledKeys={[
-          ...blocked,
-          ...(own && parent && (parent.duplicate || parent.isDisabled)
-            ? [own]
-            : []),
-          ...(parent && waits(parent) && !failed ? [statusId] : []),
-        ]}
-        onAction={(key) => {
-          const id = String(key);
-          if (id.endsWith(CASCADER_LEVEL_STATUS)) {
-            if (parent) levels?.load(parent.levelKey);
-            return;
-          }
-          const entry = table.byPathId.get(
-            id.endsWith(CASCADER_LEVEL_ITEM)
-              ? id.slice(0, -CASCADER_LEVEL_ITEM.length)
-              : id,
-          );
-          if (entry && (id.endsWith(CASCADER_LEVEL_ITEM) || !entry.hasChildren))
-            onPick(entry.key);
-        }}
-      >
-        {[
-          ...(own && parent
-            ? [addedRow(base, own, levelName(parent.name))]
-            : []),
-          ...(parent && waits(parent)
-            ? [
-                addedRow(
-                  base,
-                  statusId,
-                  failed ? status.retry : status.loading,
-                  // (「Retry」 asks again in place — the menu stays open.)
-                  { shouldCloseOnSelect: false },
-                ),
-              ]
-            : []),
-          ...childrenOf(here).map((entry) =>
-            entry.hasChildren ? (
-              <SubmenuTrigger key={entry.pathId}>
-                {itemRow(props, entry, true)}
-                {/* (The Menu sheet's SubmenuTrigger block takes a sized Popover — one edge, its
+              onPick(entry.key);
+          }}
+        >
+          {[
+            ...(own && parent
+              ? [addedRow(base, own, levelName(parent.name))]
+              : []),
+            ...(parent && waits(parent)
+              ? [
+                  addedRow(
+                    base,
+                    statusId,
+                    failed ? status.retry : status.loading,
+                    // (「Retry」 asks again in place — the menu stays open.)
+                    { shouldCloseOnSelect: false },
+                  ),
+                ]
+              : []),
+            ...childrenOf(here).map((entry) =>
+              entry.hasChildren ? (
+                <SubmenuTrigger key={entry.pathId}>
+                  {itemRow(props, entry, true)}
+                  {/* (The Menu sheet's SubmenuTrigger block takes a sized Popover — one edge, its
                     width the level's.) */}
-                <Popover
-                  placement="end top"
-                  data-size={base["data-size"] as string | undefined}
-                >
-                  <Deferred
-                    render={() => level(entry)}
-                    onShow={
-                      waits(entry)
-                        ? () => levels?.load(entry.levelKey)
-                        : undefined
-                    }
-                  />
-                </Popover>
-              </SubmenuTrigger>
-            ) : (
-              itemRow(props, entry, false)
+                  <Popover
+                    placement="end top"
+                    data-size={base["data-size"] as string | undefined}
+                  >
+                    <Deferred
+                      render={() => level(entry)}
+                      onShow={
+                        waits(entry)
+                          ? () => levels?.load(entry.levelKey)
+                          : undefined
+                      }
+                    />
+                  </Popover>
+                </SubmenuTrigger>
+              ) : (
+                itemRow(props, entry, false)
+              ),
             ),
-          ),
-        ]}
-      </Menu>
+          ]}
+        </Menu>
+      </CascaderInView>
     );
   };
   return level(null);
@@ -346,7 +429,17 @@ function Results({ query, ...props }: LevelProps & { readonly query: string }) {
 }
 
 /** The `CascaderList` node's content while its Cascader is open (see the file note). */
-export function CascaderListBody(props: CascaderListBodyProps): ReactElement {
+export function CascaderListBody(
+  props: CascaderListBodyProps,
+): ReactElement | null {
   const query = useContext(CascaderQueryContext);
-  return query ? <Results {...props} query={query} /> : <Levels {...props} />;
+  if (query) return <Results {...props} query={query} />;
+  const { mode } = props.open;
+  return mode === "tree" ? (
+    <CascaderTreeBody {...props} />
+  ) : mode === "drill" ? (
+    <CascaderDrillBody {...props} />
+  ) : (
+    <Levels {...props} />
+  );
 }

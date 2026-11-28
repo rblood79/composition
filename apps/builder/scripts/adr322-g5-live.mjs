@@ -66,7 +66,12 @@ const REGIONS = [
   { id: "3501", name: "우동", parent: "350" },
 ];
 // HC5: 5 × 10 × 10 × 10 = 5,000 leaves, nested (`sub`) — the mock cap counts top rows.
-const BIG = Array.from({ length: 5 }, (_, a) => ({
+//  (HC5_WIDE=1 — ADR-326 Phase 3 G3: one level of 1,000 leaves, each row an item record drawn
+//   — the Select 1,000's scale.)
+const WIDE = !!process.env.HC5_WIDE;
+const BIG = WIDE
+  ? Array.from({ length: 1000 }, (_, a) => ({ id: `W${a}`, name: `Wide ${a}` }))
+  : Array.from({ length: 5 }, (_, a) => ({
   id: `A${a}`,
   name: `Area ${a}`,
   sub: Array.from({ length: 10 }, (_, b) => ({
@@ -457,7 +462,8 @@ try {
   const x4 = WEBKIT ? undefined : await measure(4);
   const within = (m) => Object.values(m).every((row) => row.cascader >= 0 && row.select >= 0 && row.ratio <= 1.5);
   record(
-    "5 HC5 — 5,000 끝 항목 · 4 단 열기 ≤ Select 1,000 열기 × 1.5 (세 방식, 1x" + (WEBKIT ? ")" : " · 4x)"),
+    (WIDE ? "5 HC5 — 한 단계 1,000 행 열기" : "5 HC5 — 5,000 끝 항목 · 4 단 열기") +
+      " ≤ Select 1,000 열기 × 1.5 (세 방식, 1x" + (WEBKIT ? ")" : " · 4x)"),
     within(x1) && (!x4 || within(x4)),
     { x1, x4 },
   );
