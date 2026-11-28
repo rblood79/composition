@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Builder initial 번들 상한 재승인] - 2026-11-28
+
+### Notes
+
+- Builder initial 번들 상한 1,668,000 → **1,672,000** B 재승인 (사용자 결정 2026-11-28, ADR-326 결정 1 — main 이 이미 1,668,315 B 로 315 B 초과 + ADR-326 몫 약 +3,000). Preview 327,000 · 만료 2026-12-25 그대로. `adr201-bundle-gate.mjs` · `deploy.yml` · ADR-201 재승인 절.
+
 ## [Canvas — 내용 폭 flex 목록 · 줄바꿈 판정을 Chrome 과 맞춤] - 2026-11-28
 
 ### Fixed

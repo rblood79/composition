@@ -212,6 +212,8 @@ Implemented — 2026-09-17 (Proposed 2026-09-02 → In Progress 09-17 사용자 
 
 **ADR-242 뒤 (2026-09-26)** — 초기 화면 밖 패널 lazy 분리로 Builder initial **1,403,816** (상한 1,421,000 까지 여유 17,184) · Preview 622,496 (여유 504). 상한 값 조정은 사용자 판정 — 만료 2026-10-25 그대로.
 
+**initial 상한 재승인 (2026-11-28, ADR-326 Phase 0 보고 뒤 — 사용자 답 「1,672,000 재승인」)** — Builder ≤ **1,672,000** (+4,000) / Preview ≤ **327,000** B gzip (무변경), 만료 **2026-12-25** 유지. 근거: 일반 `vite build` → `adr209-bundle-closure.mjs` (`90b35a386`) 의 Builder initial **1,668,315** B 가 이미 상한 1,668,000 을 315 B 넘었다 (같은 날 커밋 `0100635ca` · `14ac34a95` · `0d8655e53` · `22d693c1d`) — 그 초과분과 ADR-326 의 몫 약 +3,000 (전용 CSS 삭제가 수백 B 상쇄 예상). 판정기 `adr201-bundle-gate.mjs` · 배포 workflow 「Initial bundle ceiling」 을 같은 값으로 고쳤다.
+
 **initial 상한 재승인 (2026-11-27 넷째, ADR-322 Phase 3 보고 뒤 — 사용자 답 「몫 +6,000 · 상한 1,668,000」)** — Builder ≤ **1,668,000** (+3,000) / Preview ≤ **327,000** B gzip (무변경), 만료 **2026-12-25** 유지. 근거 (같은 A/B — ADR-322 의 tracked 소스만 HEAD `4b09eccba` 로 돌린 빌드와 나란히): Builder **1,660,973 → 1,664,269 (Phase 1 ~ 3 = +3,296)** — 권고 몫 +3,000 을 296 B 넘어 보고했고, 사용자가 결정 8 의 몫을 Phase 4 ~ 6 까지 +6,000 으로 넓혔다. 판정기 `adr201-bundle-gate.mjs` · 배포 workflow 「Initial bundle ceiling」 을 같은 값으로 고쳤다.
 
 **initial 상한 재승인 (2026-11-27 셋째, ADR-322 결정 8 — 사용자 답 「상한 +3,000 재승인」)** — Builder ≤ **1,665,000** (+3,000) / Preview ≤ **327,000** B gzip (무변경), 만료 **2026-12-25** 유지. 근거 (`vite build` + `adr209-bundle-closure.mjs`, HEAD `e1463237f` — ADR-322 Phase 0 기준선): Builder **1,661,018** (여유 982) · Preview 172,276. ADR-322 결정 8 의 권고 (Builder +3,000 · Preview +2,000) 가 여유를 넘어 그 몫만큼 올렸다. 근거 기록: [ADR-322 breakdown §8](../design/322-cascader-hierarchical-picker-breakdown.md).
