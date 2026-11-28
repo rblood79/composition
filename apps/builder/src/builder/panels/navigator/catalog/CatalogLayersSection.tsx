@@ -1,6 +1,7 @@
 import {
   createContext,
   memo,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -111,6 +112,54 @@ function CatalogLayerRow({
   );
 }
 
+// A node only has children in this read model while it is expanded.
+function expandedRegionTail(tree: CatalogLayerTreeStore, id: string) {
+  let node = tree.node(id)?.children?.at(-1);
+  if (!node) return;
+  while (node.children?.length) node = node.children[node.children.length - 1];
+  return node.id;
+}
+
+function LayerTreeVirtualizer({
+  tree,
+  selectedId,
+  children,
+}: {
+  tree: CatalogLayerTreeStore;
+  selectedId: string | undefined;
+  children: ReactNode;
+}) {
+  const [layout] = useState(() => new ListLayout());
+  useLayoutEffect(() => {
+    if (!selectedId) return;
+    // Ancestor expansion updates the collection in a layout effect. Read its committed
+    // row bounds even when the selected row is too far away to have a DOM element.
+    const frame = requestAnimationFrame(() => {
+      const virtualizer = layout.virtualizer;
+      if (!virtualizer?.collection.getItem(selectedId)) return;
+      const row = layout.getLayoutInfo(selectedId)?.rect;
+      const view = virtualizer.visibleRect;
+      if (!row || !view.height) return;
+      const tailId = expandedRegionTail(tree, selectedId);
+      const tail = tailId ? layout.getLayoutInfo(tailId)?.rect : undefined;
+      // Keep the whole expanded group in view, or start at its parent if it cannot fit.
+      const bottom = tail?.maxY ?? row.maxY;
+      const y = Math.min(row.y, Math.max(view.y, bottom - view.height));
+      if (y === view.y) return;
+      const next = view.copy();
+      next.y = y;
+      virtualizer.delegate.setVisibleRect(next);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [layout, selectedId, tree]);
+
+  return (
+    <Virtualizer layout={layout} layoutOptions={LAYER_TREE_LAYOUT_OPTIONS}>
+      {children}
+    </Virtualizer>
+  );
+}
+
 /**
  * ADR-248 Phase 4e-4: the Layers tree of the open page — rows from the read model (keys = the
  * Canvas records, so the tree and the Canvas share one selection), expanded rows read one level
@@ -150,7 +199,8 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
           // ADR-315: a Column 「Hidden by default」 (and its Cells) — listed, not drawn.
           columnHidden: (position) => workspace.columnHidden(position),
           // (ADR-310: a rows' template with no drawn record — its data is empty — counts 0 rows.)
-          recordDrawn: (position) => workspace.root.domInputs.has(position.identity),
+          recordDrawn: (position) =>
+            workspace.root.domInputs.has(position.identity),
           inputsVersion: () => workspace.layerInputsVersion,
         },
         ownerId,
@@ -379,11 +429,8 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
     const tails = new Set<string>();
     if (!items.length) return tails;
     for (const id of selectedIds) {
-      let node = tree.node(id);
-      if (!node?.children?.length) continue;
-      while (node.children?.length)
-        node = node.children[node.children.length - 1];
-      tails.add(node.id);
+      const tail = expandedRegionTail(tree, id);
+      if (tail) tails.add(tail);
     }
     return tails;
   }, [items, selectedIds, tree]);
@@ -424,9 +471,9 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       }
     >
       <LayerRowSelection.Provider value={rowSelection}>
-        <Virtualizer
-          layout={ListLayout}
-          layoutOptions={LAYER_TREE_LAYOUT_OPTIONS}
+        <LayerTreeVirtualizer
+          tree={tree}
+          selectedId={selectedIds.length === 1 ? selectedIds[0] : undefined}
         >
           <TreeBase<CatalogLayerNode>
             aria-label="Layers"
@@ -458,7 +505,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
             className="layer-tree layer-tree--rac-virtualized"
             dropIndicatorClassName="layer-drop-indicator"
           />
-        </Virtualizer>
+        </LayerTreeVirtualizer>
       </LayerRowSelection.Provider>
       <ContextMenuOverlay
         isOpen={!!menu}

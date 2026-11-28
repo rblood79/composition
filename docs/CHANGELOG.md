@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Navigator Layers 선택 행 자동 스크롤] - 2026-11-29
+
+### Fixed
+
+- Canvas에서 요소를 선택하면 Navigator의 Layers 목록이 위나 아래로 필요한 만큼 스크롤해 선택 행과 펼쳐진 자식 행을 함께 표시한다. 펼친 목록이 패널보다 길면 선택 행부터 보여주고, 이미 모두 보이면 스크롤 위치를 유지한다.
+
 ## [ADR-326 Phase 5 — Canvas 에 Cascader tree · drill 열린 목록] - 2026-11-29
 
 ADR-326 Phase 5 닫힘. Cascader 를 「Open」 으로 열면 Canvas 가 「tree」 · 「drill」 방식의 열린 목록도 그린다 — 세 방식 모두 Preview 와 같은 화면이다.

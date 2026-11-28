@@ -24,7 +24,10 @@ const state = JSON.parse(
   ),
 );
 state.origins = (state.origins ?? []).map((o) => ({ ...o, origin: BASE }));
-const browser = await chromium.launch({ headless: true, channel: "chrome" });
+const browser = await chromium.launch({
+  headless: process.env.HEADED !== "1",
+  channel: "chrome",
+});
 const context = await browser.newContext({
   storageState: state,
   viewport: { width: 1600, height: 1000 },
@@ -68,9 +71,7 @@ const resetCounters = () =>
 const layerRows = () =>
   page.evaluate(() =>
     [
-      ...document.querySelectorAll(
-        '.layer-tree--rac-virtualized [role="row"]',
-      ),
+      ...document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]'),
     ].map((row) => ({
       key: row.getAttribute("data-key"),
       name: row.textContent?.trim() ?? "",
@@ -127,12 +128,15 @@ await wait(800);
 
 // L1 — body 스타일 편집
 const rowsBefore = await layerRows();
-await exec(`(cat, a) => {
+await exec(
+  `(cat, a) => {
   const ws = cat.workspace;
   const record = ws.root.recordsOfSource(a.body)[0];
   window.__adr265Dom = [];
   window.__adr265Unsub = ws.root.subscribeDom(record, (r) => window.__adr265Dom.push(r?.visual?.backgroundColor ?? null));
-}`, ids);
+}`,
+  ids,
+);
 await resetCounters();
 await exec(
   `(cat, a) => cat.workspace.execute(cat.commands.setFields({ targets: [{ kind: "node", id: a.body }], visual: { backgroundColor: { kind: "set", value: "#fde68a" } } }))`,
@@ -142,7 +146,11 @@ await settle();
 const editCounts = await counters();
 const rowsAfter = await layerRows();
 const dom1 = await page.evaluate(() => [...window.__adr265Dom]);
-check("L1 body 편집 — DOM 리스너가 새 배경을 받음", dom1.at(-1) === "#fde68a", dom1);
+check(
+  "L1 body 편집 — DOM 리스너가 새 배경을 받음",
+  dom1.at(-1) === "#fde68a",
+  dom1,
+);
 check(
   "L1 Layers 행 그대로",
   JSON.stringify(rowsBefore) === JSON.stringify(rowsAfter),
@@ -190,20 +198,69 @@ const targetRecord = await exec(
   target,
 );
 check("L2 선택 = 목록의 288 번째 Text", picked[0] === target, picked);
-// (Layers does not scroll to the selection and draws only the rows in view — the 288th row is not in
-// the DOM. A row in view shows the Layers side of a pick.)
 const selectCounts = await counters();
-const near = ids.texts[2];
-const nearRecord = await exec(
-  `(cat, t) => { cat.workspace.selectRecords([cat.workspace.root.recordsOfSource(t)[0]]); return cat.workspace.root.recordsOfSource(t)[0]; }`,
-  near,
-);
-await settle();
-const nearRows = (await layerRows()).filter((r) => r.selected);
+const selectedInView = (key) =>
+  page.locator(".layer-tree--rac-virtualized").evaluate((tree, key) => {
+    const row = tree.querySelector('[role="row"][aria-selected="true"]');
+    const rect = row?.getBoundingClientRect();
+    const view = tree.getBoundingClientRect();
+    return {
+      visible:
+        row?.getAttribute("data-key") === key &&
+        rect.top >= view.top - 1 &&
+        rect.bottom <= view.bottom + 1,
+      scrollTop: tree.scrollTop,
+      height: tree.clientHeight,
+      scrollHeight: tree.scrollHeight,
+    };
+  }, key);
+const farView = await selectedInView(targetRecord);
+check("L2 Layers 아래쪽 288번째 선택 행 전체가 보임", farView.visible, farView);
+// Deep-pick two adjacent texts on the Canvas. The first is now above the Layers viewport.
+async function clickText(sourceId) {
+  const key = await exec(
+    `async (cat, id) => {
+    const key = cat.workspace.root.recordsOfSource(id)[0];
+    const box = cat.canvas.boundsOf(key);
+    await cat.canvas.setCamera({ scale: 1, x: 300 - box.x, y: 200 - box.y });
+    return key;
+  }`,
+    sourceId,
+  );
+  await settle();
+  const point = await exec(
+    `(cat, key) => {
+    const canvas = document.querySelector('[data-catalog-canvas="true"]').getBoundingClientRect();
+    const box = cat.canvas.boundsOf(key);
+    const cam = cat.canvas.camera();
+    return { x: canvas.left + cam.x + (box.x + 4) * cam.zoom,
+      y: canvas.top + cam.y + (box.y + box.height / 2) * cam.zoom };
+  }`,
+    key,
+  );
+  await page.keyboard.down("Meta");
+  await page.mouse.click(point.x, point.y);
+  await page.keyboard.up("Meta");
+  await settle();
+  return selectedInView(key);
+}
+const nearView = await clickText(ids.texts[2]);
 check(
-  "L2b Layers 선택 행 = 고른 record (3 번째 Text)",
-  nearRows.length === 1 && nearRows[0].key === nearRecord,
-  nearRows,
+  "L2b Canvas 클릭 → 위쪽 3번째 선택 행 전체가 보임",
+  nearView.visible,
+  nearView,
+);
+const adjacent = await clickText(ids.texts[3]);
+check(
+  "L2c 이미 보이는 행을 선택하면 스크롤 유지",
+  adjacent.visible && adjacent.scrollTop === nearView.scrollTop,
+  adjacent,
+);
+check(
+  "L2d Layers 이동 후 Canvas 포커스 유지",
+  await page
+    .locator('[data-catalog-canvas="true"]')
+    .evaluate((el) => el === document.activeElement),
 );
 check(
   "L2 형제 색인은 한 번만 (선택 1 회 · 페인트 여러 번)",
@@ -224,7 +281,10 @@ const indexOf = () =>
     { list: ids.list, t: target },
   );
 const index0 = await indexOf();
-await page.locator('[data-catalog-canvas="true"]').focus().catch(() => {});
+await page
+  .locator('[data-catalog-canvas="true"]')
+  .focus()
+  .catch(() => {});
 await page.keyboard.press("[");
 await settle();
 const indexBack = await indexOf();
@@ -242,7 +302,51 @@ check(
   { index0, indexBack, indexUndo, indexFront },
 );
 
-// L4 — 깊은 Text 선택 → Layers 가 조상을 펼침
+// L4 — compare an expanded group larger than the viewport with a group that fits.
+const selectSource = (sourceId) =>
+  exec(
+    `(cat, id) => cat.workspace.selectRecords([cat.workspace.root.recordsOfSource(id)[0]])`,
+    sourceId,
+  );
+await selectSource(ids.body);
+await settle();
+await selectSource(ids.list);
+await settle();
+const layers = page.locator(".layer-tree--rac-virtualized");
+const parentAtTop = await layers.evaluate((tree) => {
+  const head = tree.querySelector('[role="row"][aria-selected="true"]');
+  return (
+    head &&
+    Math.abs(
+      head.getBoundingClientRect().top - tree.getBoundingClientRect().top,
+    ) <= 1
+  );
+});
+check("L4a 펼친 묶음이 패널보다 길면 부모 행이 맨 위에 보임", parentAtTop);
+
+await selectSource(ids.A);
+await settle();
+const group = await layers.evaluate((tree) => {
+  const view = tree.getBoundingClientRect();
+  const head = tree
+    .querySelector('[data-selection-region="head"]')
+    ?.getBoundingClientRect();
+  const tail = tree
+    .querySelector('[data-selection-region="tail"]')
+    ?.getBoundingClientRect();
+  return {
+    height: view.height,
+    top: head && head.top - view.top,
+    bottom: tail && tail.bottom - view.top,
+  };
+});
+check(
+  "L4b 들어가는 묶음은 펼쳐진 마지막 행까지 보임",
+  group.top >= -1 && group.bottom <= group.height + 1,
+  group,
+);
+
+// 깊은 Text 선택 → Layers 가 조상을 펼침
 await exec(
   `(cat, t) => cat.workspace.selectRecords([cat.workspace.root.recordsOfSource(t)[0]])`,
   ids.deep,
@@ -253,21 +357,11 @@ const deepRecord = await exec(
   `(cat, t) => cat.workspace.root.recordsOfSource(t)[0]`,
   ids.deep,
 );
-await page.evaluate(() => {
-  const tree = document.querySelector(".layer-tree--rac-virtualized");
-  for (let el = tree; el; el = el.parentElement)
-    if (el.scrollHeight > el.clientHeight + 4) {
-      el.scrollTop = el.scrollHeight;
-      break;
-    }
-});
-await settle();
-await wait(300);
-const deepRows = await layerRows();
+const deepView = await selectedInView(deepRecord);
 check(
-  "L4 Layers 가 조상 (A · B) 을 펼쳐 깊은 Text 행을 선택해 보임",
-  deepRows.some((r) => r.selected && r.key === deepRecord),
-  deepRows.filter((r) => r.selected),
+  "L4 Layers 가 조상을 펼쳐 깊은 Text 행 전체를 보임",
+  deepView.visible,
+  deepView,
 );
 
 // L5 — page 추가 → pageFrameRects 두 page

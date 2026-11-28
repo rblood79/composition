@@ -406,6 +406,8 @@
 }
 
 .navigator-panel-content .layer-tree--rac-virtualized {
+  /* 가상 목록의 전체 높이를 가진 자식이 flex 축에서 줄어들지 않게 한다. */
+  display: block;
   flex: 1;
   min-height: 0;
   height: 100%;
