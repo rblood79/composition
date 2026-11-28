@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-11-26
+Accepted — 2026-11-28 (사용자 `/execute-adr 323` · [리뷰](reviews/323.md) 최신 round 3 이슈 0 · pending 0 — 승격 근거). 제안 2026-11-26.
+
+> **Phase 0 (G0) 닫힘 — 2026-11-28** ([breakdown §9](design/323-timeline-event-calendar-gantt-breakdown.md)): 코드 사실 F1 ~ F11 재대조 — 설계에 닿는 차이 0 (줄 이동 · contract 87 · F5 의 시각만 있는 값 비교 추가는 날짜 값과 무관). v3 3.47.7 에도 셋 다 없음 (D2 = composition 확장). ADR-289 행 폼은 빌더 데이터 패널 전용 — 실행 화면의 편집 Dialog 는 새로 만든다 (Decision 4 · 7 그대로, 파일 하나 추가). 시제품: **P1 no-go → 방식 변경** — RAC 가 월 칸 button 에 날짜 `aria-label` 을 붙이고 `CalendarCell` 에 aria prop 통로가 없어 칸 안 일정 글자가 낭독되지 않는다. 칸 이름은 날짜만 두고 낭독기는 날짜 고르기 → 그 날의 목록 · 일정 목록 보기로 일정에 닿는다 (D1 예외를 넓히지 않음 — 넓히려면 결정 지점 3). 날짜 키 이동은 대조군과 같다. P2 go (1x 넘기기 작업 p95 9.4 ms · 기하 0.2 ms, 4x 작업 p95 44.8 ms 병기). P3 go (5,000 행 세로 스크롤 p95 시간축 열 18.0 = 대조군 18.6 · 고정 열 · 키로 막대 Button). P4 go — 세부 셋을 breakdown §4.2-2 에 적었다 (끄는 동안의 Escape 는 전파를 막는다 — 막지 않으면 담은 Modal 이 닫힘 · pointer capture 는 RAC `usePress` 가 푼 뒤에 잡는다 · 움직임 없는 누르기도 listener 를 뗀다). 번들: HEAD 실측 Builder 1,668,315 (앞 상한 1,668,000 을 이미 315 B 초과) → 승인대로 몫 +5,000 — ADR-326 의 같은 날 승인 (1,672,000) 과 합쳐 상한 **1,677,000** (사용자 「권장대로」 2026-11-28) · Preview 172,335 / 327,000. perf ratchet 은 worktree 에 로그인 세션 파일이 없어 측정하지 못했다. 규칙 문서 (`ssot-hierarchy.md` §1 D1) 에 승인을 가리키는 한 줄.
 
 - 사용자 요청: `/create-adr` (2026-11-26). 방향을 정한 원문 (같은 날): 「https://reui.io/components 분석후 우리 컴퍼넌트와 비교하고 reui가 더 편리한 부분과 차용할 부분들 비교 분석해줘」 → 비교 보고 뒤 `/create-adr`.
 - 사용자가 이미 답한 것 (2026-11-26):

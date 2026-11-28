@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-323 Phase 0 — 날짜 축 컴포넌트 셋 착수 · Builder 번들 상한] - 2026-11-28
+
+ADR-323 (Timeline · Event Calendar · Gantt) Accepted · Phase 0 닫힘. 사용자 기능 변경은 아직 없다 — 시제품 넷으로 방식을 확인했다 (월 칸의 낭독 이름은 RAC 의 날짜 이름뿐이라 일정은 날짜를 고른 뒤 목록으로 읽힌다 · 주 보기 200 건 · Table 시간축 열 5,000 행 · 끌기와 Escape 취소).
+
+### Changed
+
+- Builder 첫 화면 번들 절대 상한 1,672,000 → **1,677,000 B** (사용자 승인 합산 2026-11-28 — ADR-326 결정 1 의 1,672,000 에 ADR-323 결정 9 몫 5,000 (사용자 승인 2026-11-27). 두 ADR 이 같은 기준선 1,668,315 에서 각자 몫을 잡았다). Preview 327,000 · 만료 2026-12-25 그대로.
+  - 위치: `apps/builder/scripts/adr201-bundle-gate.mjs` · `.github/workflows/deploy.yml`
+
 ## [Builder initial 번들 상한 재승인] - 2026-11-28
 
 ### Notes
