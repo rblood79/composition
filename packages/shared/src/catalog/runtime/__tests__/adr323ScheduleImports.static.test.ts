@@ -81,6 +81,23 @@ describe("ADR-323 — the schedule geometry stays off the first screen", () => {
     expect(offenders).toEqual([]);
   });
 
+  // (Phase 2 수리 검증 — breakdown §8 「실행 (shared, lazy)」: the run-time modules are lazy chunks
+  //  too. A static import from the DOM runtime put the Timeline's status word on the first screen.)
+  it("no static import of the run-time modules (`*.components` of the three)", () => {
+    const RUNTIME =
+      /(^|\/)(timeline|eventCalendar|scheduleDrag|scheduleEditDialog|tableTimelineColumn)\.components(\.tsx?)?$/;
+    const offenders: string[] = [];
+    for (const file of files) {
+      const path = relative(ROOT, file);
+      for (const { from, typeOnly } of staticImports(
+        readFileSync(file, "utf8"),
+      ))
+        if (RUNTIME.test(from) && !typeOnly)
+          offenders.push(`${path} ← ${from}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it("the import reader tells value from type imports", () => {
     expect(
       staticImports(

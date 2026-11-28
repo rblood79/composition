@@ -2,7 +2,7 @@
 import "fake-indexeddb/auto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveToken, type TokenRef } from "@composition/rendering";
 import {
   insertNodes,
@@ -258,12 +258,15 @@ describe("ADR-323 G2 — Timeline", () => {
     expect(marker.style.left).toBe("0px");
     expect(marker.style.width).toBe("12px");
     expect(lis[2]!.querySelector(".timeline-connector")).toBeNull();
-    // (The status a screen reader reads — the marker says it with color only: 판독 F7.)
-    expect(lis.map((li) => li.textContent)).toEqual([
-      "Order placed2026-11-24Completed",
-      "Shipped2026-11-26In progress",
-      "DeliveredUpcoming",
-    ]);
+    // (The status a screen reader reads — the marker says it with color only: 판독 F7. A lazy
+    //  chunk since Phase 2 수리 검증 — the words come once it loads.)
+    await vi.waitFor(() =>
+      expect(lis.map((li) => li.textContent)).toEqual([
+        "Order placed2026-11-24Completed",
+        "Shipped2026-11-26In progress",
+        "DeliveredUpcoming",
+      ]),
+    );
     // No role, no aria attribute: an ordered list (D1 exception 0).
     expect(host.querySelector("[role]")).toBeNull();
     expect(

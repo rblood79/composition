@@ -2582,8 +2582,26 @@ export class CatalogPreviewSession {
   private loadsWhole(collectionId: string): boolean {
     return (
       this.viewLoadsAll(collectionId) ||
-      this.tables.collectionTablesReadWhole(collectionId)
+      this.tables.collectionTablesReadWhole(collectionId) ||
+      this.timelinesRead(collectionId)
     );
+  }
+  /**
+   * ADR-323 Phase 2 수리 검증 — a drawn Timeline reads the collection: it shows every row (an `ol`
+   * has no RAC load-more sentinel to ask for the next page), so every page is loaded here — up to
+   * the local cap, past it refused with a notice (`loadAll`), never a quiet first page.
+   */
+  private timelinesRead(collectionId: string): boolean {
+    const graph = this.graph;
+    const root = this.currentRoot;
+    if (!graph || !root) return false;
+    for (const nodeId of graph.bindingsOf(`data:collection:${collectionId}`))
+      if (
+        this.ownerTypeName(nodeId) === "Timeline" &&
+        root.recordsOfSource(nodeId).length > 0
+      )
+        return true;
+    return false;
   }
   /**
    * ADR-291 Decision 5 · 사용자 결정 3 — every page of a collection whose view runs here, up to
@@ -3094,9 +3112,9 @@ export class CatalogPreviewSession {
     // (The rows read: the collection's own list, else the Builder's API rows · the author's.)
     const rows: readonly unknown[] = held
       ? this.shownRows(collectionId, held)
-      : ((!collection!.useMockData && collection!.runtimeData) ||
-            collection!.mockData ||
-            []);
+      : (!collection!.useMockData && collection!.runtimeData) ||
+        collection!.mockData ||
+        [];
     const branchKeys = new Set<string>();
     const broken = this.levelConflicts.get(collectionId);
     const conflicts = new Set<string>();
@@ -3502,7 +3520,7 @@ export class CatalogPreviewSession {
       0,
       slices,
       ownerId !== undefined &&
-        this.readsWholeRows(ownerId) &&
+        this.readsLevelRows(ownerId) &&
         this.cascaderLevelEndpoint(
           this.collections.find((item) => item.id === id),
         )?.responseMapping?.keysUnique === true,
@@ -4967,13 +4985,25 @@ export class CatalogPreviewSession {
    * window would stop at the first 100 rows (판독 F3).
    */
   private readsWholeRows(ownerId: string): boolean {
-    const graph = this.graph;
-    const entry = graph?.getEntry(ownerId as never);
-    if (!graph || entry?.kind !== "node") return false;
-    const type = definitionTypeName(graph, (entry as NodeEntry).definitionId);
+    const type = this.ownerTypeName(ownerId);
     return (
       type === "Cascader" || type === "CascaderItem" || type === "Timeline"
     );
+  }
+  /**
+   * ADR-322 Phase 6 — a Cascader's levels read one by one (`keysUnique` on a `{{ parentKey }}`
+   * endpoint): the first answer is the top level. Not a Timeline's — it draws every row it got, a
+   * row with a `parentId` among them (ADR-323 Phase 2 수리 검증).
+   */
+  private readsLevelRows(ownerId: string): boolean {
+    const type = this.ownerTypeName(ownerId);
+    return type === "Cascader" || type === "CascaderItem";
+  }
+  private ownerTypeName(ownerId: string): string | undefined {
+    const graph = this.graph;
+    const entry = graph?.getEntry(ownerId as never);
+    if (!graph || entry?.kind !== "node") return undefined;
+    return definitionTypeName(graph, (entry as NodeEntry).definitionId);
   }
   /** ADR-310 Phase 7 — a list node's row display (its document `rowDisplay`). */
   private rowDisplayOf(ownerId: string): CatalogRowDisplay | undefined {

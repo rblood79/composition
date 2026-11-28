@@ -50,7 +50,6 @@ import {
 } from "../rule/stepList";
 import { CatalogStep, CatalogStepListGroup } from "./stepList.components";
 import { catalogTimelineChromeDom } from "./timeline";
-import { CatalogTimelineStatus } from "./timeline.components";
 import { CatalogCascaderField } from "./cascader.components";
 import {
   CASCADER_ITEM_TYPE,
@@ -1201,6 +1200,22 @@ function filterBarDom(input: DelegatedDomInput, type: string): ReactElement {
     ),
   );
 }
+/**
+ * ADR-323 — a TimelineItem's status word for a screen reader (a lazy chunk — breakdown §8 「실행
+ * (shared, lazy)」, HC6: a document with no Timeline does not load it). Nothing shows until it
+ * loads: the word is visually hidden.
+ */
+const CatalogTimelineStatusDom = lazy(() =>
+  import("./timeline.components").then((module) => ({
+    default: module.CatalogTimelineStatus,
+  })),
+);
+const CatalogTimelineStatus = (props: { status: string }) =>
+  createElement(
+    Suspense,
+    { fallback: null },
+    createElement(CatalogTimelineStatusDom, props),
+  );
 /** ADR-321 Phase 5 — a running Rating's RAC Slider · Meter (a lazy chunk). */
 const CatalogRatingDom = lazy(() => import("./rating.components"));
 /** (The element `withRuntime` gives the rules' · named states' handlers — they reach the Slider.) */

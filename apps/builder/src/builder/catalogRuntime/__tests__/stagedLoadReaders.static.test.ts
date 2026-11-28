@@ -118,9 +118,9 @@ const KNOWN_BY_ID = new Map<string, readonly [number, string, string]>([
   [
     "packages/shared/src/catalog/runtime/catalogPreviewSession.ts",
     [
-      4,
+      5,
       "P",
-      "Preview session (ADR-315 증분 5g — a collection's Table records, `boundTableRecords`)",
+      "Preview session (ADR-315 증분 5g — a collection's Table records, `boundTableRecords` · ADR-323 — a drawn Timeline loads every page, `timelinesRead`)",
     ],
   ],
   [
