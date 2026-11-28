@@ -547,6 +547,11 @@ export const semanticLabelKeys: Record<string, string> = {
   Fuzzy: "properties.searchFuzzy",
   Searchable: "properties.searchable",
   "Select any level": "properties.selectAnyLevel",
+  // ADR-326 후속 (2026-11-29) — a Cascader's search scope.
+  "Search scope": "properties.searchScope",
+  "This level": "properties.searchScopeLevel",
+  "This level and below": "properties.searchScopeDeep",
+  "All levels": "properties.searchScopeGlobal",
   // ADR-315 Phase 4 — a Column's part in the Table's column projection.
   "Hidden by default": "properties.columnDefaultHidden",
   Pinned: "properties.columnPinned",

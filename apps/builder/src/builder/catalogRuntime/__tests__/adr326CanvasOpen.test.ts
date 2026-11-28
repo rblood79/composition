@@ -112,6 +112,13 @@ async function place(props: Record<string, unknown> = {}) {
   return { workspace, root, of, field, hidden, popover, shownItems, write };
 }
 
+/** A placed `columns` Cascader (the default is `drill` — 사용자 결정 2026-11-29). */
+async function placeColumns(props: Record<string, unknown> = {}) {
+  const h = await place(props);
+  h.write({ mode: "columns" });
+  return h;
+}
+
 describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () => {
   it("Open 은 Value 절의 칸 (S2 Picker 의 isOpen) — 시작 열림은 패널에 없다", () => {
     expect(cascaderBinding.props.accepts.isOpen).toMatchObject({
@@ -125,13 +132,13 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("닫힌 필드는 열린 상자 · 항목을 그리지 않는다", async () => {
-    const h = await place();
+    const h = await placeColumns();
     expect(h.hidden(h.popover())).toBe(true);
     expect(h.shownItems()).toEqual([]);
   });
 
   it("Open: 상자가 여는 Button 아래 · 같은 폭 · 첫 단계 항목만 · 잎의 chevron 없음", async () => {
-    const h = await place({ isOpen: true });
+    const h = await placeColumns({ isOpen: true });
     const pop = h.popover();
     expect(h.hidden(pop)).toBe(false);
     expect(h.shownItems()).toEqual(["Electronics", "Clothing", "Books"]);
@@ -174,7 +181,7 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("상자 폭을 넓혀도 왼쪽 끝 = Button 왼쪽 끝 (필드 context 의 bottom start — DOM 과 같다)", async () => {
-    const h = await place({ isOpen: true });
+    const h = await placeColumns({ isOpen: true });
     // (The field away from the page edge — a centred box would start left of the Button.)
     h.workspace.execute(
       setFields({
@@ -202,7 +209,7 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("끄면 닫히고 Undo 로 다시 열린다", async () => {
-    const h = await place({ isOpen: true });
+    const h = await placeColumns({ isOpen: true });
     h.write({ isOpen: false });
     expect(h.hidden(h.popover())).toBe(true);
     expect(h.shownItems()).toEqual([]);
@@ -212,14 +219,14 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("열린 상자가 Cascader 의 선택 표면이다", async () => {
-    const h = await place({ isOpen: true });
+    const h = await placeColumns({ isOpen: true });
     expect(catalogSelectionSurface(h.root, h.field().id)).toBe(h.popover().id);
   });
 
   // ── Phase 4 판독 1 수리 (#2 · #3 · #4 · #5) ──
 
   it("#1 고른 행의 check 표시 (Icon 노드) — 고른 행에만 그리고, 모든 행이 check 열을 잡는다 (Preview 와 같다)", async () => {
-    const h = await place({ isOpen: true, defaultValue: "books" });
+    const h = await placeColumns({ isOpen: true, defaultValue: "books" });
     const marks = () =>
       h
         .of("CascaderItem")
@@ -230,7 +237,8 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
             .find((child) => child.props.slot === "selection")!;
           return [
             String(item.props.label),
-            !h.hidden(check) && check.derivedProps?._selectionMarkHidden !== true,
+            !h.hidden(check) &&
+              check.derivedProps?._selectionMarkHidden !== true,
           ];
         });
     expect(marks()).toEqual([
@@ -262,7 +270,7 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("#2 첫 단계 항목도 Show when 이 거짓이면 그리지 않는다 (Preview 와 같다)", async () => {
-    const h = await place({ isOpen: true });
+    const h = await placeColumns({ isOpen: true });
     const books = h
       .of("CascaderItem")
       .find((item) => item.props.label === "Books")!;
@@ -279,7 +287,7 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("#3 key 가 겹쳐 고를 수 없는 첫 단계 행은 Canvas 에서도 disabled (DOM Menu 의 disabledKeys)", async () => {
-    const h = await place({ isOpen: true, allowsBranchSelection: true });
+    const h = await placeColumns({ isOpen: true, allowsBranchSelection: true });
     const item = (label: string) =>
       h.of("CascaderItem").find((record) => record.props.label === label)!;
     const disabled = () =>
@@ -297,7 +305,7 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
     );
     expect(disabled()).toEqual([true, true, false]);
     h.workspace.undo();
-    expect(disabled()).toEqual([false, false, false]);    // (The field's level choice decides which rows are values — branches repeat only then.)
+    expect(disabled()).toEqual([false, false, false]); // (The field's level choice decides which rows are values — branches repeat only then.)
     h.workspace.redo();
     h.write({ allowsBranchSelection: false });
     expect(disabled()).toEqual([false, false, false]);
@@ -306,7 +314,7 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("#4 Popover 의 상대 단위 Min W (50vw) 를 Canvas 도 지킨다", async () => {
-    const h = await place({ isOpen: true });
+    const h = await placeColumns({ isOpen: true });
     h.workspace.execute(
       setFields({
         targets: [{ kind: "node", id: h.field().sourceId as NodeId }],
@@ -326,7 +334,7 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("#5 Cascader 검색 칸은 열 때마다 비어 있다 (작성한 Value 를 그리지 않는다)", async () => {
-    const h = await place({ isOpen: true });
+    const h = await placeColumns({ isOpen: true });
     const search = h.of("SearchField")[0]!;
     h.workspace.execute(
       setFields({
@@ -460,7 +468,7 @@ describe("ADR-326 G4 — Canvas: a columns Cascader's just-opened screen", () =>
   });
 
   it("Stop 판독 — 가지 선택을 바꾸는 편집 한 번의 갱신 계획은 행 수에 선형 (id 로 찾는다)", async () => {
-    const h = await place({ isOpen: true });
+    const h = await placeColumns({ isOpen: true });
     const list = h.of("CascaderList")[0]!;
     const rows = 400;
     const ids = Array.from(
@@ -581,9 +589,15 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
     const label = (name: string) =>
       abs(h, partOf(h, itemOf(h, name), "label").id);
     const list = abs(h, h.of("CascaderList")[0]!.id);
-    const xs = ["Electronics", "Computers", "Laptops", "Desktops", "Phones", "Clothing", "Books"].map(
-      (name) => Math.round(label(name).x - list.x),
-    );
+    const xs = [
+      "Electronics",
+      "Computers",
+      "Laptops",
+      "Desktops",
+      "Phones",
+      "Clothing",
+      "Books",
+    ].map((name) => Math.round(label(name).x - list.x));
     expect(xs).toEqual([56, 68, 80, 80, 68, 56, 56]);
     // (Rows one under another, 32 high each — the DOM's rows; an open branch's row is its composed
     //  row box, its items' rows under it.)
@@ -594,11 +608,21 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
       const own = h.root.getGeometry([part]).get(part);
       return { y: box.y, height: own ? own.height : box.height };
     };
-    const rows = ["Electronics", "Computers", "Laptops", "Desktops", "Phones", "Clothing", "Books"].map(
-      rowOf,
-    );
-    expect(rows.map((row) => Math.round(row.y - list.y))).toEqual([0, 32, 64, 96, 128, 160, 192]);
-    expect(rows.map((row) => Math.round(row.height))).toEqual([32, 32, 32, 32, 32, 32, 32]);
+    const rows = [
+      "Electronics",
+      "Computers",
+      "Laptops",
+      "Desktops",
+      "Phones",
+      "Clothing",
+      "Books",
+    ].map(rowOf);
+    expect(rows.map((row) => Math.round(row.y - list.y))).toEqual([
+      0, 32, 64, 96, 128, 160, 192,
+    ]);
+    expect(rows.map((row) => Math.round(row.height))).toEqual([
+      32, 32, 32, 32, 32, 32, 32,
+    ]);
     // (A leaf's chevron keeps its room undrawn, an open branch's turns down.)
     const chevron = (name: string) => partOf(h, itemOf(h, name), "descriptor");
     expect(h.hidden(chevron("Laptops"))).toBe(false);
@@ -607,10 +631,13 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
     expect(chevron("Phones").derivedProps?._glyphTurned).toBeUndefined();
     // (The picked leaf's check mark only.)
     expect(
-      h.of("CascaderItem")
+      h
+        .of("CascaderItem")
         .filter((item) => !h.hidden(item))
         .filter(
-          (item) => partOf(h, item, "selection").derivedProps?._selectionMarkHidden === false,
+          (item) =>
+            partOf(h, item, "selection").derivedProps?._selectionMarkHidden ===
+            false,
         )
         .map((item) => item.props.label),
     ).toEqual(["Laptops"]);
@@ -620,7 +647,13 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
     const h = await place({ isOpen: true });
     h.write({ mode: "tree", defaultValue: "laptops" });
     h.write({ defaultValue: "men" });
-    expect(shown(h)).toEqual(["Electronics", "Clothing", "Men", "Women", "Books"]);
+    expect(shown(h)).toEqual([
+      "Electronics",
+      "Clothing",
+      "Men",
+      "Women",
+      "Books",
+    ]);
     h.workspace.undo();
     expect(shown(h)).toEqual([
       "Electronics",
@@ -640,7 +673,12 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
     const h = await place({ isOpen: true });
     h.write({ mode: "drill", defaultValue: "laptops" });
     expect(h.hidden(h.popover())).toBe(false);
-    expect(shown(h)).toEqual(["Electronics", "Computers", "Laptops", "Desktops"]);
+    expect(shown(h)).toEqual([
+      "Electronics",
+      "Computers",
+      "Laptops",
+      "Desktops",
+    ]);
     expect(
       ["Electronics", "Computers", "Laptops", "Desktops", "Clothing"].map(
         (label) => itemOf(h, label).derivedProps?._cascaderRow,
@@ -650,37 +688,105 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
     expect(h.hidden(partOf(h, itemOf(h, "Computers"), "label"))).toBe(true);
     // (The level's rows stand in the list box as its own — the list's first row at its top.)
     const list = abs(h, h.of("CascaderList")[0]!.id);
-    const rows = ["Laptops", "Desktops"].map((name) => abs(h, itemOf(h, name).id));
+    const rows = ["Laptops", "Desktops"].map((name) =>
+      abs(h, itemOf(h, name).id),
+    );
     expect(rows.map((row) => Math.round(row.y - list.y))).toEqual([0, 32]);
     expect(rows.map((row) => Math.round(row.x - list.x))).toEqual([0, 0]);
-    expect(rows.every((row) => Math.round(row.width) === Math.round(list.width))).toBe(true);
-    // (The trail: the path — Category › Electronics › Computers — in its positions, the last current.)
+    expect(
+      rows.every((row) => Math.round(row.width) === Math.round(list.width)),
+    ).toBe(true);
+    // (The trail: the levels entered — Electronics › Computers — in its positions, the last current
+    //  (사용자 결정 2026-11-29: no crumb of the top level).)
     const trail = h.of("Breadcrumbs")[0]!;
-    expect(trail.derivedProps?._trailCrumbs).toBe(3);
+    expect(trail.derivedProps?._trailCrumbs).toBe(2);
     const crumbs = trail.children.map((id) => h.root.canvasInputs.get(id)!);
-    expect(crumbs.map((crumb) => h.hidden(crumb))).toEqual([false, false, false, true]);
+    expect(crumbs.map((crumb) => h.hidden(crumb))).toEqual([
+      false,
+      false,
+      true,
+      true,
+    ]);
     const words = crumbs
       .filter((crumb) => !h.hidden(crumb))
-      .map((crumb) =>
-        crumb.children
-          .map((id) => h.root.canvasInputs.get(id)!)
-          .find((child) => child.derivedProps?._cascaderCrumb === true)?.derivedProps?.children,
+      .map(
+        (crumb) =>
+          crumb.children
+            .map((id) => h.root.canvasInputs.get(id)!)
+            .find((child) => child.derivedProps?._cascaderCrumb === true)
+            ?.derivedProps?.children,
       );
-    expect(words).toEqual(["Category", "Electronics", "Computers"]);
-    expect(crumbs[2]!.derivedProps?._isLast).toBe(true);
-    // (「Back」 is drawn on a drill field.)
-    const back = h.of("ActionButton").find((button) => button.props.slot === "back")!;
+    expect(words).toEqual(["Electronics", "Computers"]);
+    expect(crumbs[1]!.derivedProps?._isLast).toBe(true);
+    // (「Back」 is drawn below the top level — before the search box, in the head row.)
+    const back = h
+      .of("ActionButton")
+      .find((button) => button.props.slot === "back")!;
     expect(h.hidden(back)).toBe(false);
+    const search = h.of("SearchField")[0]!;
+    expect(back.parentId).toBe(search.parentId);
+    const [backBox, searchBox] = [abs(h, back.id), abs(h, search.id)];
+    expect(Math.round(backBox.y)).toBe(Math.round(searchBox.y));
+    expect(Math.round(searchBox.x - (backBox.x + backBox.width))).toBe(4);
+    expect(Math.round(searchBox.x + searchBox.width)).toBe(
+      Math.round(list.x + list.width),
+    );
   });
 
-  it("drill: 값 없음 = 맨 위 단계 · 경로는 첫 조각만", async () => {
+  it("drill: 값 없음 = 맨 위 단계 — 경로 줄 · 「뒤로」 를 그리지 않고 검색 칸이 머리줄을 채운다 (사용자 결정 2026-11-29)", async () => {
     const h = await place({ isOpen: true });
     h.write({ mode: "drill" });
     expect(shown(h)).toEqual(["Electronics", "Clothing", "Books"]);
-    const trail = h.of("Breadcrumbs")[0]!;
-    const crumbs = trail.children.map((id) => h.root.canvasInputs.get(id)!);
-    expect(crumbs.map((crumb) => h.hidden(crumb))).toEqual([false, true, true, true]);
-    expect(crumbs[0]!.derivedProps?._isLast).toBe(true);
+    expect(h.hidden(h.of("Breadcrumbs")[0]!)).toBe(true);
+    const back = h
+      .of("ActionButton")
+      .find((button) => button.props.slot === "back")!;
+    expect(h.hidden(back)).toBe(true);
+    const list = abs(h, h.of("CascaderList")[0]!.id);
+    const search = abs(h, h.of("SearchField")[0]!.id);
+    expect([Math.round(search.x), Math.round(search.width)]).toEqual([
+      Math.round(list.x),
+      Math.round(list.width),
+    ]);
+    // (The list follows the head row — no empty trail row between: the Popover's 8 gap.)
+    expect(Math.round(list.y - (search.y + search.height))).toBe(8);
+  });
+
+  it("기본 방식 = drill (사용자 결정 2026-11-29 — 원본의 기본) · 가지 행의 자식 수 (잎 · 「전체」 줄에는 없음)", async () => {
+    const h = await place({ isOpen: true });
+    expect(cascaderBinding.props.accepts.mode).toMatchObject({
+      default: "drill",
+    });
+    expect(h.field().props.mode).toBe("drill");
+    expect(shown(h)).toEqual(["Electronics", "Clothing", "Books"]);
+    const count = (label: string) => partOf(h, itemOf(h, label), "count");
+    expect(
+      ["Electronics", "Clothing"].map((label) => [
+        h.hidden(count(label)),
+        count(label).derivedProps?.children,
+      ]),
+    ).toEqual([
+      [false, "2"],
+      [false, "2"],
+    ]);
+    expect(h.hidden(count("Books"))).toBe(true);
+    // (The count stands before the chevron, after the label — the item rule's `[slot="count"]`.)
+    const [label, mark, chevron] = ["label", "count", "descriptor"].map(
+      (slot) => abs(h, partOf(h, itemOf(h, "Electronics"), slot).id),
+    );
+    expect(mark!.x).toBeGreaterThan(label!.x);
+    expect(mark!.x).toBeLessThanOrEqual(chevron!.x);
+    // (A level's own row — 「<branch> 전체」 — has none; an item added changes its branch's count.)
+    h.write({ allowsBranchSelection: true, defaultValue: "laptops" });
+    expect(itemOf(h, "Computers").derivedProps?._cascaderRow).toBe("open");
+    expect(h.hidden(count("Computers"))).toBe(true);
+    h.write({ defaultValue: "" });
+    addChain(h);
+    expect(h.hidden(partOf(h, itemOf(h, "a"), "count"))).toBe(false);
+    expect(partOf(h, itemOf(h, "a"), "count").derivedProps?.children).toBe("1");
+    expect(h.hidden(partOf(h, itemOf(h, "c"), "count"))).toBe(true);
+    h.workspace.undo();
+    expect(h.hidden(partOf(h, itemOf(h, "b"), "count"))).toBe(true);
   });
 
   it("drill: 경로 줄의 접힘은 열린 상자의 폭 (필드 폭) 으로 판정 — Popover 가 자리를 잡은 뒤", async () => {
@@ -693,7 +799,9 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
         visual: { width: { kind: "set", value: 260 } },
       } as never),
     );
-    h.write({ mode: "drill", defaultValue: "laptops" });
+    // (Three levels entered — a › b › c, the field at d.)
+    addChain(h, ["a", "b", "c", "d"]);
+    h.write({ mode: "drill", defaultValue: "d" });
     for (const crumb of h.of("Breadcrumb"))
       h.workspace.execute(
         setFields({
@@ -708,12 +816,19 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
 
   it("tree: 가지 선택을 허용하면 고른 가지 행에 check (RAC Tree 의 selectedKeys) — columns 는 아님", async () => {
     const h = await place({ isOpen: true });
-    h.write({ mode: "tree", allowsBranchSelection: true, defaultValue: "computers" });
+    h.write({
+      mode: "tree",
+      allowsBranchSelection: true,
+      defaultValue: "computers",
+    });
     const checked = () =>
-      h.of("CascaderItem")
+      h
+        .of("CascaderItem")
         .filter((item) => !h.hidden(item))
         .filter(
-          (item) => partOf(h, item, "selection").derivedProps?._selectionMarkHidden === false,
+          (item) =>
+            partOf(h, item, "selection").derivedProps?._selectionMarkHidden ===
+            false,
         )
         .map((item) => item.props.label);
     expect(checked()).toEqual(["Computers"]);
@@ -723,9 +838,12 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
   });
 
   /** A chain the author added under the list box — a > b > c (document items, not the origin's). */
-  const addChain = (h: Awaited<ReturnType<typeof place>>) => {
+  const addChain = (
+    h: Awaited<ReturnType<typeof place>>,
+    keys: readonly string[] = ["a", "b", "c"],
+  ) => {
     let host = h.workspace.itemOfRecord(h.of("CascaderList")[0]!.id)!.target;
-    for (const key of ["a", "b", "c"]) {
+    for (const key of keys) {
       const id = `project:node:chain-${key}` as NodeId;
       h.workspace.execute(
         insertCollectionItem({
@@ -782,15 +900,28 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
 
   it("판독 1 #1 — drill · 가지 선택: 단계의 첫 줄 = 가지 record 의 「전체」 줄 (라벨 = 단계 이름 · chevron 없음 · 고르면 check)", async () => {
     const h = await place({ isOpen: true });
-    h.write({ mode: "drill", allowsBranchSelection: true, defaultValue: "laptops" });
+    h.write({
+      mode: "drill",
+      allowsBranchSelection: true,
+      defaultValue: "laptops",
+    });
     // (Electronics is on the path — no box; Computers is the level's own row.)
-    expect(shown(h)).toEqual(["Electronics", "Computers", "Laptops", "Desktops"]);
+    expect(shown(h)).toEqual([
+      "Electronics",
+      "Computers",
+      "Laptops",
+      "Desktops",
+    ]);
     expect(itemOf(h, "Electronics").derivedProps?._cascaderRow).toBe("pass");
     const computers = itemOf(h, "Computers");
     expect(computers.derivedProps?._cascaderRow).toBe("open");
-    expect(partOf(h, computers, "label").derivedProps?.children).toBe("All of Computers");
+    expect(partOf(h, computers, "label").derivedProps?.children).toBe(
+      "All of Computers",
+    );
     expect(h.hidden(partOf(h, computers, "descriptor"))).toBe(true);
-    expect(partOf(h, computers, "selection").derivedProps?._selectionMarkHidden).toBe(true);
+    expect(
+      partOf(h, computers, "selection").derivedProps?._selectionMarkHidden,
+    ).toBe(true);
     const list = abs(h, h.of("CascaderList")[0]!.id);
     expect(
       ["Computers", "Laptops", "Desktops"].map((name) =>
@@ -812,8 +943,12 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
     const h = await place({ isOpen: true });
     h.write({ mode: "drill", defaultValue: "laptops" });
     writeItem(h, "Computers", { visual: { backgroundColor: "#ff0000" } });
-    expect(catalogCanvasNodeData(h.root, itemOf(h, "Computers").id).box).toBeUndefined();
-    expect(catalogCanvasNodeData(h.root, itemOf(h, "Desktops").id).box).toBeDefined();
+    expect(
+      catalogCanvasNodeData(h.root, itemOf(h, "Computers").id).box,
+    ).toBeUndefined();
+    expect(
+      catalogCanvasNodeData(h.root, itemOf(h, "Desktops").id).box,
+    ).toBeDefined();
   });
 
   it("판독 1 #3 — tree: 열린 가지에 쓴 폭은 그 줄만 (자식 행은 목록 폭)", async () => {
@@ -844,10 +979,10 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
         (crumb) =>
           crumb.children
             .map((id) => h.root.canvasInputs.get(id)!)
-            .find((child) => child.derivedProps?._cascaderCrumb === true)?.derivedProps
-            ?.children,
+            .find((child) => child.derivedProps?._cascaderCrumb === true)
+            ?.derivedProps?.children,
       );
-    expect(words).toEqual(["Category", "a", "Bee"]);
+    expect(words).toEqual(["a", "Bee"]);
   });
 
   it("판독 1 #5 — tree: 깊은 단계의 겹치는 key 도 Canvas 에서 비활성", async () => {
@@ -859,14 +994,18 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
     expect(itemOf(h, "Laptops").derivedProps?.isDisabled).toBeFalsy();
   });
 
-  it("판독 1 #6 — drill: 맨 위 단계의 「뒤로」 는 Canvas 에서 비활성 칠 (DOM 은 제 단계 상태)", async () => {
+  it("판독 1 #6 → 사용자 결정 2026-11-29 — drill: 맨 위 단계의 「뒤로」 는 Canvas 에 그리지 않는다 (DOM 은 disabled · 시트가 뺀다) — 값이 생기면 선다", async () => {
     const h = await place({ isOpen: true });
     h.write({ mode: "drill" });
-    const back = () => h.of("ActionButton").find((b) => b.props.slot === "back")!;
-    expect(back().derivedProps?._fieldDisabled).toBe(true);
+    const back = () =>
+      h.of("ActionButton").find((b) => b.props.slot === "back")!;
+    expect(h.hidden(back())).toBe(true);
+    // (No disabled state leaks to the DOM's record — its 「Back」 takes the running level's.)
     expect(back().derivedProps?.isDisabled).toBeUndefined();
     h.write({ defaultValue: "laptops" });
-    expect(back().derivedProps?._fieldDisabled).toBeUndefined();
+    expect(h.hidden(back())).toBe(false);
+    h.workspace.undo();
+    expect(h.hidden(back())).toBe(true);
   });
 
   it("판독 1 #7 — tree: 열린 가지의 glyph 는 무슨 아이콘이든 90° 돈다 (rule 의 [data-expanded] 회전)", async () => {
@@ -883,15 +1022,19 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
     expect(turned.derivedProps?._glyphTurned).toBe(true);
     expect(catalogCanvasNodeData(h.root, turned.id).transform).toBeDefined();
     expect(
-      catalogCanvasNodeData(h.root, partOf(h, itemOf(h, "Phones"), "descriptor").id)
-        .transform,
+      catalogCanvasNodeData(
+        h.root,
+        partOf(h, itemOf(h, "Phones"), "descriptor").id,
+      ).transform,
     ).toBeUndefined();
   });
 
   it("Stop 판독 — 불투명도: 열린 가지는 제 줄 (칠 · 부품) 만, 경로 항목 (pass) 은 아무것도 흐리지 않는다", async () => {
     const h = await place({ isOpen: true });
     h.write({ mode: "tree", defaultValue: "laptops" });
-    writeItem(h, "Computers", { visual: { opacity: 0.5, backgroundColor: "#ff0000" } });
+    writeItem(h, "Computers", {
+      visual: { opacity: 0.5, backgroundColor: "#ff0000" },
+    });
     const opacities = (id: string) =>
       (catalogCanvasNodeData(h.root, id).effects ?? [])
         .filter((effect) => effect.type === "opacity")
@@ -942,8 +1085,10 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
       } as never),
     );
     expect(
-      catalogCanvasNodeData(h.root, partOf(h, itemOf(h, "Computers"), "descriptor").id)
-        .transform,
+      catalogCanvasNodeData(
+        h.root,
+        partOf(h, itemOf(h, "Computers"), "descriptor").id,
+      ).transform,
     ).toBeUndefined();
   });
 
@@ -958,27 +1103,28 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
       } as never),
     );
     expect(shown(h)).toEqual(["Electronics", "Clothing", "Books", "a"]);
-    const crumbs = h
-      .of("Breadcrumbs")[0]!
-      .children.map((id) => h.root.canvasInputs.get(id)!)
-      .filter((crumb) => !h.hidden(crumb));
-    expect(crumbs).toHaveLength(1);
+    // (The top level: no trail, no 「Back」 — 사용자 결정 2026-11-29.)
+    expect(h.hidden(h.of("Breadcrumbs")[0]!)).toBe(true);
     const back = h.of("ActionButton").find((b) => b.props.slot === "back")!;
-    expect(back.derivedProps?._fieldDisabled).toBe(true);
+    expect(h.hidden(back)).toBe(true);
   });
 
   it("수리 검증 #2 · #3 — 열린 가지의 position · left 는 그 줄만, 경로 항목의 transform 은 아무것도 옮기지 않는다", async () => {
     const h = await place({ isOpen: true });
     h.write({ mode: "tree", defaultValue: "laptops" });
     const before = abs(h, itemOf(h, "Laptops").id).x;
-    writeItem(h, "Computers", { layout: { position: "relative", insetLeft: "30px" } });
+    writeItem(h, "Computers", {
+      layout: { position: "relative", insetLeft: "30px" },
+    });
     expect(abs(h, itemOf(h, "Laptops").id).x).toBe(before);
     const part = `${itemOf(h, "Computers").id}::part:cascader-row`;
     expect(Math.round(h.root.getGeometry([part]).get(part)!.x)).toBe(30);
     writeItem(h, "Computers", { visual: { transform: "translateX(40px)" } });
     h.write({ mode: "drill" });
     expect(itemOf(h, "Computers").derivedProps?._cascaderRow).toBe("pass");
-    expect(catalogCanvasNodeData(h.root, itemOf(h, "Computers").id).transform).toBeUndefined();
+    expect(
+      catalogCanvasNodeData(h.root, itemOf(h, "Computers").id).transform,
+    ).toBeUndefined();
   });
 
   it("Stop 판독 — 열린 가지의 줄 노드: 형제 추가 · 자식 잎 삭제 · 칠 편집이 증분으로 (전체 재바인딩 없이) 그대로 남는다", async () => {
@@ -1026,11 +1172,17 @@ describe("ADR-326 G5 — Canvas: a tree · drill Cascader's just-opened screen",
 
   it("방식을 바꾸면 Canvas 의 막 연 화면이 따라간다 (columns · tree · drill)", async () => {
     const h = await place({ isOpen: true, defaultValue: "laptops" });
+    h.write({ mode: "columns" });
     expect(shown(h)).toEqual(["Electronics", "Clothing", "Books"]);
     h.write({ mode: "tree" });
     expect(shown(h)).toHaveLength(7);
     h.write({ mode: "drill" });
-    expect(shown(h)).toEqual(["Electronics", "Computers", "Laptops", "Desktops"]);
+    expect(shown(h)).toEqual([
+      "Electronics",
+      "Computers",
+      "Laptops",
+      "Desktops",
+    ]);
     h.write({ mode: "columns" });
     expect(shown(h)).toEqual(["Electronics", "Clothing", "Books"]);
   });

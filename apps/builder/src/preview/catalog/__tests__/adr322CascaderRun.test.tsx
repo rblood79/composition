@@ -11,6 +11,10 @@ import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVa
 import { catalogStateSourceValue } from "../../../../../../packages/shared/src/catalog/runtime/delegatedDom.runtime";
 import { openAdr280Preview } from "./support/adr280Harness";
 
+/** A row's name — its label part (a branch row also holds its item count, 사용자 결정 2026-11-29). */
+const rowName = (row: Element | null | undefined) =>
+  row?.querySelector('[slot="label"]')?.textContent ?? row?.textContent;
+
 /**
  * ADR-322 G5 (G4 의 「값 넣기」 이관) — a Cascader in a running Preview: a rule's 「값 넣기」 writes a key
  * the value text · the named state read; a key no single pickable item carries is refused and
@@ -39,7 +43,8 @@ async function open(
   const [target, button, text] = h.ids as [NodeId, NodeId, NodeId];
   const { workspace } = h;
   const graph = workspace.runtime.graph;
-  if (Object.keys(declare).length) h.declare(target, declare as never);
+  // (These cases are the `columns` mode's — the default is `drill`, 사용자 결정 2026-11-29.)
+  h.declare(target, { mode: "columns", ...declare } as never);
   const record = workspace.root.domInputs.get(
     workspace.recordsOfNode(target)[0]!,
   )!;
@@ -137,7 +142,7 @@ describe("ADR-322 G5 — Cascader 의 실행 (Preview)", () => {
     );
     expect(
       [...document.querySelectorAll('[role="menu"] [role^="menuitem"]')].map(
-        (item) => item.textContent,
+        (item) => rowName(item),
       ),
     ).toEqual(["Electronics", "Clothing", "Books"]);
     h.view.unmount();

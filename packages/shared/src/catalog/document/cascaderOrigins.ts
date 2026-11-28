@@ -4,7 +4,8 @@
 // branch shallower), so a placed Cascader has something to drill into.
 //
 // ADR-326 Phase 1 (breakdown §4.1) — the open content is nodes, in Select's place: `Popover >
-// SearchField + Breadcrumbs (drill) + 「Back」 ActionButton (drill) + CascaderList > CascaderItem…`.
+// (「Back」 ActionButton (drill) + SearchField) + Breadcrumbs (drill) + CascaderList > CascaderItem…`
+// (the head row — 사용자 결정 2026-11-29).
 // The mode does not change the structure — the two drill parts stand by `bindingMaps` +
 // `presentWith` (the `mode` the origin accepts). The trail is four crumb positions, not repeated
 // rows (a library position takes no `repeat` — ADR-326 F8; S2 Breadcrumbs draws four at most — F18).
@@ -48,7 +49,8 @@ export const CASCADER_DEFINITIONS: readonly LibraryDefinition[] = [
       errorMessage: "",
       placeholder: "Choose an option...",
       iconName: "chevron-down",
-      mode: "columns",
+      // (사용자 결정 2026-11-29 「가벼운 쪽」 — the reference's default: one level at a time.)
+      mode: "drill",
     },
     visual: {},
     stateRules: {},
@@ -106,7 +108,12 @@ export const CASCADER_ITEM_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     id: IT,
     definitionId: "lib:definition:type-CascaderItem",
-    children: [`${IT}__check`, `${IT}__label`, `${IT}__chevron`],
+    children: [
+      `${IT}__check`,
+      `${IT}__label`,
+      `${IT}__count`,
+      `${IT}__chevron`,
+    ],
     props: { label: "{label}" },
     visual: {},
   },
@@ -131,6 +138,16 @@ export const CASCADER_ITEM_TEMPLATES: readonly LibraryTemplateNode[] = [
     children: [],
     props: { slot: "label", children: "{label}" },
     visual: {},
+  },
+  // (사용자 결정 2026-11-29 — a branch row's item count, the reference's: how many items its next
+  //  level holds, before the chevron — derived (`catalogCascaderCount`), not drawn on a leaf. Its
+  //  place is the item rule's `[slot="count"]` block, its look written here: small and quieter.)
+  {
+    id: `${IT}__count`,
+    definitionId: "lib:definition:text",
+    children: [],
+    props: { slot: "count", children: "" },
+    visual: { fontSize: 12, opacity: 0.6 },
   },
   {
     id: `${IT}__chevron`,
@@ -157,7 +174,7 @@ export const CASCADER_TEMPLATES: readonly LibraryTemplateNode[] = [
       name: "",
       placeholder: "Choose an option...",
       labelPosition: "top",
-      mode: "columns",
+      mode: "drill",
       displayMode: "path",
       isDisabled: false,
       isInvalid: false,
@@ -253,9 +270,19 @@ export const CASCADER_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     id: `${T}__popover`,
     definitionId: "lib:definition:type-Popover",
-    children: [`${T}__search`, `${T}__trail`, `${T}__back`, `${T}__list`],
+    children: [`${T}__head`, `${T}__trail`, `${T}__list`],
     props: {},
     visual: {},
+  },
+  // (사용자 결정 2026-11-29 — the reference's head row: 「Back」 before the search box, one row; on
+  //  the top level — and off `drill` — the search box alone fills it.)
+  {
+    id: `${T}__head`,
+    definitionId: "lib:definition:type-frame",
+    children: [`${T}__back`, `${T}__search`],
+    props: {},
+    visual: {},
+    layout: { display: "flex", alignItems: "center", columnGap: "4px" },
   },
   {
     // (No visible label — the field names the search box: ADR-322 Phase 5's 「검색」 i18n name.)
@@ -263,7 +290,9 @@ export const CASCADER_TEMPLATES: readonly LibraryTemplateNode[] = [
     definitionId: "lib:definition:origin-component-searchfield",
     children: [],
     props: { label: "" },
-    visual: {},
+    // (In the head row it gives way to 「Back」 — its own content's width (a large size's input)
+    //  does not hold it wider than the row: G5 live, XL.)
+    visual: { minWidth: 0 },
   },
   {
     id: `${T}__trail`,

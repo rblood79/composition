@@ -9,8 +9,17 @@ import { OverlayTriggerStateContext } from "react-aria-components/Dialog";
 import { GridList, GridListItem } from "react-aria-components/GridList";
 import { Tree, TreeItem, TreeItemContent } from "react-aria-components/Tree";
 import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
+import { useLocale } from "react-aria-components/I18nProvider";
 import type { CascaderEntry } from "./cascader";
-import { CascaderOwnLabelContext } from "./cascader.components";
+import {
+  CascaderOwnLabelContext,
+  type CascaderRowInput,
+} from "./cascader.components";
+import {
+  cascaderNameMatch,
+  CASCADER_SEARCH_STRINGS,
+} from "./cascaderSearch.components";
+import { catalogLocalized } from "./localizedStrings";
 import type { CascaderListBodyProps } from "./cascaderMenu.components";
 import {
   cascaderPicked,
@@ -95,6 +104,22 @@ export const plainRow = (base: Record<string, unknown>) => ({
   className: "react-aria-CascaderItem",
   "data-size": base["data-size"],
 });
+
+/**
+ * A row's parts: a branch draws them all — but its item count while its items are not here (a level
+ * loaded one by one: the Canvas hides the count too, `catalogCascaderCount`); a leaf · a level's own
+ * row draws no `branchOnly` part.
+ */
+export const rowParts = (
+  row: CascaderRowInput,
+  branch: boolean,
+  counted: boolean = branch,
+): readonly ReactNode[] =>
+  row.parts.filter((part) =>
+    branch
+      ? counted || !row.branchOnly.includes(part) || row.chevron.includes(part)
+      : !row.branchOnly.includes(part),
+  );
 
 /**
  * The shared part: the picked items, the items that cannot be picked, and a pick (single: the value,
@@ -215,7 +240,12 @@ export function CascaderTreeBody(props: BodyProps): ReactElement | null {
                   <Button key="chevron" slot="chevron">
                     {row.chevron}
                   </Button>,
-                  ...row.parts.filter((part) => !row.chevron.includes(part)),
+                  // (The chevron is the button's.)
+                  ...rowParts(
+                    row,
+                    entry.hasChildren,
+                    !!childrenOf(entry.pathId).length,
+                  ).filter((part) => !row.chevron.includes(part)),
                 ])}
               </TreeItemContent>
               {nested(entry)}
@@ -276,18 +306,12 @@ export function CascaderTreeBody(props: BodyProps): ReactElement | null {
 }
 
 export function CascaderDrillBody(props: BodyProps): ReactElement | null {
-  const { open, base, Row, renderRow, view } = props;
+  const { open, base, Row, renderRow, view, query = "" } = props;
   const { table, label, multiple, levels } = open;
-  const {
-    picked,
-    blocked,
-    childrenOf,
-    pick,
-    entryOf,
-    onSelectionChange,
-    waits,
-    retry,
-  } = usePanel(props);
+  const { locale } = useLocale();
+  const strings = catalogLocalized(CASCADER_SEARCH_STRINGS, locale);
+  const { picked, blocked, childrenOf, pick, entryOf, waits, retry } =
+    usePanel(props);
   const status = useCascaderLevelStatus();
   const levelName = useCascaderLevelName();
   if (!view) return null;
@@ -310,8 +334,29 @@ export function CascaderDrillBody(props: BodyProps): ReactElement | null {
       {text}
     </GridListItem>
   );
+  // (A row's action: 「Retry」 asks again, a branch row goes into its level, the rest is picked.)
+  const act = (key: unknown) => {
+    if (retry(String(key))) return;
+    const entry = entryOf(key);
+    if (!String(key).endsWith(CASCADER_LEVEL_ITEM) && entry?.hasChildren)
+      enter(entry.pathId);
+    else pick(entry);
+  };
+  // (판독 1 #2 · #3 · 수리 검증 #1 — every press and key (Enter · Space) comes as a selection change
+  //  — no `onAction`: with a row picked RAC keeps Enter from an action, and a branch row's press
+  //  came here anyway. The list holds this level's picked rows only: a change is read against them
+  //  — the picks of other levels stay — and a row added is acted on (a branch is gone into).)
+  const onSelectionChange = (selection: unknown) => {
+    if (selection === "all") return;
+    const next = new Set([...(selection as Iterable<unknown>)].map(String));
+    for (const id of next) if (!selected.includes(id)) act(id);
+    if (multiple)
+      for (const id of selected) if (!next.has(id)) pick(entryOf(id));
+  };
   // (The level keeps its own focus — off the search's RAC `Autocomplete`, as before ADR-326: on it the
-  //  input's virtual focus went to the grid and stayed off when the results' Menu took its place.)
+  //  input's virtual focus went to the grid and stayed off when the results' Menu took its place.
+  //  RAC 1.22.1 `GridList` takes the `Autocomplete`'s filter only, not its virtual focus — Tab goes
+  //  from the search box to the level; ↓ there would be a key handler of our own, D1.)
   return isolate(
     // (A level changed — the list remounts and, once the user moved, takes focus: the picked row,
     //  else the first, RAC's `autoFocus`; on open the search field has it. The key is on the
@@ -322,6 +367,7 @@ export function CascaderDrillBody(props: BodyProps): ReactElement | null {
         aria-label={parent ? parent.name : label}
         autoFocus={moved ? (selected.length ? true : "first") : undefined}
         escapeKeyBehavior="none"
+        renderEmptyState={() => strings.empty}
         selectionMode={multiple ? "multiple" : "single"}
         selectedKeys={selected}
         disabledKeys={[
@@ -332,19 +378,15 @@ export function CascaderDrillBody(props: BodyProps): ReactElement | null {
           ...(waits(parent) && !failed ? [statusId] : []),
         ]}
         onSelectionChange={onSelectionChange}
-        onAction={(key) => {
-          if (retry(String(key))) return;
-          const entry = entryOf(key);
-          if (!String(key).endsWith(CASCADER_LEVEL_ITEM) && entry?.hasChildren)
-            enter(entry.pathId);
-          else pick(entry);
-        }}
       >
         {[
           // (ADR-326 Phase 5 — the own row is the branch's record (its check mark · label Text, the
           //  label the level name, no chevron), as the Canvas draws it; a branch without a record a
           //  plain row.)
-          ...(own && parent
+          // (`searchScope: "level"` — a query narrows this level's rows by name, its own row's too.)
+          ...(own &&
+          parent &&
+          cascaderNameMatch(levelName(parent.name), query, locale)
             ? [
                 parent.recordId ? (
                   <Row
@@ -360,9 +402,7 @@ export function CascaderDrillBody(props: BodyProps): ReactElement | null {
                             key="own"
                             value={levelName(parent.name)}
                           >
-                            {row.parts.filter(
-                              (part) => !row.chevron.includes(part),
-                            )}
+                            {rowParts(row, false)}
                           </CascaderOwnLabelContext.Provider>,
                         ])}
                       </GridListItem>
@@ -378,32 +418,34 @@ export function CascaderDrillBody(props: BodyProps): ReactElement | null {
           ...(waits(parent)
             ? [plain(statusId, failed ? status.retry : status.loading)]
             : []),
-          ...childrenOf(level).map((entry) =>
-            entry.recordId ? (
-              <Row
-                key={entry.pathId}
-                value={(row) => (
-                  <GridListItem
-                    {...row.props}
-                    id={entry.pathId}
-                    textValue={entry.name}
-                  >
-                    {row.frame(
-                      entry.hasChildren
-                        ? row.parts
-                        : row.parts.filter(
-                            (part) => !row.chevron.includes(part),
-                          ),
-                    )}
-                  </GridListItem>
-                )}
-              >
-                {renderRow(entry.recordId)}
-              </Row>
-            ) : (
-              plain(entry.pathId, entry.name)
+          ...childrenOf(level)
+            .filter((entry) => cascaderNameMatch(entry.name, query, locale))
+            .map((entry) =>
+              entry.recordId ? (
+                <Row
+                  key={entry.pathId}
+                  value={(row) => (
+                    <GridListItem
+                      {...row.props}
+                      id={entry.pathId}
+                      textValue={entry.name}
+                    >
+                      {row.frame(
+                        rowParts(
+                          row,
+                          entry.hasChildren,
+                          !!childrenOf(entry.pathId).length,
+                        ),
+                      )}
+                    </GridListItem>
+                  )}
+                >
+                  {renderRow(entry.recordId)}
+                </Row>
+              ) : (
+                plain(entry.pathId, entry.name)
+              ),
             ),
-          ),
         ]}
       </GridList>
     </CascaderInView>,

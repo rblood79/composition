@@ -511,3 +511,33 @@ Phase 1 은 구조만 바꾸고 화면은 같다 — 여기서 커밋 가능 상
 **Stop 판독 — 재현 · 수리**: 불투명도 겹침 (행 부품마다 따로 곱해 겹친 곳이 진해짐 → 행 scene 노드 한 층) · 회전 (`_glyphTurned` 의 중심 원점) · 고르지 않은 잎 삭제 뒤 행 노드 사라짐 (`keptRows` — RED) · 형제 추가마다 전체 재묶음 (새 record 만) · 형 오류 2.
 
 **G5 판정 (2026-11-29)**: type-check 0 · shared 3,131 · builder 7,157 (catalogRuntime + preview + Canvas, 마지막 Canvas 수리 뒤 catalogRuntime + Canvas 5,656 다시) 통과 · live G5 Chrome · WebKit 28/28 · G4 6/6. 판독 상한 (1 + 1) 도달 — 사용자 「phase5닫아」. 번들: Builder initial **1,683,955 B** (Phase 4 1,679,021 → +4,934 · 상한 1,682,000 을 1,955 B 넘음 → 사용자 재승인 「+5,000 → 1,687,000」, Phase 6 몫 포함. Δ +4,934 는 `adr201-bundle-gate.mjs` 의 Builder Δ 한도 4,096 을 838 B 넘는다 → 사용자 판정 「Δ 초과 수용 · 기록」 — Canvas 가 동기로 읽는 레이아웃 · 칠 코드). **닫힘.** 다음 Phase 6 (종결 — HC4 재측정 · 번들 합계 · live 전체 · VoiceOver · 규칙 문서 · ADR-322 대체 표시).
+
+### Phase 5 후속 — 원본 (ReUI Cascader) 정렬 「가벼운 쪽」 (2026-11-29, HEAD `973b0fbc4` 위)
+
+**출처**: 사용자 「cascader 분석한 원본과 동작방식이 너무다르다 체크해, https://reui.io/components/cascader」 → 대조 보고 → 사용자 「가벼운쪽으로 구성」. 원본은 데모 5 (drill · columns · 다중 · 폼) 를 Chrome 으로 직접 조작해 기록했다 (열면 focus = 검색 칸 · drill 이 기본 · 가지 클릭 = 한 패널 안에서 단계 교체 · 검색 칸 왼쪽의 뒤로 화살표 · 그 아래 단계 이름 한 줄 · 검색 = 지금 단계 · 가지 행의 자식 수 · columns = 한 팝업 안의 나란한 열).
+
+**범위 — 가벼운 쪽 (RAC 조립 유지)**: 아래 넷. 무거운 쪽 (columns 를 한 팝업 안의 나란한 열로 · 가지를 클릭으로 열기 · focus 를 검색 칸에 두고 ← → 로 단계 이동) 은 하지 않는다 — RAC `Menu` · `GridList` 를 쓰지 못해 D1 예외가 필요하다 (사용자 선택 밖).
+
+1. **기본 방식 = `drill`** (ADR-322 사용자 결정 1 `columns` 대체) — binding default · 원본 template · `cascaderMode(props)` 하나 (`runtime/cascader.ts` — 방식을 쓰지 않은 문서도 drill). 패널의 순서 Drill · Columns · Tree.
+2. **drill 머리줄** — 원본 구조 `Popover > frame (「뒤로」 + SearchField) + Breadcrumbs + CascaderList` (머리줄 = flex 행, 간격 4). 맨 위 단계: 「뒤로」 를 그리지 않고 (DOM 은 열린 필드가 back slot 에 다는 `data-cascader-top` + 시트 `[slot="back"][data-cascader-top] { display: none }` — 단계가 정한다, 작성한 `isDisabled` 와 무관. Canvas 는 `catalogCascaderBackHidden`) 검색 칸이 머리줄을 채우며, 경로 줄도 없다 (`cascaderTrail` 이 뿌리 crumb 을 넣지 않는다 — 들어간 단계만, DOM 은 crumb 0 이면 Breadcrumbs 를 그리지 않고 Canvas 는 `catalogCascaderTrailHidden`). 열린 상자의 부품 찾기는 Popover 의 자식 또는 머리줄의 자식 (`cascaderOfOpenPart` · `cascaderOpenParts` — 옛 문서의 Popover 직계 구조도 읽는다, 마이그레이션 0).
+3. **검색 범위 `searchScope`** (원본의 이름 · 값) — `level` (기본: 지금 단계의 행을 거른다 — drill 은 열린 단계, columns 는 첫 단계. 가지는 그대로 들어갈 수 있고, 단계에 들어가면 검색어를 비운다. 경로 줄 · 「뒤로」 는 남는다) · `deep` (지금 단계와 그 아래의 고를 수 있는 항목 — 경로와 함께 한 목록) · `global` (모든 단계 — ADR-322 결정 8 의 동작). `tree` 는 늘 한 목록 (칸은 drill · columns 에서만 보인다). 한 목록 결과의 표시 = 결과 Menu 의 `data-cascader-results` (시트가 그때만 경로 줄 · 「뒤로」 를 숨긴다).
+4. **가지 행의 자식 수** — 항목 원본에 `Text[slot="count"]` (label 과 chevron 사이, 글자 12 · 불투명도 0.6). 자리 = CascaderItem rule 의 `[slot="count"]` (MenuItem rule + S2 `menuitem` 의 keyboard 자리 — 4 열 · 왼쪽 여백 8). 값: Canvas 는 파생 글자 (`catalogCascaderCount` — pass 의 표), DOM 은 실행 중 표 (`CatalogCascaderCount` — 단계별 로드는 읽은 만큼). 잎 · 읽지 않은 단계 · 「전체」 줄에는 그리지 않는다 (DOM 행의 `rowParts` — `branchOnly` 부품, 항목이 아직 없는 가지는 chevron 만).
+
+**하지 않은 것 (보고)**: 단계마다 바뀌는 검색 칸 placeholder (「Search Billing...」) · 닫힌 필드 경로의 3 조각 접기 · 아래 명령 줄 · 다중 선택 체크박스 (오른쪽) — 원본에 있으나 「가벼운 쪽」 의 넷 밖.
+
+**검증**: 단위 — `adr326TreeDrillOpen.test.tsx` 23 · `adr326CanvasOpen.test.ts` 33 · `adr326ColumnsOpen.test.tsx` 9 · `adr322Cascader.test.ts` 19 (자식 수 · 머리줄 · 단계 검색 · deep · 기본 drill · 판독 수리 8). 원복 RED — 구현 V1 ~ V17 · 판독 수리 W2 · W3 · W5 ~ W8 · W10 · W11 전부 RED · 바이트 복원 확인, live RED 3 (XL 검색 칸 폭 · 「뒤로」 숨김 규칙 · 한 목록 표시 규칙). live (dev 서버 5176) Chrome · WebKit — 새 하니스 `adr326-reference-live.mjs` 8/8 (기본 drill · 맨 위 단계 · 단계 검색 · 단계 안 머리줄 · 「뒤로」 · Tab → 목록 → Enter · global · console 0), G5 28/28 · G3 10/10 · G2 12/12 · G4 6/6. type-check 0 · shared 3,132 · builder 10,308 통과 — 실패 2 는 이 변경 밖: `domainPredicateRatchet` (다른 세션 커밋 `11a7abfe4` 의 `scheduleWindowQuery.ts`) · `adr322CascaderLevels` 1,000 행 drill (전체 실행 부하에서 5 s 초과 — 단독 3.9 s, HEAD 소스로도 3.9 s). Builder initial 1,684,563 B (판독 수리 전 측정 — Phase 5 → +608, 상한 1,687,000 안).
+
+**판독 1 (codex) — HIGH 4 · MEDIUM 6**: 수리 8 · 기각 2.
+
+- (1 HIGH) 옛 문서의 SearchField · 「뒤로」 override 주소가 머리줄 frame 때문에 `TEMPLATE_STEP_NOT_OWNED` — **기각**: 사용자 결정 2026-11-18 「개발 단계 — 마이그레이션 코드 금지, template 경로가 바뀌어 옛 프로젝트가 안 열려도 그대로」.
+- (2 HIGH) 다중 선택에서 단계 검색으로 하나를 더하면 다른 단계의 값이 사라짐 → drill 목록의 선택 변화를 그 단계의 고른 행과만 대조 (`CascaderDrillBody` 자기 `onSelectionChange`).
+- (3 HIGH) 고른 행이 있는 단계에서 가지 행을 누르면 들어가지 않음 (RAC 가 그 누름을 선택 변화로 넘김) → 더해진 행은 `act` (가지면 들어감).
+- (4 HIGH) 단계 검색에서 ↓ · Enter 로 고를 수 없음 → 아래 수리 검증 참고.
+- (5 MEDIUM) 작성한 「뒤로」 `isDisabled` 로 Canvas 와 Preview 가 반대 → 맨 위 단계 표시를 열린 필드가 단다 (`data-cascader-top` — 시트 규칙도 그것으로).
+- (6 MEDIUM) 맨 위에서 열고 내려간 경로 줄의 폭 관찰 없음 → `BreadcrumbsRun` 의 ResizeObserver effect 가 경로 줄이 생길 때 다시 붙는다.
+- (7 MEDIUM) 단계 검색이 「전체」 줄을 뺌 → 그 줄도 이름 (단계 이름) 으로 거른다.
+- (8 MEDIUM) 아직 읽지 않은 원격 가지의 빈 count 요소가 Preview 에만 자리 → `rowParts` (항목이 없는 가지는 count 를 그리지 않는다 — drill · tree · columns 공용).
+- (9 MEDIUM) 단계별 로드의 「불러온 항목에서만 찾는다」 안내가 단계 검색에 없음 — **기각 (결함 아님)**: 단계 검색의 대상은 보이는 단계의 행이고 그 단계는 이미 다 읽었다. 안내는 한 목록 검색 (deep · global · tree) 의 것이고 거기 그대로 있다.
+- (10 MEDIUM) deep 검색이 맞지 않는 항목까지 조상을 걸음 → 이름을 먼저 대조.
+
+**수리 검증 (codex) — HIGH 1 · MEDIUM 1**: (1 HIGH) 그 단계에 고른 행이 있으면 Enter 가 고르지 않음 (RAC GridList 는 선택이 있으면 Enter 를 `onAction` 으로 넘기지 않는다) → drill 목록의 `onAction` 을 빼고 누름 · Enter · Space 를 모두 선택 변화 하나로 받는다 (W11). (2 MEDIUM) 결과가 없을 때 ↓ 가 검색 칸의 focus 를 가져감 — 판독 1 #4 를 위해 넣은 검색 칸 `onKeyDown` 의 문제였고, 그 handler 는 D1 게이트 (`adr322D1Static.static.test.ts` — Cascader 조립은 자기 키 handler 를 쓰지 않는다) 에도 걸려 **뺐다**. RAC 1.22.1 `GridList` 는 `Autocomplete` 의 거르기만 받고 가상 focus 는 받지 않아, 단계 검색에서 목록으로 가는 키는 Tab (그 뒤 ↑ ↓ · Enter 는 RAC) 이다. 원본의 「검색 칸에서 ↓」 는 D1 예외가 필요해 하지 않는다. 판독 상한 (판독 1 + 수리 검증 1) 도달 뒤 사용자가 닫음 (「후속 닫고」, 2026-11-29).

@@ -112,12 +112,17 @@ const canvasView = (p, label) =>
           const parts = item.children.map((c) => records.get(c)).filter(Boolean);
           const labelPart = parts.find((c) => c.props.slot === "label");
           const check = parts.find((c) => c.props.slot === "selection");
+          // (A branch row's item count — 사용자 결정 2026-11-29.)
+          const countPart = parts.find((c) => c.props.slot === "count");
+          const counted = !!countPart && drawn(countPart);
           rows.push({
             // (A drill level's own row shows the level name — its label's derived words.)
             key: String(labelPart.derivedProps?.children ?? item.props.label),
             row: rel(rowBox),
             label: rel(h.canvas.boundsOf(labelPart.id)),
             checked: !!check && drawn(check) && check.derivedProps?._selectionMarkHidden === false,
+            count: counted ? String(countPart.derivedProps?.children ?? "") : null,
+            countRect: counted ? rel(h.canvas.boundsOf(countPart.id)) : null,
           });
         }
       }
@@ -150,19 +155,27 @@ const canvasView = (p, label) =>
             return m && rel({ x: trailBox.x + m.x, y: trailBox.y + m.y, width: m.width, height: m.height });
           })()
         : null;
-    const back = popover.children
+    // (The head row — `Popover > frame > 「Back」 + SearchField`, 사용자 결정 2026-11-29.)
+    const openParts = popover.children
       .map((id) => records.get(id))
-      .find((r) => r && r.props.slot === "back");
+      .filter(Boolean)
+      .flatMap((r) =>
+        typeOf(r) === "frame" ? r.children.map((id) => records.get(id)).filter(Boolean) : [r],
+      );
+    const back = openParts.find((r) => r.props.slot === "back");
+    const search = openParts.find((r) => typeOf(r) === "SearchField");
     return {
       open: true,
       box: [Math.round(box.width), Math.round(box.height)],
+      search: search && drawn(search) ? rel(h.canvas.boundsOf(search.id)) : null,
       rows,
       crumbs,
       folder: !!menu,
       crumbRects,
       menuRect,
       back: back && drawn(back) ? rel(h.canvas.boundsOf(back.id)) : null,
-      backDisabled: !!back && back.derivedProps?._fieldDisabled === true,
+      // (The top level: 「Back」 is not drawn — the DOM's is disabled and taken out by the sheet.)
+      backDisabled: !!back && !drawn(back),
     };
   }, label);
 
@@ -190,7 +203,10 @@ const domView = (p, label) =>
       .map((row) => {
         const label = row.querySelector('.react-aria-Text[slot="label"]');
         const check = row.querySelector('.react-aria-Icon[slot="selection"]');
+        const count = row.querySelector('.react-aria-Text[slot="count"]');
         return {
+          count: count ? (count.textContent ?? "") : null,
+          countRect: count ? rel(count) : null,
           key: label?.textContent ?? "",
           row: rel(row),
           label: label ? rel(label) : null,
@@ -204,9 +220,11 @@ const domView = (p, label) =>
     const crumbs = shown.map((c) => c.textContent?.trim());
     const folderEl = trail?.querySelector(".breadcrumb-menu");
     const back = pop.querySelector('[slot="back"]');
+    const search = pop.querySelector(".react-aria-SearchField");
     return {
       open: true,
       box: [Math.round(box.width), Math.round(box.height)],
+      search: search ? rel(search) : null,
       rows,
       crumbs,
       crumbRects: shown.map(rel),
@@ -231,7 +249,18 @@ const compare = (canvas, dom) => {
         if (!sameRect(row.row, other.row)) why.push(`row:${row.key}`);
         if (!sameRect(row.label, other.label)) why.push(`label:${row.key}`);
         if (row.checked !== other.checked) why.push(`check:${row.key}`);
+        if (row.count !== other.count) why.push(`count:${row.key}`);
+        // (The count's place — its right edge and line: the text boxes differ by the font's ink.)
+        else if (
+          row.count !== null &&
+          !sameRect(
+            [row.countRect[0] + row.countRect[2], row.countRect[1]],
+            [other.countRect[0] + other.countRect[2], other.countRect[1]],
+          )
+        )
+          why.push(`count-place:${row.key}`);
       });
+    if (!sameRect(canvas.search, dom.search)) why.push("search");
     if (JSON.stringify(canvas.crumbs) !== JSON.stringify(dom.crumbs)) why.push("crumbs");
     if (canvas.folder !== dom.folder) why.push("folder");
     else if (canvas.folder && !sameRect(canvas.menuRect?.slice(0, 2), dom.menuRect?.slice(0, 2)))
@@ -440,7 +469,7 @@ try {
   combos.push({ label: "Static", mode: "tree", value: "computers", size: "M", branch: true });
   combos.push({ label: "Static", mode: "drill", value: "laptops", size: "M", branch: true });
   combos.push({ label: "Static", mode: "drill", value: "computers", size: "M", branch: true });
-  // (A trail of seven crumbs — its positions hold the first and the last two, the folder the rest.)
+  // (A trail of five crumbs — its positions hold the first and the last two, the folder the rest.)
   for (const width of [260, 600])
     combos.push({ label: "Deep", mode: "drill", value: "D6", size: "M", width });
 

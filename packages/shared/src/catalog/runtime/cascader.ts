@@ -31,6 +31,18 @@ export const CASCADER_LEVEL_NAME: Readonly<
   ko: (name) => `${name} 전체`,
 };
 
+/** A Cascader's modes (`cascader.components.tsx` `CascaderMode`). */
+export type CascaderModeName = "columns" | "tree" | "drill";
+/**
+ * The field's mode — `drill` unless it names another (사용자 결정 2026-11-29 「가벼운 쪽」: the
+ * reference's default — one level at a time; ADR-322 사용자 결정 1 `columns` 대체).
+ */
+export function cascaderMode(props: Record<string, unknown>): CascaderModeName {
+  return props.mode === "columns" || props.mode === "tree"
+    ? props.mode
+    : "drill";
+}
+
 /** The closed field's path separator when the author writes none (breakdown §4.1). */
 export const CASCADER_DEFAULT_SEPARATOR = " / ";
 
@@ -452,19 +464,16 @@ export function catalogCascaderOfTriggerPart(
   return field && typeOf(field) === CASCADER_TYPE ? field : undefined;
 }
 
-/** The key of the trail's first crumb — the top level (no item's path id is empty). */
-export const CASCADER_TRAIL_ROOT = "";
-
 /**
- * ADR-326 §4.4 — a `drill` level's trail: the whole path (`crumbs` — the field's label, then the
- * level's ancestors down to it) and which crumb each of the four positions holds (`slots` — every
- * crumb while four or fewer, else the first, the one before the last and the last in positions
- * 1 · 3 · 4). The folder menu's crumbs are not chosen here — after the fit (Round 2 m5).
+ * ADR-326 §4.4 — a `drill` level's trail: the level's path (`crumbs` — its ancestors down to it; the
+ * top level has none — 사용자 결정 2026-11-29: the reference names the levels entered, 「Back」 goes up)
+ * and which crumb each of the four positions holds (`slots` — every crumb while four or fewer, else
+ * the first, the one before the last and the last in positions 1 · 3 · 4). The folder menu's crumbs
+ * are not chosen here — after the fit (Round 2 m5).
  */
 export function cascaderTrail(
   table: CascaderTable,
   level: string | null,
-  rootLabel: string,
 ): {
   readonly crumbs: readonly { readonly key: string; readonly text: string }[];
   readonly slots: readonly (number | undefined)[];
@@ -477,7 +486,6 @@ export function cascaderTrail(
       at.parentPathId === null ? undefined : table.byPathId.get(at.parentPathId)
   )
     crumbs.unshift({ key: at.pathId, text: at.name });
-  crumbs.unshift({ key: CASCADER_TRAIL_ROOT, text: rootLabel });
   const last = crumbs.length - 1;
   return {
     crumbs,
@@ -572,7 +580,7 @@ function cascaderOwnRow(
 ): { readonly picked: boolean } | undefined {
   if (typeOf(item) !== CASCADER_ITEM_TYPE) return undefined;
   const cascader = cascaderOfItem(item, get, typeOf);
-  if (!cascader || cascader.props.mode !== "drill") return undefined;
+  if (!cascader || cascaderMode(cascader.props) !== "drill") return undefined;
   const own = cascaderPassView(cascader, get, typeOf).own;
   return own?.recordId === item.id ? own : undefined;
 }
@@ -590,6 +598,9 @@ export function catalogCascaderOwnRowPart(
   const item = get(node.parentId);
   if (!item || !cascaderOwnRow(item, get, typeOf)) return undefined;
   if (typeOf(node) === "Icon" && node.props.slot === "descriptor")
+    return { hidden: true };
+  // (Nor its item count — the row picks the branch.)
+  if (typeOf(node) === "Text" && node.props.slot === CASCADER_COUNT_SLOT)
     return { hidden: true };
   if (typeOf(node) === "Text" && node.props.slot === "label")
     return {
@@ -634,7 +645,7 @@ export function catalogCascaderTreeLevel(
 ): number | undefined {
   if (typeOf(node) !== CASCADER_ITEM_TYPE) return undefined;
   const cascader = cascaderOfItem(node, get, typeOf);
-  if (!cascader || cascader.props.mode !== "tree") return undefined;
+  if (!cascader || cascaderMode(cascader.props) !== "tree") return undefined;
   const entry = cascaderPassTable(cascader, get, typeOf).byRecord.get(node.id);
   return entry ? entry.depth + 1 : undefined;
 }
@@ -653,7 +664,8 @@ export function catalogCascaderChevronHidden(
   if (!item || !cascaderItemIsLeaf(item, get, typeOf)) return false;
   // (A `tree` row keeps a leaf's chevron room — S2 TreeView's hidden expand button: the label lines
   //  up by its level. `catalogCascaderChevronRoomOnly`.)
-  return cascaderOfItem(item, get, typeOf)?.props.mode !== "tree";
+  const cascader = cascaderOfItem(item, get, typeOf);
+  return !cascader || cascaderMode(cascader.props) !== "tree";
 }
 
 /** The item whose chevron (its `descriptor` Icon) the node is. */
@@ -662,7 +674,8 @@ function cascaderChevronItem(
   get: Lookup,
   typeOf: TypeOf,
 ): CatalogConsumerNode | undefined {
-  if (typeOf(node) !== "Icon" || node.props.slot !== "descriptor") return undefined;
+  if (typeOf(node) !== "Icon" || node.props.slot !== "descriptor")
+    return undefined;
   const item = get(node.parentId);
   return item && typeOf(item) === CASCADER_ITEM_TYPE ? item : undefined;
 }
@@ -691,7 +704,8 @@ export function catalogCascaderTreeChevron(
   typeOf: TypeOf,
 ): { readonly roomOnly: boolean; readonly expanded: boolean } | undefined {
   const item = cascaderChevronItem(node, get, typeOf);
-  if (!item || cascaderOfItem(item, get, typeOf)?.props.mode !== "tree")
+  const cascader = item && cascaderOfItem(item, get, typeOf);
+  if (!item || !cascader || cascaderMode(cascader.props) !== "tree")
     return undefined;
   return {
     roomOnly: cascaderItemIsLeaf(item, get, typeOf),
@@ -730,7 +744,10 @@ interface CascaderPassView {
   readonly own?: { readonly recordId: string; readonly picked: boolean };
 }
 const PASSES = new WeakMap<Lookup, Map<string, CascaderPass>>();
-function cascaderPass(cascader: CatalogConsumerNode, get: Lookup): CascaderPass {
+function cascaderPass(
+  cascader: CatalogConsumerNode,
+  get: Lookup,
+): CascaderPass {
   let passes = PASSES.get(get);
   if (!passes) PASSES.set(get, (passes = new Map()));
   let pass = passes.get(cascader.id);
@@ -757,7 +774,7 @@ function cascaderPassTable(
     // (A `tree` selects every picked row, a picked branch too — RAC Tree's `selectedKeys`; `columns`
     //  · `drill` the picked leaves of a level — a picked branch is its level's own 「<branch> 전체」
     //  row, not its row.)
-    const branches = cascader.props.mode === "tree";
+    const branches = cascaderMode(cascader.props) === "tree";
     pass.selected = new Set(
       [...pass.keys].flatMap((key) => {
         const match = cascaderValueMatch(table, key);
@@ -781,16 +798,20 @@ function cascaderPassView(
   const pass = cascaderPassTable(cascader, get, typeOf);
   if (pass.view) return pass.view;
   const { table } = pass;
-  const mode = cascader.props.mode;
+  const mode = cascaderMode(cascader.props);
   const opening = cascaderOpeningView(table, [...pass.keys]);
   const rows = new Map<string, CascaderRowState>();
   if (mode === "drill") {
     // (The open level's path: its items have no row — their items are the level's rows.)
     const path = new Set<string>();
     for (
-      let at = opening.level === null ? undefined : table.byPathId.get(opening.level);
+      let at =
+        opening.level === null ? undefined : table.byPathId.get(opening.level);
       at;
-      at = at.parentPathId === null ? undefined : table.byPathId.get(at.parentPathId)
+      at =
+        at.parentPathId === null
+          ? undefined
+          : table.byPathId.get(at.parentPathId)
     )
       path.add(at.pathId);
     // (A pickable level branch's own row first — the DOM's 「<branch> 전체」: its record is the row.)
@@ -887,7 +908,7 @@ export function catalogCascaderItemSelected(
     }
   if (!cascader) return undefined;
   // (A `drill` level's own row: picked while the start value names its branch.)
-  if (cascader.props.mode === "drill") {
+  if (cascaderMode(cascader.props) === "drill") {
     const own = cascaderPassView(cascader, get, typeOf).own;
     if (own?.recordId === node.id) return own.picked;
   }
@@ -912,15 +933,52 @@ export function catalogCascaderSearchField(
   get: Lookup,
   typeOf: TypeOf,
 ): boolean {
-  if (typeOf(field) !== "SearchField") return false;
-  const popover = get(field.parentId);
-  const owner = popover && get(popover.parentId);
   return (
-    !!popover &&
-    typeOf(popover) === "Popover" &&
-    !!owner &&
-    typeOf(owner) === CASCADER_TYPE
+    typeOf(field) === "SearchField" && !!cascaderOfOpenPart(field, get, typeOf)
   );
+}
+
+/**
+ * The Cascader whose open box a node is a part of: a child of its Popover, or of the head row
+ * there (`Popover > Frame > 「Back」 + SearchField` — 사용자 결정 2026-11-29; a document from before
+ * holds them as the Popover's own children).
+ */
+function cascaderOfOpenPart(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode | undefined {
+  let at = get(node.parentId);
+  for (let depth = 0; at && depth < 2; depth++, at = get(at.parentId))
+    if (typeOf(at) === "Popover") {
+      const owner = get(at.parentId);
+      return owner && typeOf(owner) === CASCADER_TYPE ? owner : undefined;
+    }
+  return undefined;
+}
+
+/** The parts of a Cascader's open box: its Popover's children and the head row's (see above). */
+function cascaderOpenParts(
+  cascader: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode[] {
+  const out: CatalogConsumerNode[] = [];
+  for (const id of cascader.children) {
+    const popover = get(id);
+    if (!popover || typeOf(popover) !== "Popover") continue;
+    for (const childId of popover.children) {
+      const child = get(childId);
+      if (!child) continue;
+      out.push(child);
+      if (typeOf(child) === "frame")
+        for (const partId of child.children) {
+          const part = get(partId);
+          if (part) out.push(part);
+        }
+    }
+  }
+  return out;
 }
 
 /** The field props its rows' derived state reads (selection · which items are values). */
@@ -930,9 +988,6 @@ const ROW_STATE_FIELD_PROPS = [
   "allowsBranchSelection",
   "selectionMode",
   "mode",
-  // (The trail's first crumb is the field's label — its placeholder without one.)
-  "label",
-  "placeholder",
 ] as const;
 /** The Cascaders whose rows a pass already gave as dependents (keyed by the pass's lookup). */
 const ROWS_GIVEN = new WeakMap<Lookup, Set<string>>();
@@ -951,7 +1006,7 @@ export function catalogCascaderItemDependents(
 ): CatalogConsumerNode[] {
   const type = typeOf(owner);
   let cascader: CatalogConsumerNode | undefined;
-  // (A label · placeholder edit reaches the trail only — the first crumb's text.)
+  // (An item's name edit reaches the trail only — a crumb's text.)
   let trailOnly = false;
   if (type === CASCADER_TYPE) {
     const changed = ROW_STATE_FIELD_PROPS.filter(
@@ -959,9 +1014,6 @@ export function catalogCascaderItemDependents(
         JSON.stringify(before?.props[key]) !== JSON.stringify(owner.props[key]),
     );
     if (before && !changed.length) return [];
-    trailOnly =
-      !!before &&
-      changed.every((key) => key === "label" || key === "placeholder");
     cascader = owner;
   } else if (type === CASCADER_ITEM_TYPE) {
     // (Its key: which rows repeat a key, which is picked. Its name: a `drill` trail's crumb. Its
@@ -995,8 +1047,8 @@ export function catalogCascaderItemDependents(
 
 /**
  * The records a Cascader's just-opened screen derives: every level's items — a `tree` · `drill`
- * screen shows deeper ones — and their parts (`rows`), a `drill` trail's crumbs and their label Texts
- * and 「Back」 — disabled on the top level (`trail`).
+ * screen shows deeper ones — and their parts (`rows`), a `drill` trail (not drawn on the top level),
+ * its crumbs and their label Texts, and 「Back」 — not drawn on the top level (`trail`).
  */
 export function catalogCascaderOpenRecords(
   cascader: CatalogConsumerNode,
@@ -1045,60 +1097,47 @@ export function catalogCascaderOfItemsRecord(
   typeOf: TypeOf,
 ): CatalogConsumerNode | undefined {
   const type = typeOf(record);
-  if (type !== CASCADER_ITEM_TYPE && type !== CASCADER_LIST_TYPE) return undefined;
+  if (type !== CASCADER_ITEM_TYPE && type !== CASCADER_LIST_TYPE)
+    return undefined;
   return cascaderOfItem(record, get, typeOf);
 }
 
-/** A Cascader's 「Back」 — the `back` slot ActionButton in its Popover (a `drill` field's). */
+/** A Cascader's 「Back」 — the `back` slot ActionButton of its open box (a `drill` field's). */
 function cascaderBackNode(
   cascader: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
 ): CatalogConsumerNode | undefined {
-  for (const id of cascader.children) {
-    const popover = get(id);
-    if (!popover || typeOf(popover) !== "Popover") continue;
-    for (const childId of popover.children) {
-      const child = get(childId);
-      if (child && child.props.slot === "back") return child;
-    }
-  }
-  return undefined;
+  return cascaderOpenParts(cascader, get, typeOf).find(
+    (part) => part.props.slot === "back",
+  );
 }
 
 /**
- * ADR-326 Phase 5 (판독 1 #6) — a `drill` field's 「Back」 on its just-opened screen: disabled on the
- * top level (the DOM's `back` slot `isDisabled: !parent`). Undefined for any other node.
+ * 사용자 결정 2026-11-29 (the reference's head row) — a `drill` field's 「Back」 on its just-opened
+ * screen: not drawn on the top level (the DOM's `back` slot is disabled there and the Cascader rule
+ * takes a disabled 「Back」 out — `[slot="back"][data-disabled]`). Undefined for any other node.
  */
-export function catalogCascaderBackDisabled(
+export function catalogCascaderBackHidden(
   node: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
 ): boolean | undefined {
   if (node.props.slot !== "back") return undefined;
-  const popover = get(node.parentId);
-  const cascader =
-    popover && typeOf(popover) === "Popover" ? get(popover.parentId) : undefined;
-  if (!cascader || typeOf(cascader) !== CASCADER_TYPE) return undefined;
-  if (cascader.props.mode !== "drill") return undefined;
+  const cascader = cascaderOfOpenPart(node, get, typeOf);
+  if (!cascader || cascaderMode(cascader.props) !== "drill") return undefined;
   return cascaderPassView(cascader, get, typeOf).level === null;
 }
 
-/** A Cascader's trail node — the Breadcrumbs in its Popover (a `drill` field's). */
+/** A Cascader's trail node — the Breadcrumbs of its open box (a `drill` field's). */
 function cascaderTrailNode(
   cascader: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
 ): CatalogConsumerNode | undefined {
-  for (const id of cascader.children) {
-    const popover = get(id);
-    if (!popover || typeOf(popover) !== "Popover") continue;
-    for (const childId of popover.children) {
-      const child = get(childId);
-      if (child && typeOf(child) === "Breadcrumbs") return child;
-    }
-  }
-  return undefined;
+  return cascaderOpenParts(cascader, get, typeOf).find(
+    (part) => typeOf(part) === "Breadcrumbs",
+  );
 }
 
 /**
@@ -1112,18 +1151,45 @@ export function catalogCascaderTrailOf(
   typeOf: TypeOf,
 ): ReturnType<typeof cascaderTrail> | undefined {
   if (typeOf(trail) !== "Breadcrumbs") return undefined;
-  const popover = get(trail.parentId);
-  const cascader =
-    popover && typeOf(popover) === "Popover" ? get(popover.parentId) : undefined;
-  if (!cascader || typeOf(cascader) !== CASCADER_TYPE) return undefined;
-  if (cascader.props.mode !== "drill") return undefined;
-  const view = cascaderPassView(cascader, get, typeOf);
+  const cascader = cascaderOfOpenPart(trail, get, typeOf);
+  if (!cascader || cascaderMode(cascader.props) !== "drill") return undefined;
   return cascaderTrail(
     cascaderPassTable(cascader, get, typeOf).table,
-    view.level,
-    // (The field's label, its placeholder without one — the DOM's `CascaderOpenValue.label`.)
-    String(cascader.props.label || cascader.props.placeholder || ""),
+    cascaderPassView(cascader, get, typeOf).level,
   );
+}
+
+/** A `drill` trail on the top level: no crumb — the trail is not drawn (the DOM's draws nothing). */
+export function catalogCascaderTrailHidden(
+  trail: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): boolean {
+  return catalogCascaderTrailOf(trail, get, typeOf)?.crumbs.length === 0;
+}
+
+/** An item's child-count part (`CascaderItem > Text[slot="count"]` — the reference's branch count). */
+export const CASCADER_COUNT_SLOT = "count";
+
+/**
+ * 사용자 결정 2026-11-29 — a branch row's item count: how many items its next level holds, for the
+ * item's count Text. 0 = a leaf, or a level not read yet (the count is not drawn). Undefined for any
+ * other node. The DOM's row reads the running table's (`CatalogCascaderCount`).
+ */
+export function catalogCascaderCount(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): number | undefined {
+  if (typeOf(node) !== "Text" || node.props.slot !== CASCADER_COUNT_SLOT)
+    return undefined;
+  const item = get(node.parentId);
+  if (!item || typeOf(item) !== CASCADER_ITEM_TYPE) return undefined;
+  const cascader = cascaderOfItem(item, get, typeOf);
+  if (!cascader) return undefined;
+  const pass = cascaderPassTable(cascader, get, typeOf);
+  const entry = pass.byRecord.get(item.id);
+  return entry ? (pass.table.byParent.get(entry.pathId)?.length ?? 0) : 0;
 }
 
 /**

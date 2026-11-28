@@ -2,11 +2,12 @@
 // ADR-326 G3 live — Cascader `tree` · `drill` 의 열린 내용이 원본 노드 (Popover · SearchField · Breadcrumbs ·
 // 「Back」 ActionButton · CascaderList · CascaderItem) 로 그려진다 (breakdown §4.3 · §4.4 · §4.6). 실제 Builder 에서
 // 팔레트로 Cascader 와 비교용 Breadcrumbs 를 놓고, Cascader 아래에 항목 사슬 (Alpha > Beta > Gamma > Delta >
-// Epsilon > Leaf — 경로 6 crumb) 을 넣어 Publish 에서 Chrome · WebKit 으로 판정한다. 기대값은 이 파일에 적었다.
-//   1. drill 열기 — dialog 하나 · focus 검색 칸 · 상자 폭 = Button 폭 · 경로 줄 crumb 「Category」 하나 · 뒤로 disabled
+// Epsilon > Leaf — 경로 5 crumb) 을 넣어 Publish 에서 Chrome · WebKit 으로 판정한다. 기대값은 이 파일에 적었다.
+//   1. drill 열기 — dialog 하나 · focus 검색 칸 · 상자 폭 = Button 폭 · 맨 위 단계는 경로 줄 없음 · 뒤로 disabled (안 보임)
+//      (사용자 결정 2026-11-29 — 경로 줄은 들어간 단계만, 「뒤로」 는 검색 칸과 한 줄)
 //   2. 경로 줄의 computed 간격 = 같은 size 의 Breadcrumbs 컴포넌트 (목록 gap · crumb gap · 글자 크기 · crumb flex-shrink 0)
 //   3. 키보드 — Tab → 첫 행 · Enter → 하위 단계 (경로 2 crumb · 뒤로 enabled) · 뒤로 → 첫 단계 · Esc → 닫힘 · focus Button
-//   4. 깊은 경로 (시작 값 Leaf — 6 crumb) × 폭 420 · 240: 보이는 crumb + 접힌 메뉴 = 전체 경로 (빠짐 · 겹침 0) ·
+//   4. 깊은 경로 (시작 값 Leaf — 5 crumb) × 폭 420 · 240: 보이는 crumb + 접힌 메뉴 = 전체 경로 (빠짐 · 겹침 0) ·
 //      메뉴의 모든 항목과 보이는 crumb 이 각자 그 단계로
 //   5. 검색 중 경로 줄 · 뒤로가 숨는다 (검색 칸에 「lea」 — 결과 Leaf, 잎만 고를 수 있다)
 //   6. tree — treegrid = CascaderList record · 행 class · Books 배경 · 가지의 펼침 버튼 (aria-expanded) → 하위 행
@@ -70,13 +71,17 @@ const focused = (p) =>
     if (el.closest(".react-aria-Cascader") && el.tagName === "BUTTON")
       return "open";
     if (el.tagName === "INPUT") return `input:${el.value}`;
-    return `${el.getAttribute("role") ?? el.tagName.toLowerCase()}:${el.textContent?.trim()}`;
+    // (A row's name is its label part — a branch row also holds its item count, 2026-11-29.)
+    return `${el.getAttribute("role") ?? el.tagName.toLowerCase()}:${(el.querySelector('[slot="label"]')?.textContent ?? el.textContent)?.trim()}`;
   });
 const active = (p) =>
   p.evaluate(() => {
     const el = document.activeElement;
     const id = el?.getAttribute("aria-activedescendant");
-    return id ? document.getElementById(id)?.textContent?.trim() : undefined;
+    const row = id ? document.getElementById(id) : null;
+    return row
+      ? (row.querySelector('[slot="label"]')?.textContent ?? row.textContent)?.trim()
+      : undefined;
   });
 const menus = (p) => p.locator('[role="menu"]').count();
 const valueText = (p) =>
@@ -116,7 +121,8 @@ const CHAIN = [
   ["epsilon", "Epsilon"],
   ["leaf", "Leaf"],
 ];
-const PATH = ["Category", "Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
+// (The levels entered down to the leaf's — no crumb of the top level, 사용자 결정 2026-11-29.)
+const PATH = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
 
 const write = (p, fn, arg) =>
   p.evaluate(
@@ -193,7 +199,9 @@ const rows = (p) =>
       ...document.querySelectorAll(
         'section[role="dialog"] [role="grid"] [role="row"], section[role="dialog"] [role="treegrid"] [role="row"]',
       ),
-    ].map((row) => row.textContent.trim()),
+    ].map((row) =>
+      (row.querySelector('[slot="label"]')?.textContent ?? row.textContent).trim(),
+    ),
   );
 const dialogs = (p) => p.locator('[role="dialog"]').count();
 
@@ -230,7 +238,9 @@ try {
   await write(
     page,
     ({ c, ws, records, typeOf, set, width, arg }) => {
-      set({ mode: "drill" });
+      // (`searchScope: "global"` — case 5 reads the flat results; the default narrows the level
+      //  shown, `adr326-reference-live.mjs`.)
+      set({ mode: "drill", searchScope: "global" });
       width(260);
       const books = records.find(
         (r) => typeOf(r) === "CascaderItem" && r.props.id === "books",
@@ -348,15 +358,16 @@ try {
   const t1 = await trail(pub);
   const b1 = await backButton(pub);
   record(
-    "1 drill 열기 — dialog 하나 · focus 검색 칸 · 폭 = Button · 테두리 하나 · 경로 「Category」 · 뒤로 disabled",
+    "1 drill 열기 — dialog 하나 · focus 검색 칸 · 폭 = Button · 테두리 하나 · 맨 위 단계: 경로 줄 없음 · 뒤로 disabled (안 보임)",
     (await dialogs(pub)) === 1 &&
       (await focused(pub)) === "input:" &&
       Math.abs(box.width - buttonWidth) <= 1 &&
       box.edges === 1 &&
       /__list$/.test(box.listId ?? "") &&
       box.rowClass === "react-aria-CascaderItem" &&
-      JSON.stringify(t1?.crumbs) === JSON.stringify(["Category"]) &&
+      t1 === null &&
       b1?.disabled === true &&
+      b1?.shown === false &&
       ["Back", "뒤로"].includes(b1?.name),
     {
       dialogs: await dialogs(pub),
@@ -369,7 +380,12 @@ try {
   );
   await pub.screenshot({ path: `${OUT}/${NAME}-drill-open.png` });
 
-  // 2. the trail's computed spacing = a Breadcrumbs component's (same size)
+  // 2. the trail's computed spacing = a Breadcrumbs component's (same size) — a level under the top
+  //    (the top level draws no trail): Tab → the first row, Enter → into it.
+  await pub.keyboard.press("Tab");
+  const tabbed = await focused(pub);
+  await pub.keyboard.press("Enter");
+  await settle(pub, 400);
   const spacing = await pub.evaluate(() => {
     const read = (list) => {
       const crumb = list.querySelector(":scope > .react-aria-Breadcrumb");
@@ -399,11 +415,7 @@ try {
     spacing,
   );
 
-  // 3. keyboard: Tab → first row · Enter → in · Back → up · Esc → closed
-  await pub.keyboard.press("Tab");
-  const tabbed = await focused(pub);
-  await pub.keyboard.press("Enter");
-  await settle(pub, 400);
+  // 3. keyboard: Tab → first row · Enter → in (above) · Back → up · Esc → closed
   const inRows = await rows(pub);
   const t3 = await trail(pub);
   const b3 = await backButton(pub);
@@ -412,11 +424,10 @@ try {
   const upRows = await rows(pub);
   await closeIt();
   record(
-    "3 키보드 — Tab 첫 행 · Enter 하위 단계 · 경로 2 · 뒤로 → 첫 단계 · Esc 닫힘 · focus Button",
+    "3 키보드 — Tab 첫 행 · Enter 하위 단계 · 경로 「Electronics」 · 뒤로 → 첫 단계 · Esc 닫힘 · focus Button",
     tabbed === "row:Electronics" &&
       JSON.stringify(inRows) === JSON.stringify(["Computers", "Phones"]) &&
-      JSON.stringify(t3?.crumbs) ===
-        JSON.stringify(["Category", "Electronics"]) &&
+      JSON.stringify(t3?.crumbs) === JSON.stringify(["Electronics"]) &&
       b3?.disabled === false &&
       JSON.stringify(upRows.slice(0, 3)) ===
         JSON.stringify(["Electronics", "Clothing", "Books"]) &&
@@ -479,10 +490,8 @@ try {
       }
       await settle(pub, 400);
       const got = await rows(pub);
-      const expected =
-        index === 0
-          ? ["Electronics", "Clothing", "Books", "Alpha"]
-          : [index === PATH.length - 1 ? "Leaf" : CHAIN[index][1]];
+      // (A crumb's level holds the next item of the chain.)
+      const expected = [CHAIN[index + 1][1]];
       // (A crumb moves the level, not the page — the Preview's route stays.)
       const url = pub.url();
       moves.push({
@@ -516,7 +525,7 @@ try {
       ...document.querySelectorAll(
         'section[role="dialog"] [role="menu"] [role^="menuitem"]',
       ),
-    ].map((row) => row.textContent.trim()),
+    ].map((row) => (row.querySelector('[slot="label"]')?.textContent ?? row.textContent).trim()),
   );
   record(
     "5 검색 중 경로 줄 · 뒤로 숨김 · 결과 Leaf (잎만 고를 수 있음)",
@@ -544,7 +553,7 @@ try {
       listId: grid.getAttribute("data-catalog-id"),
       listClass: grid.className,
       rows: rowEls.map((row) => ({
-        text: row.textContent.trim(),
+        text: (row.querySelector('[slot="label"]')?.textContent ?? row.textContent).trim(),
         cls: row.className,
         bg: row.style.backgroundColor,
         expanded: row.getAttribute("aria-expanded"),
@@ -571,7 +580,8 @@ try {
   });
   const booksRow = pub
     .locator('section[role="dialog"] [role="row"]')
-    .filter({ hasText: /^Clothing$/ });
+    // (By its label — a branch row also holds its item count, 2026-11-29.)
+    .filter({ has: pub.locator('[slot="label"]', { hasText: /^Clothing$/ }) });
   await booksRow.hover();
   await settle(pub, 300);
   const hovered = await booksRow.evaluate((row) => ({

@@ -146,6 +146,15 @@ async function placed(
       newId: workspace.newId,
     }),
   );
+  // (These cases start from `columns` — the default is `drill`, 사용자 결정 2026-11-29 — unless the
+  //  case writes its own mode.)
+  if (!("mode" in props))
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: PLACED }],
+        props: { mode: { kind: "set", value: "columns" } },
+      } as never),
+    );
   const root = () => workspace.root;
   const get = (id: string) => root().domInputs.get(id);
   const typeOf = (node: CatalogConsumerNode) => root().typeOf(node);
@@ -153,16 +162,25 @@ async function placed(
     [...root().domInputs.values()].find(
       (record) => record.sourceId === source && typeOf(record) === "Cascader",
     )!;
-  const childTypes = (record: CatalogConsumerNode | undefined) =>
-    (record?.children ?? []).map((id) => typeOf(get(id)!));
   const popover = (source?: NodeId) =>
     field(source)
       .children.map(get)
       .find((record) => record && typeOf(record) === "Popover");
+  const through = (
+    record: CatalogConsumerNode | undefined,
+    of: (id: string) => CatalogConsumerNode | undefined,
+  ) =>
+    (record?.children ?? []).flatMap((id) => {
+      const child = of(id)!;
+      return typeOf(child) === "frame"
+        ? child.children.map((part) => typeOf(of(part)!))
+        : [typeOf(child)];
+    });
   const parts = (source?: NodeId) => ({
-    dom: childTypes(popover(source)),
-    canvas: childTypes(
+    dom: through(popover(source), get),
+    canvas: through(
       root().canvasInputs.get(popover(source)?.id ?? "") ?? undefined,
+      (id) => root().canvasInputs.get(id),
     ),
   });
   const items = (source?: NodeId) =>
@@ -203,16 +221,20 @@ function layersOfPopover(workspace: CatalogWorkspace, id: NodeId): string[] {
     workspace,
     nodePosition(workspace.runtime.graph, id),
   ).find((position) => nameOf(workspace, position) === "Popover")!;
-  return positionsOf(workspace, popover).map((position) =>
-    nameOf(workspace, position),
+  return positionsOf(workspace, popover).flatMap((position) =>
+    nameOf(workspace, position) === "frame"
+      ? positionsOf(workspace, position).map((part) => nameOf(workspace, part))
+      : [nameOf(workspace, position)],
   );
 }
 
+// (The head row's parts are read through — `Popover > frame > 「Back」 + SearchField`, 사용자 결정
+//  2026-11-29: 「Back」 stands before the search box while the mode is `drill`.)
 const COLUMNS_PARTS = ["SearchField", "CascaderList"];
 const DRILL_PARTS = [
+  "ActionButton",
   "SearchField",
   "Breadcrumbs",
-  "ActionButton",
   "CascaderList",
 ];
 

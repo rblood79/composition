@@ -197,11 +197,15 @@
   transform: rotate(90deg);
 }
 
+.react-aria-Popover[data-trigger="Cascader"] [slot="back"][data-cascader-top] {
+  display: none !important;
+}
+
 .react-aria-Popover[data-trigger="Cascader"] .react-aria-CascaderItem:not([data-has-child-items]) .react-aria-Button[slot="chevron"] {
   visibility: hidden;
 }
 
-.react-aria-Popover[data-trigger="Cascader"]:has(.react-aria-SearchField:not([data-empty])) :is(.react-aria-Breadcrumbs, [slot="back"]) {
+.react-aria-Popover[data-trigger="Cascader"]:has([data-cascader-results]) :is(.react-aria-Breadcrumbs, [slot="back"]) {
   display: none !important;
 }
 

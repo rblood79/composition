@@ -31,8 +31,10 @@ import {
   CascaderTreeBody,
   isolate,
   plainRow,
+  rowParts,
 } from "./cascaderPanel.components";
 import {
+  cascaderNameMatch,
   cascaderSearch,
   CASCADER_SEARCH_LIMIT,
   CASCADER_SEARCH_STRINGS,
@@ -87,6 +89,8 @@ export interface CascaderListBodyProps {
   }>;
   /** A `tree` · `drill` field's view (the search scope's — `CascaderViewContext`, given as a prop too). */
   readonly view: CascaderViewValue | null;
+  /** The query narrowing the level shown (`searchScope: "level"` — `columns` · `drill`). */
+  readonly query?: string;
 }
 
 type LevelProps = CascaderListBodyProps;
@@ -96,7 +100,12 @@ type LevelProps = CascaderListBodyProps;
  * written style · state marks · size) and parts — as this list's RAC item. Without: its name.
  */
 function itemRow(
-  { Row, renderRow, base }: Pick<LevelProps, "Row" | "renderRow" | "base">,
+  {
+    Row,
+    renderRow,
+    base,
+    open,
+  }: Pick<LevelProps, "Row" | "renderRow" | "base" | "open">,
   entry: CascaderEntry,
   chevron: boolean,
   extra?: ReactElement,
@@ -120,9 +129,11 @@ function itemRow(
       value={(row) => (
         <MenuItem {...row.props} id={entry.pathId} textValue={entry.name}>
           {row.frame([
-            ...(chevron
-              ? row.parts
-              : row.parts.filter((part) => !row.chevron.includes(part))),
+            ...rowParts(
+              row,
+              chevron,
+              !!open.table.byParent.get(entry.pathId)?.length,
+            ),
             extra,
           ])}
         </MenuItem>
@@ -157,7 +168,7 @@ export function CascaderOpenScope({
   const strings = catalogLocalized(CASCADER_SEARCH_STRINGS, locale);
   // (ADR-326 Phase 3 — a `drill` field's level: the just-opened level (`cascaderOpeningView`), moved
   //  by a branch row, a trail crumb and 「Back」; a level whose items are not here yet asks them.)
-  const { table, label, levels } = open;
+  const { table, levels } = open;
   const [opening] = useState(() => cascaderOpeningView(table, open.keys));
   const [level, setLevel] = useState(opening.level);
   // (`tree` — the expanded branches, kept over a search: the results take the list box's place.)
@@ -174,6 +185,8 @@ export function CascaderOpenScope({
       levels.load(entry.levelKey);
     setMoved(true);
     setLevel(next);
+    // (A level's search is that level's — the level entered starts without one.)
+    setQuery("");
   };
   const parent = level === null ? undefined : table.byPathId.get(level);
   const drill = open.mode === "drill";
@@ -197,6 +210,9 @@ export function CascaderOpenScope({
                     "aria-label": catalogLocalized(BACK, locale),
                     isDisabled: !parent,
                     onPress: () => enter(parent?.parentPathId ?? null),
+                    // (The Cascader rule's mark: no 「Back」 at the top level — by the level, not
+                    //  by a disabled state the document may write, 판독 1 #5.)
+                    ...(parent ? {} : { "data-cascader-top": "" }),
                   },
                 },
               }
@@ -218,7 +234,7 @@ export function CascaderOpenScope({
             level,
             moved,
             enter,
-            trail: cascaderTrail(table, level, label),
+            trail: cascaderTrail(table, level),
             expanded,
             setExpanded,
             isolate,
@@ -265,8 +281,10 @@ function addedRow(
 }
 
 function Levels(props: LevelProps) {
-  const { open, base } = props;
+  const { open, base, query = "" } = props;
   const { table, keys, multiple, label, onPick, levels } = open;
+  const { locale } = useLocale();
+  const strings = catalogLocalized(CASCADER_SEARCH_STRINGS, locale);
   const picked = cascaderPicked(table, keys);
   const levelName = useCascaderLevelName();
   const status = useCascaderLevelStatus();
@@ -296,6 +314,7 @@ function Levels(props: LevelProps) {
           {...(parent ? {} : base)}
           aria-label={parent ? parent.name : label}
           escapeKeyBehavior="none"
+          renderEmptyState={parent ? undefined : () => strings.empty}
           selectionMode={multiple ? "multiple" : "single"}
           selectedKeys={[
             ...picked
@@ -345,30 +364,37 @@ function Levels(props: LevelProps) {
                   ),
                 ]
               : []),
-            ...childrenOf(here).map((entry) =>
-              entry.hasChildren ? (
-                <SubmenuTrigger key={entry.pathId}>
-                  {itemRow(props, entry, true)}
-                  {/* (The Menu sheet's SubmenuTrigger block takes a sized Popover — one edge, its
+            // (`searchScope: "level"` — the query narrows the first level, the one the search box
+            //  stands over; a branch still opens its levels whole.)
+            ...childrenOf(here)
+              .filter(
+                (entry) =>
+                  !!parent || cascaderNameMatch(entry.name, query, locale),
+              )
+              .map((entry) =>
+                entry.hasChildren ? (
+                  <SubmenuTrigger key={entry.pathId}>
+                    {itemRow(props, entry, true)}
+                    {/* (The Menu sheet's SubmenuTrigger block takes a sized Popover — one edge, its
                     width the level's.) */}
-                  <Popover
-                    placement="end top"
-                    data-size={base["data-size"] as string | undefined}
-                  >
-                    <Deferred
-                      render={() => level(entry)}
-                      onShow={
-                        waits(entry)
-                          ? () => levels?.load(entry.levelKey)
-                          : undefined
-                      }
-                    />
-                  </Popover>
-                </SubmenuTrigger>
-              ) : (
-                itemRow(props, entry, false)
+                    <Popover
+                      placement="end top"
+                      data-size={base["data-size"] as string | undefined}
+                    >
+                      <Deferred
+                        render={() => level(entry)}
+                        onShow={
+                          waits(entry)
+                            ? () => levels?.load(entry.levelKey)
+                            : undefined
+                        }
+                      />
+                    </Popover>
+                  </SubmenuTrigger>
+                ) : (
+                  itemRow(props, entry, false)
+                ),
               ),
-            ),
           ]}
         </Menu>
       </CascaderInView>
@@ -377,19 +403,28 @@ function Levels(props: LevelProps) {
   return level(null);
 }
 
-/** With a query: the pickable items whose name holds it, each with its path (ADR-322 Phase 5). */
-function Results({ query, ...props }: LevelProps & { readonly query: string }) {
+/**
+ * With a query (`searchScope` `deep` · `global`, a `tree` field): the pickable items whose name
+ * holds it, each with its path (ADR-322 Phase 5) — `under`: of that level and below only.
+ */
+function Results({
+  query,
+  under,
+  ...props
+}: LevelProps & { readonly query: string; readonly under: string | null }) {
   const { open, base } = props;
   const { table, keys, multiple, onPick, separator, levels } = open;
   const { locale } = useLocale();
   const strings = catalogLocalized(CASCADER_SEARCH_STRINGS, locale);
-  const found = cascaderSearch(table, query, locale);
+  const found = cascaderSearch(table, query, locale, under);
   const shown = found.slice(0, CASCADER_SEARCH_LIMIT);
   const picked = cascaderPicked(table, keys).map((entry) => entry.pathId);
   return (
     <>
       <Menu
         {...base}
+        // (The Cascader rule's mark: the trail and 「Back」 step aside for the flat results.)
+        data-cascader-results=""
         aria-label={strings.search}
         escapeKeyBehavior="none"
         selectionMode={multiple ? "multiple" : "single"}
@@ -433,13 +468,27 @@ export function CascaderListBody(
   props: CascaderListBodyProps,
 ): ReactElement | null {
   const query = useContext(CascaderQueryContext);
-  if (query) return <Results {...props} query={query} />;
-  const { mode } = props.open;
+  const { mode, searchScope } = props.open;
+  // (사용자 결정 2026-11-29 — the reference's `searchScope`: `level` narrows the level shown; the
+  //  flat results are `deep` (under the `drill` level shown — the first level's is every level) ·
+  //  `global`, and a `tree` field's always.)
+  if (query && (mode === "tree" || searchScope !== "level"))
+    return (
+      <Results
+        {...props}
+        query={query}
+        under={
+          searchScope === "deep" && mode === "drill"
+            ? (props.view?.level ?? null)
+            : null
+        }
+      />
+    );
   return mode === "tree" ? (
     <CascaderTreeBody {...props} />
   ) : mode === "drill" ? (
-    <CascaderDrillBody {...props} />
+    <CascaderDrillBody {...props} query={query} />
   ) : (
-    <Levels {...props} />
+    <Levels {...props} query={query} />
   );
 }

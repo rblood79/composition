@@ -9,6 +9,10 @@ import { insertNodes } from "../../../../../../packages/shared/src/catalog/comma
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import { openAdr280Preview } from "./support/adr280Harness";
 
+/** A row's name — its label part (a branch row also holds its item count, 사용자 결정 2026-11-29). */
+const rowName = (row: Element | null | undefined) =>
+  row?.querySelector('[slot="label"]')?.textContent ?? row?.textContent;
+
 /**
  * ADR-322 G6 — a Cascader's form value and required check (breakdown §3.1 — the closed D1
  * exception): the value input (RAC `HiddenSelect`'s) carries the keys under the field's `name`; a
@@ -23,12 +27,8 @@ afterEach(() => {
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 40)));
 // (The form run is a lazy chunk — its first import outlasts a few frames.)
 beforeAll(async () => {
-  await import(
-    "../../../../../../packages/shared/src/catalog/runtime/cascaderForm.components"
-  );
-  await import(
-    "../../../../../../packages/shared/src/catalog/runtime/cascaderMenu.components"
-  );
+  await import("../../../../../../packages/shared/src/catalog/runtime/cascaderForm.components");
+  await import("../../../../../../packages/shared/src/catalog/runtime/cascaderMenu.components");
 });
 
 async function form(
@@ -60,7 +60,8 @@ async function form(
       newId: h.workspace.newId,
     }),
   );
-  if (Object.keys(cascader).length) h.declare(fieldId, cascader as never);
+  // (These cases are the `columns` mode's — the default is `drill`, 사용자 결정 2026-11-29.)
+  h.declare(fieldId, { mode: "columns", ...cascader } as never);
   if (Object.keys(formProps).length) h.declare(formId, formProps as never);
   h.rule(formId, "onSubmit", { opcode: "toast", message: "submitted" });
   h.rule(button, "onPress", {
@@ -133,7 +134,7 @@ describe("ADR-322 G6 — a Cascader's form value · required check (breakdown §
     const user = userEvent.setup();
     const item = (name: string) =>
       [...document.querySelectorAll('[role^="menuitem"]')].find(
-        (el) => el.textContent === name,
+        (el) => rowName(el) === name,
       ) as HTMLElement;
     many.opener().focus();
     await user.keyboard("{Enter}");

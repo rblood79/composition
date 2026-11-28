@@ -28,7 +28,8 @@ export function cascaderPicked(
 }
 
 /** The name of a branch's own item, in the field's locale (`CASCADER_LEVEL_NAME`). */
-export const useCascaderLevelName = () => useCatalogLocalized(CASCADER_LEVEL_NAME);
+export const useCascaderLevelName = () =>
+  useCatalogLocalized(CASCADER_LEVEL_NAME);
 
 /**
  * ADR-322 Phase 6 (사용자 결정 4) — a branch whose level loads one by one shows one status item

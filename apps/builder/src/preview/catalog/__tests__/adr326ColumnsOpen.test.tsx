@@ -10,6 +10,10 @@ import {
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import { openAdr280Preview } from "./support/adr280Harness";
 
+/** A row's name — its label part (a branch row also holds its item count, 사용자 결정 2026-11-29). */
+const rowName = (row: Element | null | undefined) =>
+  row?.querySelector('[slot="label"]')?.textContent ?? row?.textContent;
+
 /**
  * ADR-326 Phase 2 (G2 — breakdown §4.3 · §4.6) — a `columns` Cascader's open content drawn from its
  * nodes in a running Preview: the Popover node opens with the field's contexts (`trigger:
@@ -31,6 +35,8 @@ const PAINT = "rgb(255, 228, 196)";
 async function place() {
   const h = await openAdr280Preview(["Cascader"]);
   const [target] = h.ids as [NodeId];
+  // (These cases are the `columns` mode's — the default is `drill`, 사용자 결정 2026-11-29.)
+  h.declare(target, { mode: "columns" } as never);
   const user = userEvent.setup();
   const field = () => h.element(target)!;
   const trigger = () => field().querySelector("button")!;
@@ -71,7 +77,7 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
     expect(popover.getAttribute("data-catalog-id")).toMatch(/__popover$/);
     expect(h.menu()!.className).toBe("react-aria-CascaderList");
     expect(h.menu()!.getAttribute("data-catalog-id")).toMatch(/__list$/);
-    expect(h.rows().map((row) => row.textContent)).toEqual([
+    expect(h.rows().map((row) => rowName(row))).toEqual([
       "Electronics",
       "Clothing",
       "Books",
@@ -87,7 +93,7 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
       expect(label).not.toBe(row.getAttribute("data-catalog-id"));
     }
     const painted = h.rows().filter((row) => row.style.backgroundColor);
-    expect(painted.map((row) => row.textContent)).toEqual(["Books"]);
+    expect(painted.map((row) => rowName(row))).toEqual(["Books"]);
     expect(painted[0]!.style.backgroundColor).toBe(PAINT);
     // (A leaf draws no chevron; a branch's is its record's Icon.)
     expect(
@@ -98,6 +104,8 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
 
   it("검색어는 열린 동안만 — 닫고 다시 열면 빈 검색 칸 · 단계 목록", async () => {
     const h = await place();
+    // (The flat results — `searchScope: "global"`; the default narrows the first level, below.)
+    h.declare(h.target, { searchScope: "global" } as never);
     await h.openIt();
     const search = () =>
       document.querySelector<HTMLInputElement>(
@@ -119,7 +127,7 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
     expect(h.menu()).toBeNull();
     await h.openIt();
     expect(search().value).toBe("");
-    expect(h.rows().map((row) => row.textContent)).toEqual([
+    expect(h.rows().map((row) => rowName(row))).toEqual([
       "Electronics",
       "Clothing",
       "Books",
@@ -148,7 +156,7 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
       ))
         expect(["", "inherit"]).toContain(part.style.color);
     }
-    const painted = h.rows().find((row) => row.textContent === "Books")!;
+    const painted = h.rows().find((row) => rowName(row) === "Books")!;
     expect(painted.style.color).toBe("rgb(255, 255, 255)");
     h.view.unmount();
   });
@@ -211,13 +219,11 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
       h.runtime.setRuntimeProps!(books.id, { style: { display: "none" } }),
     );
     await h.openIt();
-    expect(h.rows().map((row) => [row.textContent, row.style.display])).toEqual(
-      [
-        ["Electronics", ""],
-        ["Clothing", ""],
-        ["Books", "none"],
-      ],
-    );
+    expect(h.rows().map((row) => [rowName(row), row.style.display])).toEqual([
+      ["Electronics", ""],
+      ["Clothing", ""],
+      ["Books", "none"],
+    ]);
     h.view.unmount();
   });
 
@@ -234,7 +240,8 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
       insertNodes({
         parent: h.workspace.itemOfRecord(electronics.id)!.target,
         // (After the chevron: check · label · chevron — Phase 4 판독 1's check mark first.)
-        index: 3,
+        // (After the chevron — the fourth part: check · label · count · chevron.)
+        index: 4,
         entries: [
           {
             kind: "node",
@@ -258,21 +265,21 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
     await h.openIt();
     const row = h
       .rows()
-      .find((item) => item.textContent!.startsWith("Electronics"))!;
+      .find((item) => rowName(item)!.startsWith("Electronics"))!;
     expect(
       [...row.children].map((part) =>
         part.getAttribute("data-catalog-id")?.endsWith(`::${added}`)
           ? "added"
           : part.getAttribute("slot"),
       ),
-    ).toEqual(["selection", "label", "descriptor", "added"]);
+    ).toEqual(["selection", "label", "count", "descriptor", "added"]);
     h.view.unmount();
   });
 
   it("첫 단계의 잎을 고른 뒤 다시 열면 Esc 가 닫는다 (선택을 지우는 데 쓰이지 않음)", async () => {
     const h = await place();
     await h.openIt();
-    await h.user.click(h.rows().find((row) => row.textContent === "Books")!);
+    await h.user.click(h.rows().find((row) => rowName(row) === "Books")!);
     await h.settle();
     expect(h.menu()).toBeNull();
     expect(
@@ -283,6 +290,40 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
     await h.settle();
     expect(h.menu()).toBeNull();
     expect(document.activeElement).toBe(h.trigger());
+    h.view.unmount();
+  });
+  it("검색 기본 = 현재 단계 (사용자 결정 2026-11-29) — columns 는 첫 단계의 행을 거른다 (가지는 그대로 열린다) · 자식 수", async () => {
+    const h = await place();
+    await h.openIt();
+    expect(
+      h
+        .rows()
+        .map((row) => [
+          rowName(row),
+          row.querySelector('[slot="count"]')?.textContent ?? null,
+        ]),
+    ).toEqual([
+      ["Electronics", "2"],
+      ["Clothing", "2"],
+      ["Books", null],
+    ]);
+    await h.user.keyboard("o");
+    await h.settle();
+    // (Every first-level name holding 「o」 — a deeper 「Phones」 · 「Laptops」 is not listed.)
+    expect(h.rows().map((row) => rowName(row))).toEqual([
+      "Electronics",
+      "Clothing",
+      "Books",
+    ]);
+    await h.user.keyboard("ok");
+    await h.settle();
+    expect(h.rows().map((row) => rowName(row))).toEqual(["Books"]);
+    expect(document.querySelector("[data-cascader-results]")).toBeNull();
+    await h.user.keyboard("zz");
+    await h.settle();
+    // (RAC draws the empty state as the menu's one item.)
+    expect(h.rows().map((row) => row.textContent)).toEqual(["No results"]);
+    expect(h.menu()!.textContent).toBe("No results");
     h.view.unmount();
   });
 });

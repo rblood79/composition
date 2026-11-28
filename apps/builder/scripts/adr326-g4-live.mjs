@@ -155,6 +155,8 @@ try {
       c.setFields({
         targets: [ws.itemOfRecord(field.id).target],
         visual: { width: { kind: "set", value: 260 } },
+        // (This harness is the `columns` mode's — the default is `drill`, 사용자 결정 2026-11-29.)
+        props: { mode: { kind: "set", value: "columns" } },
       }),
     );
   }, COMMANDS);
@@ -268,7 +270,7 @@ try {
     return {
       menus: document.querySelectorAll('[role="menu"]').length,
       rows: [...document.querySelectorAll('[role="menu"] [role^="menuitem"]')].map(
-        (r) => r.textContent?.trim(),
+        (r) => (r.querySelector('[slot="label"]')?.textContent ?? r.textContent)?.trim(),
       ),
       button: button?.getBoundingClientRect().width,
       popover: pop?.getBoundingClientRect().width,

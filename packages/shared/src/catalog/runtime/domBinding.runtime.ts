@@ -1,6 +1,7 @@
 import { catalogS2RacProps } from "../bindings/s2RacProps";
 import {
   CatalogCascaderCrumbText,
+  CatalogCascaderCount,
   CatalogCascaderOwnLabel,
   CatalogCascaderValue,
 } from "./cascader.components";
@@ -1530,19 +1531,25 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                       crumb: node.parentId,
                       fallback: text,
                     })
-                  : node.derivedProps?._cascaderOwnLabel === true
-                    ? // (ADR-326 Phase 5 — a `drill` own row's label: the level name in that
-                      //  row only — the derived words are the Canvas's.)
-                      createElement(CatalogCascaderOwnLabel, {
-                        // (The record's own words — its runs' marks kept (수리 검증 #5), not the
-                        //  Canvas's derived level name.)
-                        fallback:
-                          catalogTextRunsContent(
-                            node.textRuns,
-                            node.visual.textDecoration,
-                          ) ?? String(node.props.children ?? ""),
+                  : node.derivedProps?._cascaderCount === true
+                    ? // (A branch row's item count — the running table's, 사용자 결정 2026-11-29.)
+                      createElement(CatalogCascaderCount, {
+                        item: node.parentId,
+                        fallback: text,
                       })
-                    : text;
+                    : node.derivedProps?._cascaderOwnLabel === true
+                      ? // (ADR-326 Phase 5 — a `drill` own row's label: the level name in that
+                        //  row only — the derived words are the Canvas's.)
+                        createElement(CatalogCascaderOwnLabel, {
+                          // (The record's own words — its runs' marks kept (수리 검증 #5), not the
+                          //  Canvas's derived level name.)
+                          fallback:
+                            catalogTextRunsContent(
+                              node.textRuns,
+                              node.visual.textDecoration,
+                            ) ?? String(node.props.children ?? ""),
+                        })
+                      : text;
             return detachedSlot(resolution)
               ? createElement(
                   element,

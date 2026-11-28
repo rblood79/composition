@@ -522,7 +522,7 @@ function breadcrumbMenuItem(
 export function BreadcrumbsRun({
   input,
   ...authored
-}: { input: DelegatedDomInput } & AuthoredDomAttributes): ReactElement {
+}: { input: DelegatedDomInput } & AuthoredDomAttributes): ReactElement | null {
   const props = input.node.props;
   const nodes = childrenOf(input.root, input.node).filter(
     (child) => catalogTypeName(input.root, child) === "Breadcrumb",
@@ -551,6 +551,9 @@ export function BreadcrumbsRun({
         key: String(resolveStaticItemKey(crumb.props, crumb.id)),
         ...breadcrumbMenuItem(input, crumb),
       }));
+  // (사용자 결정 2026-11-29 — a `drill` field's top level has no trail: the Canvas draws none either,
+  //  `catalogCascaderTrailHidden`.)
+  const shown = !trail || trail.crumbs.length > 0;
   const unit = useCatalogDeviceUnit();
   const listRef = useRef<HTMLOListElement | null>(null);
   // (What the crumbs show: a crumb added, removed or relabelled is measured again.)
@@ -612,7 +615,8 @@ export function BreadcrumbsRun({
     });
     observer.observe(list);
     return () => observer.disconnect();
-  }, []);
+    // (A `drill` trail has no list at the top level — it is watched once it is there, 판독 1 #6.)
+  }, [shown]);
   const collapse = measuring
     ? undefined
     : catalogBreadcrumbsCollapse(entries, measured!.visible);
@@ -762,6 +766,7 @@ export function BreadcrumbsRun({
     },
     ...rendered,
   );
+  if (!shown) return null;
   return trail
     ? createElement(
         CascaderCrumbTextContext.Provider,

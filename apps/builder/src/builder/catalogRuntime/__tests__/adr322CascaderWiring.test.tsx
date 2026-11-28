@@ -22,6 +22,10 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 import { getPaletteItems } from "../../panels/components/paletteItems";
 
+/** A row's name — its label part (a branch row also holds its item count, 사용자 결정 2026-11-29). */
+const rowName = (row: Element | null | undefined) =>
+  row?.querySelector('[slot="label"]')?.textContent ?? row?.textContent;
+
 /**
  * ADR-322 G1 — a Cascader through the real composition root: its closed field (Select's parts) and
  * the start value's text on both consumers, the items not drawn, the DOM's names (label · value ·
@@ -65,6 +69,14 @@ async function place() {
       rootIds: [PLACED],
       newId: workspace.newId,
     }),
+  );
+  // (The cases start from `columns` — the default is `drill`, 사용자 결정 2026-11-29; a case of
+  //  another mode writes its own.)
+  workspace.execute(
+    setFields({
+      targets: [{ kind: "node", id: PLACED }],
+      props: { mode: { kind: "set", value: "columns" } },
+    } as never),
   );
   const root = workspace.root;
   const records = () => [...root.canvasInputs.values()];
@@ -112,7 +124,7 @@ afterEach(async () => {
 /** The item RAC Autocomplete's input points at (`aria-activedescendant`). */
 const virtualFocus = () => {
   const id = document.activeElement?.getAttribute("aria-activedescendant");
-  return id ? document.getElementById(id)?.textContent : undefined;
+  return id ? rowName(document.getElementById(id)) : undefined;
 };
 
 async function dom(t: Awaited<ReturnType<typeof place>>) {
@@ -257,7 +269,7 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
   const menus = () => [...document.querySelectorAll('[role="menu"]')];
   const items = (menu: Element) =>
     [...menu.querySelectorAll('[role^="menuitem"]')].map((el) => ({
-      text: el.textContent,
+      text: rowName(el),
       role: el.getAttribute("role"),
       checked: el.getAttribute("aria-checked"),
       disabled: el.getAttribute("aria-disabled"),
@@ -296,10 +308,10 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
     expect(virtualFocus()).toBe("Electronics");
     await user.keyboard("{ArrowRight}");
     await waitMenus(2);
-    expect(document.activeElement?.textContent).toBe("Computers");
+    expect(rowName(document.activeElement)).toBe("Computers");
     await user.keyboard("{ArrowRight}");
     await waitMenus(3);
-    expect(document.activeElement?.textContent).toBe("Laptops");
+    expect(rowName(document.activeElement)).toBe("Laptops");
     await user.keyboard("{ArrowDown}{Enter}");
     await waitMenus(0);
     expect(view.valueEl.textContent).toBe("Electronics / Computers / Desktops");
@@ -336,7 +348,7 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
     await user.click(view.button);
     await waitMenus(1);
     const books = [...menus()[0]!.querySelectorAll('[role^="menuitem"]')].find(
-      (el) => el.textContent === "Books",
+      (el) => rowName(el) === "Books",
     ) as HTMLElement;
     await user.click(books);
     await waitMenus(0);
@@ -354,7 +366,7 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
           '.react-aria-Icon[slot="selection"], [slot="selection"]',
         ) as HTMLElement | null;
         return [
-          el.textContent,
+          rowName(el),
           el.hasAttribute("data-selection-mark"),
           check?.style.visibility,
         ];
@@ -367,7 +379,7 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
       ["Books", true, "hidden"],
     ]);
     const books = [...menus()[0]!.querySelectorAll('[role^="menuitem"]')].find(
-      (el) => el.textContent === "Books",
+      (el) => rowName(el) === "Books",
     ) as HTMLElement;
     await user.click(books);
     await waitMenus(0);
@@ -428,7 +440,7 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
 describe("ADR-322 G3 — drill: one level at a time, the same answers as columns", () => {
   const rows = () =>
     [...document.querySelectorAll('[role="grid"] [role="row"]')].map((el) => ({
-      text: el.textContent,
+      text: rowName(el),
       selected: el.getAttribute("aria-selected"),
     }));
   const waitDialog = async (open: boolean) => {
@@ -463,14 +475,14 @@ describe("ADR-322 G3 — drill: one level at a time, the same answers as columns
     //  level's list.)
     expect(document.activeElement?.tagName).toBe("INPUT");
     await user.keyboard("{Tab}");
-    expect(document.activeElement?.textContent).toBe("Electronics");
+    expect(rowName(document.activeElement)).toBe("Electronics");
     await user.keyboard("{Enter}");
     await settle();
     expect(rows().map((r) => r.text)).toEqual(["Computers", "Phones"]);
-    expect(document.activeElement?.textContent).toBe("Computers");
+    expect(rowName(document.activeElement)).toBe("Computers");
     await user.keyboard("{Enter}");
     await settle();
-    expect(document.activeElement?.textContent).toBe("Laptops");
+    expect(rowName(document.activeElement)).toBe("Laptops");
     await user.keyboard("{ArrowDown}{Enter}");
     await waitDialog(false);
     expect(view.valueEl.textContent).toBe("Electronics / Computers / Desktops");
@@ -501,7 +513,7 @@ describe("ADR-322 G3 — drill: one level at a time, the same answers as columns
 describe("ADR-322 G5 — tree: only expanded branches are in the list (HC5)", () => {
   const rows = () =>
     [...document.querySelectorAll('[role="treegrid"] [role="row"]')].map(
-      (el) => [el.textContent, el.getAttribute("aria-expanded")],
+      (el) => [rowName(el), el.getAttribute("aria-expanded")],
     );
   const settle = () => act(async () => new Promise((r) => setTimeout(r, 40)));
 
@@ -521,8 +533,12 @@ describe("ADR-322 G5 — tree: only expanded branches are in the list (HC5)", ()
       ["Books", null],
     ]);
     // (The stand-in child of a closed branch is never a row.)
-    expect(document.querySelectorAll('[role="treegrid"] [role="row"]')).toHaveLength(3);
-    (document.querySelector('[role="treegrid"] [role="row"]') as HTMLElement).focus();
+    expect(
+      document.querySelectorAll('[role="treegrid"] [role="row"]'),
+    ).toHaveLength(3);
+    (
+      document.querySelector('[role="treegrid"] [role="row"]') as HTMLElement
+    ).focus();
     await user.keyboard("{ArrowRight}");
     await settle();
     expect(rows()).toEqual([

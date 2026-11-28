@@ -171,7 +171,9 @@ describe("ADR-322 — registration", () => {
       "name",
     ])
       expect([key, cascader[key]?.kind]).toEqual([key, select[key]?.kind]);
-    expect(cascader.mode?.default).toBe("columns");
+    // (사용자 결정 2026-11-29 — the reference's default; 사용자 결정 1 `columns` 대체.)
+    expect(cascader.mode?.default).toBe("drill");
+    expect(cascader.searchScope?.default).toBe("level");
     expect(cascader.displayMode?.default).toBe("path");
   });
   it("the origin's items have unique keys (11 items, three levels)", () => {
@@ -323,5 +325,21 @@ describe("ADR-322 Phase 5 — search (breakdown §4.4)", () => {
     const table = cascaderTable([leaf("a", "각남"), leaf("b", "가남")]);
     expect(names(cascaderSearch(table, "가남", "ko-KR"))).toEqual(["가남"]);
     expect(cascaderSearch(table, "", "ko-KR")).toEqual([]);
+  });
+  it("판독 1 #10 — under a level (`deep`): the walk up the levels is only for the names that hold the query", () => {
+    const table = cascaderTable(REGIONS, { anyLevel: true });
+    let walks = 0;
+    const counted = {
+      ...table,
+      byPathId: {
+        get: (id: string) => {
+          walks++;
+          return table.byPathId.get(id);
+        },
+      },
+    } as unknown as typeof table;
+    const under = table.entries.find((entry) => entry.hasChildren)!.pathId;
+    expect(cascaderSearch(counted, "없는 이름", "ko-KR", under)).toEqual([]);
+    expect(walks).toBe(0);
   });
 });

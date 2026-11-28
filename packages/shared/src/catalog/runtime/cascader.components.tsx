@@ -37,6 +37,8 @@ import {
   cascaderTrail,
   cascaderValueRefusal,
   cascaderValueText,
+  type CascaderEntry,
+  type CascaderModeName,
   type CascaderTable,
 } from "./cascader";
 import type { CatalogCascaderLevels } from "./cascaderLevels";
@@ -70,6 +72,8 @@ const CascaderOpenScope = lazy(() =>
  */
 export interface CascaderOpenValue {
   readonly mode: CascaderMode;
+  /** What a query searches (사용자 결정 2026-11-29 — the reference's `searchScope`). */
+  readonly searchScope: CascaderSearchScope;
   readonly table: CascaderTable;
   readonly keys: readonly string[];
   readonly multiple: boolean;
@@ -138,13 +142,52 @@ export function CatalogCascaderOwnLabel({
   return useContext(CascaderOwnLabelContext) ?? fallback;
 }
 
+/**
+ * 사용자 결정 2026-11-29 — a branch row's item count (its record's `Text[slot="count"]`): how many
+ * items its next level holds in the running table (levels loaded one by one count what is here) —
+ * the Canvas's derived text reads the same table of its own pass (`catalogCascaderCount`).
+ */
+const COUNT_ENTRIES = new WeakMap<
+  CascaderTable,
+  ReadonlyMap<string, CascaderEntry>
+>();
+export function CatalogCascaderCount({
+  item,
+  fallback,
+}: {
+  /** The item record's id. */
+  readonly item: string;
+  readonly fallback: ReactNode;
+}) {
+  const open = useContext(CascaderOpenContext);
+  if (!open) return fallback;
+  let byRecord = COUNT_ENTRIES.get(open.table);
+  if (!byRecord) {
+    byRecord = new Map(
+      open.table.entries.flatMap((entry) =>
+        entry.recordId ? [[entry.recordId, entry] as const] : [],
+      ),
+    );
+    COUNT_ENTRIES.set(open.table, byRecord);
+  }
+  const entry = byRecord.get(item);
+  const count = entry
+    ? (open.table.byParent.get(entry.pathId)?.length ?? 0)
+    : 0;
+  return count ? String(count) : null;
+}
+
 /** One shown row as the catalog renderer drew its item record (`cascaderitem`). */
 export interface CascaderRowInput {
   /** The row element's props — the node's own and what the DOM pass added (state marks …). */
   readonly props: Record<string, unknown>;
-  /** The record's parts in the document's order; `chevron` names those a leaf does not draw. */
+  /**
+   * The record's parts in the document's order; `chevron` names its chevron, `branchOnly` the parts
+   * a leaf · a level's own row does not draw (the chevron and the item count).
+   */
   readonly parts: readonly ReactNode[];
   readonly chevron: readonly ReactNode[];
+  readonly branchOnly: readonly ReactNode[];
   /**
    * The RAC item's `children` function over its parts: the item's render props as their state frame
    * (the check mark's `isSelected` — `catalogStateChildren`).
@@ -161,11 +204,12 @@ const CascaderRowContext = createContext<CascaderRowDraw | null>(null);
 export function CatalogCascaderRow({
   parts,
   chevron,
+  branchOnly,
   frame,
   ...props
 }: Record<string, unknown> & Omit<CascaderRowInput, "props">) {
   const draw = useContext(CascaderRowContext);
-  return draw ? draw({ props, parts, chevron, frame }) : null;
+  return draw ? draw({ props, parts, chevron, branchOnly, frame }) : null;
 }
 
 // (The list box body is the same chunk as the search scope. It takes the field's values as props
@@ -199,8 +243,10 @@ export function CatalogCascaderListHost(
   );
 }
 
-/** The open content's way (사용자 결정 1 — `columns` by default). */
-export type CascaderMode = "columns" | "tree" | "drill";
+/** The open content's way (`drill` by default — `cascaderMode`, 사용자 결정 2026-11-29). */
+export type CascaderMode = CascaderModeName;
+/** What a query searches: the level shown, that level and below, every level. */
+export type CascaderSearchScope = "level" | "deep" | "global";
 
 /** What every open content takes (`cascaderMenu` · `cascaderPanel`). */
 export interface CascaderContentProps {
@@ -247,6 +293,7 @@ export interface CatalogCascaderFieldProps {
   /** The hierarchy (`runtime/cascader.ts` — static items now). */
   readonly table: CascaderTable;
   readonly mode: CascaderMode;
+  readonly searchScope?: CascaderSearchScope;
   /** The field's display props (`displayMode` · `separator`). */
   readonly display: Readonly<Record<string, unknown>>;
   /**
@@ -277,6 +324,7 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
     levels,
     table,
     mode,
+    searchScope = "level",
     display,
     keys,
     multiple = false,
@@ -367,6 +415,7 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
   };
   const open: CascaderOpenValue = {
     mode,
+    searchScope,
     table,
     keys: current,
     multiple,

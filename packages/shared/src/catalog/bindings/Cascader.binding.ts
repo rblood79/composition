@@ -55,17 +55,33 @@ export const cascaderBinding: PrimitiveBinding = {
         label: "Placeholder",
         section: "content",
       },
-      // 사용자 결정 1 (2026-11-27): `columns` — RAC Menu + SubmenuTrigger.
+      // 사용자 결정 2026-11-29 「가벼운 쪽」: `drill` — the reference's default (one level at a time,
+      //   RAC GridList + Breadcrumbs); 사용자 결정 1 (2026-11-27) `columns` 대체.
       mode: {
         kind: "enum",
         label: "Mode",
         section: "behavior",
-        default: "columns",
+        default: "drill",
         options: [
+          { value: "drill", label: "Drill" },
           { value: "columns", label: "Columns" },
           { value: "tree", label: "Tree" },
-          { value: "drill", label: "Drill" },
         ],
+      },
+      // 사용자 결정 2026-11-29 — the reference's `searchScope`: a query narrows the level shown
+      //   (default), that level and the ones under it, or every level (ADR-322 결정 8 — the only way
+      //   before). A `tree` field always searches every level (its rows are every level's).
+      searchScope: {
+        kind: "enum",
+        label: "Search scope",
+        section: "behavior",
+        default: "level",
+        options: [
+          { value: "level", label: "This level" },
+          { value: "deep", label: "This level and below" },
+          { value: "global", label: "All levels" },
+        ],
+        visibleWhen: { key: "mode", oneOf: ["drill", "columns"] },
       },
       // 사용자 결정 3 (2026-11-27): several items — the value is their keys (no cascade: RAC draws no
       //   partial selection). RAC's name (Select · Menu · Tree `selectionMode`).

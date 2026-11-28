@@ -1709,6 +1709,15 @@ const CASCADER_POPOVER_STYLES = [
           '.react-aria-CascaderItem[data-expanded] .react-aria-Button[slot="chevron"] .react-aria-Icon',
         styles: { transform: "rotate(90deg)" },
       },
+      // (사용자 결정 2026-11-29 — the reference's head row: 「Back」 stands before the search box
+      //  only below the top level. The open field marks it there (its `back` slot — by the level,
+      //  not by a disabled state the document may write); the Canvas does not draw it —
+      //  `catalogCascaderBackHidden`.)
+      {
+        selector: '[slot="back"][data-cascader-top]',
+        // (Over the node's own inline layout — as the searching state below.)
+        styles: { display: "none !important" },
+      },
       // (ADR-326 Phase 5 — a leaf row keeps its expand button's room, undrawn: S2
       //  `ExpandableRowChevron` `isHidden` — the label lines up by its level.)
       {
@@ -1720,8 +1729,10 @@ const CASCADER_POPOVER_STYLES = [
   },
   {
     selector:
-      '.react-aria-Popover[data-trigger="Cascader"]:has(.react-aria-SearchField:not([data-empty])) :is(.react-aria-Breadcrumbs, [slot="back"])',
-    // (A searching state over the nodes' own inline layout — as the disabled paint is.)
+      '.react-aria-Popover[data-trigger="Cascader"]:has([data-cascader-results]) :is(.react-aria-Breadcrumbs, [slot="back"])',
+    // (The flat results of a search under the level or over every level take the levels' place — the
+    //  results Menu's mark; a search of the level shown keeps its trail (사용자 결정 2026-11-29).
+    //  Over the nodes' own inline layout — as the disabled paint is.)
     styles: { display: "none !important" },
   },
   // (A row's label takes the row's color — `MANUAL_ITEM_LABEL_COLORS.CascaderItem`, every level.)
@@ -16788,7 +16799,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
 // ADR-326 §4.6: a Cascader's item — its row is S2's menu item: the MenuItem rule itself (height · edge
 //   · font · corners · hover · focus · selected · disabled), one object for both. The Canvas draws it
 //   from Phase 4.
-COMPONENT_RULES_TABLE.CascaderItem = COMPONENT_RULES_TABLE.MenuItem!;
+//   사용자 결정 2026-11-29 — plus the reference's branch count: a `Text[slot="count"]` part in the
+//   keyboard shortcut's place (S2 `menuitem` area `keyboard` — column 4, 8 after the label).
+COMPONENT_RULES_TABLE.CascaderItem = (() => {
+  const menuItem = COMPONENT_RULES_TABLE.MenuItem!;
+  const composition = menuItem.structure!.composition!;
+  return {
+    ...menuItem,
+    structure: {
+      ...menuItem.structure!,
+      composition: {
+        ...composition,
+        staticSelectors: {
+          ...(composition.staticSelectors as Record<string, object>),
+          '.react-aria-Text[slot="count"]': {
+            "grid-column": "4",
+            "grid-row": "1",
+            "margin-left": "8px",
+          },
+        },
+      },
+    },
+  } as ComponentRule;
+})();
 
 // S2 LabeledValue uses field() grid and field label typography.
 COMPONENT_RULES_TABLE.LabeledValue = {

@@ -559,18 +559,37 @@ const ROWS: Row[] = [
       await chooseLast(u);
     },
   },
-  // ADR-322 Phase 5 — a Cascader's open state and value (`columns`: the first level's last item —
-  //  a leaf, 「Books」).
+  // ADR-322 Phase 5 — a Cascader's open state and value. The default mode is `drill` (사용자 결정
+  //  2026-11-29): its trigger is RAC `DialogTrigger`'s (no `aria-haspopup`), its rows a grid's — the
+  //  first level's last row is a leaf, 「Books」.
   {
     palette: "Cascader",
     type: "Cascader",
     event: "onOpenChange",
-    act: (h, u) => press(u, q(h, "button[aria-haspopup]")),
+    act: (h, u) => press(u, q(h, ".react-aria-Cascader button")),
   },
   {
     palette: "Cascader",
     type: "Cascader",
     event: "onChange",
+    act: async (h, u) => {
+      await press(u, q(h, ".react-aria-Cascader button"));
+      const rows = await waitFor(() => {
+        const found = [
+          ...document.querySelectorAll<HTMLElement>("[role=grid] [role=row]"),
+        ];
+        expect(found.length).toBeGreaterThan(0);
+        return found;
+      });
+      await press(u, rows.at(-1));
+    },
+  },
+  // (The `columns` mode — RAC `MenuTrigger`'s trigger and menu items.)
+  {
+    palette: "Cascader",
+    type: "Cascader",
+    event: "onChange",
+    declare: { mode: "columns" },
     act: async (h, u) => {
       await press(u, q(h, "button[aria-haspopup]"));
       await chooseLast(u);

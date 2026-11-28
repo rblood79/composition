@@ -70,13 +70,13 @@ const focused = (p) =>
     if (el.closest(".react-aria-Cascader") && el.tagName === "BUTTON")
       return "open";
     if (el.tagName === "INPUT") return `input:${el.value}`;
-    return `${el.getAttribute("role") ?? el.tagName.toLowerCase()}:${el.textContent?.trim()}`;
+    return `${el.getAttribute("role") ?? el.tagName.toLowerCase()}:${(el.querySelector('[slot="label"]')?.textContent ?? el.textContent)?.trim()}`;
   });
 const active = (p) =>
   p.evaluate(() => {
     const el = document.activeElement;
     const id = el?.getAttribute("aria-activedescendant");
-    return id ? document.getElementById(id)?.textContent?.trim() : undefined;
+    return id ? (document.getElementById(id)?.querySelector('[slot="label"]')?.textContent ?? document.getElementById(id)?.textContent)?.trim() : undefined;
   });
 const menus = (p) => p.locator('[role="menu"]').count();
 const valueText = (p) =>
@@ -162,6 +162,12 @@ try {
         c.setFields({
           targets: [ws.itemOfRecord(field.id).target],
           visual: { width: { kind: "set", value: 260 } },
+          // (This harness is the `columns` mode's — the default is `drill`, 사용자 결정 2026-11-29.)
+          // (`searchScope: "global"` — case 4 reads the flat results; the default narrows the level.)
+          props: {
+            mode: { kind: "set", value: "columns" },
+            searchScope: { kind: "set", value: "global" },
+          },
         }),
       );
       // (판독 1 수리: 항목 글자색 → 라벨 · 필드 size → 목록 · 행 · 라벨 글자 · 원본 Hover → 행.)
@@ -246,7 +252,7 @@ try {
         ...document.querySelectorAll('[role="menu"] [role^="menuitem"]'),
       ];
       const row = (el) => ({
-        text: el.textContent.trim(),
+        text: (el.querySelector('[slot="label"]')?.textContent ?? el.textContent).trim(),
         className: el.className,
         id: el.getAttribute("data-catalog-id"),
         background: getComputedStyle(el).backgroundColor,
@@ -278,7 +284,7 @@ try {
     const items = [
       ...document.querySelectorAll('[role="menu"] [role^="menuitem"]'),
     ];
-    const books = items.find((el) => el.textContent.trim() === "Books");
+    const books = items.find((el) => (el.querySelector('[slot="label"]')?.textContent ?? el.textContent).trim() === "Books");
     const label = (el) => el.querySelector('.react-aria-Text[slot="label"]');
     return {
       listSize: document
@@ -320,7 +326,7 @@ try {
   const hovered = await pub.evaluate(() => {
     const row = [
       ...document.querySelectorAll('[role="menu"] [role^="menuitem"]'),
-    ].find((el) => el.textContent.trim() === "Clothing");
+    ].find((el) => (el.querySelector('[slot="label"]')?.textContent ?? el.textContent).trim() === "Clothing");
     return {
       hovered: row?.hasAttribute("data-hovered"),
       mark: row?.getAttribute("data-catalog-hover"),
@@ -382,8 +388,9 @@ try {
   await settle(pub, 400);
   const reopened = {
     focus: await focused(pub),
+    // (A row's name is its label — a branch row also holds its item count, 2026-11-29.)
     rows: await pub
-      .locator('[role="menu"] [role^="menuitem"]')
+      .locator('[role="menu"] [role^="menuitem"] [slot="label"]')
       .allTextContents(),
   };
   record(

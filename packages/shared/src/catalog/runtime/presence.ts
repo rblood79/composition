@@ -17,12 +17,14 @@ import {
   cascaderNotice,
   cascaderTableOf,
   cascaderValueText,
-  catalogCascaderBackDisabled,
+  catalogCascaderBackHidden,
   catalogCascaderChevronHidden,
+  catalogCascaderCount,
   catalogCascaderItemRow,
   catalogCascaderOwnRowPart,
   catalogCascaderPassPartHidden,
   catalogCascaderTrailCrumb,
+  catalogCascaderTrailHidden,
   catalogCascaderTrailOf,
   catalogCascaderTreeChevron,
   catalogCascaderTreeLevel,
@@ -1560,8 +1562,13 @@ export function catalogHiddenAtRest(
   // (A `drill` level's own row — 「<branch> 전체」 — has no chevron.)
   if (catalogCascaderOwnRowPart(node, get, typeOf, "en")?.hidden) return true;
   if (catalogCascaderChevronHidden(node, get, typeOf)) return true;
+  // (사용자 결정 2026-11-29 — a branch row's item count: a leaf · a level not read yet draws none.)
+  if (catalogCascaderCount(node, get, typeOf) === 0) return true;
   // (ADR-326 Phase 5 — a `drill` trail's crumb positions without a path crumb.)
   if (catalogCascaderTrailCrumb(node, get, typeOf) === undefined) return true;
+  // (사용자 결정 2026-11-29 — the top level draws no trail and no 「Back」: the reference's head row.)
+  if (catalogCascaderTrailHidden(node, get, typeOf)) return true;
+  if (catalogCascaderBackHidden(node, get, typeOf)) return true;
   // (ADR-322 Phase 4 — a Cascader's Description carries its repeated-key notice, description or not.)
   if (typeOf(node) === "Description") {
     const field = catalogPartParent(node, get, typeOf);
@@ -5903,8 +5910,8 @@ export function catalogBreadcrumbSeparator(
  * ADR-326 Phase 5 (§4.4 · §4.5) — what a Cascader's just-opened screen derives on the Canvas: an
  * item's row state (`_cascaderRow`) and `tree` level (`_cascaderLevel` — its row's indent), a `tree`
  * row's chevron (a leaf's room undrawn — `_glyphRoomOnly`; an open branch's turned), a `drill`
- * trail's whole length (`_trailCrumbs` — its folder menu counts every crumb, as the DOM's) and a
- * crumb label's path text. The DOM reads its own RAC state (`cascaderPanel.components.tsx`).
+ * trail's whole length (`_trailCrumbs` — its folder menu counts every crumb, as the DOM's), a
+ * crumb label's path text and a branch row's item count (`_cascaderCount`). The DOM reads its own RAC state (`cascaderPanel.components.tsx`).
  */
 function catalogCascaderOpenDerived(
   node: CatalogConsumerNode,
@@ -5946,10 +5953,13 @@ function catalogCascaderOpenDerived(
       //  the Canvas turns the drawn glyph, `canvasBinding` `_glyphTurned`.)
       ...(chevron.expanded ? { _glyphTurned: true } : {}),
     };
-  // (The Canvas's disabled paint (`_fieldDisabled` — the DOM does not read it): the DOM's 「Back」
-  //  takes its running level's state from its slot context.)
-  const back = catalogCascaderBackDisabled(node, get, typeOf);
-  if (back !== undefined) return back ? { _fieldDisabled: true } : {};
+  // (A branch row's item count — the DOM's row reads its running table, `CatalogCascaderCount`.)
+  const count = catalogCascaderCount(node, get, typeOf);
+  if (count !== undefined)
+    return {
+      _cascaderCount: true,
+      ...(count ? { children: String(count) } : {}),
+    };
   const trail = catalogCascaderTrailOf(node, get, typeOf);
   if (trail) return { _trailCrumbs: trail.crumbs.length };
   if (catalogCascaderTrailCrumbText(node, get, typeOf)) {

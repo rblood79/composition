@@ -56,10 +56,12 @@ import {
   CatalogCascaderRow,
 } from "./cascader.components";
 import {
+  CASCADER_COUNT_SLOT,
   CASCADER_ITEM_TYPE,
   CASCADER_TYPE,
   catalogCascaderItems,
   catalogCascaderList,
+  cascaderMode,
   cascaderMultiple,
   cascaderStartKeys,
   cascaderValueKeys,
@@ -4808,10 +4810,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ? cascaderValueKeys(own.value)
           : cascaderStartKeys(props);
       const multiple = cascaderMultiple(props);
-      const mode =
-        props.mode === "tree" || props.mode === "drill"
-          ? props.mode
-          : "columns";
+      const mode = cascaderMode(props);
       // (ADR-322 Phase 6 — levels loaded one by one: the branches not opened yet are branches.)
       const levels = input.cascaderLevels?.(input.node.id);
       const open = input.setRuntimeProps
@@ -4856,6 +4855,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           levels,
           table: cascaderTableMemo(input.node, get, typeOf, levels),
           mode,
+          searchScope:
+            props.searchScope === "deep" || props.searchScope === "global"
+              ? props.searchScope
+              : "level",
           display: {
             displayMode: props.displayMode,
             separator: props.separator,
@@ -4897,14 +4900,23 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       //  leaf draws none.)
       const parts: ReactElement[] = [];
       const chevron: ReactElement[] = [];
+      const branchOnly: ReactElement[] = [];
       let marked = false;
       for (const id of input.node.children) {
         const child = get(id);
         if (!child || typeOf(child) === "CascaderItem") continue;
         const part = input.renderChild(id);
         parts.push(part);
-        if (typeOf(child) === "Icon" && child.props.slot === "descriptor")
+        if (typeOf(child) === "Icon" && child.props.slot === "descriptor") {
           chevron.push(part);
+          branchOnly.push(part);
+        }
+        // (A branch's item count — 사용자 결정 2026-11-29.)
+        if (
+          typeOf(child) === "Text" &&
+          child.props.slot === CASCADER_COUNT_SLOT
+        )
+          branchOnly.push(part);
         if (child.props.slot === "selection") marked = true;
       }
       return createElement(CatalogCascaderRow, {
@@ -4924,6 +4936,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...(marked ? { "data-selection-mark": "" } : {}),
         parts,
         chevron,
+        branchOnly,
         frame: (children: readonly ReactNode[]) =>
           catalogStateChildren(input.node.id, () => [...children]) as (
             values: object,

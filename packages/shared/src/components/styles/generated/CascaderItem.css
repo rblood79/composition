@@ -173,6 +173,12 @@
     margin-left: 8px;
   }
 
+  .react-aria-CascaderItem .react-aria-Text[slot="count"] {
+    grid-column: 4;
+    grid-row: 1;
+    margin-left: 8px;
+  }
+
 
   .react-aria-CascaderItem[data-size="S"] .react-aria-Icon[slot="selection"] {
     margin-right: calc(var(--catalog-token-text-xs) * 10 / 14);
