@@ -451,12 +451,20 @@ function withDateAxisValues(
   keys: DateAxisFieldKeys,
 ): CatalogBoundRows {
   const roles = Object.entries(keys) as [DateAxisRole, string][];
-  const out = rows.map((row) => ({
-    ...row,
-    dateAxis: Object.fromEntries(
-      roles.map(([role, key]) => [role, row.values[key]]),
-    ),
-  }));
+  const out = rows.map((row) => {
+    // (The row's own field — its template values put the role names over it.)
+    const item = rowSourceItems.get(row.values);
+    const source =
+      item !== null && typeof item === "object" && !Array.isArray(item)
+        ? (item as Record<string, unknown>)
+        : row.values;
+    return {
+      ...row,
+      dateAxis: Object.fromEntries(
+        roles.map(([role, key]) => [role, source[key]]),
+      ),
+    };
+  });
   for (const name of Object.keys(rows))
     if (!/^\d+$/.test(name))
       (out as unknown as Record<string, unknown>)[name] = (
@@ -675,6 +683,21 @@ export function catalogRowMatchesQuery(
     runBindingView(rows, table, { ...ref.query, queries }, sources).rows
       .length > 0
   );
+}
+
+/**
+ * ADR-323 — each bound row's source item, by its template values (`rowTemplateValues`): the values
+ * put the role names (`ROW_ROLE_VALUES`) over the item's own fields, and a date-axis role reads the
+ * field itself (a status field named `value` is not the row's `fieldMap.value` key).
+ */
+const rowSourceItems = new WeakMap<object, unknown>();
+/** A row's template values (`buildCollectionRowTemplateItem`), its source item kept beside them. */
+function rowTemplateValues(
+  row: Parameters<typeof buildCollectionRowTemplateItem>[0],
+): Record<string, unknown> {
+  const values = buildCollectionRowTemplateItem(row);
+  rowSourceItems.set(values, row.item);
+  return values;
 }
 
 /** The role names a row's template values carry over its item's own fields (`buildCollectionRowTemplateItem`). */
@@ -1077,7 +1100,7 @@ function treeBoundRows(
             ];
     return {
       key,
-      values: buildCollectionRowTemplateItem(
+      values: rowTemplateValues(
         toItemProjectionRow(items[index], index, roles),
       ),
       ...(nested ? { children: nested } : {}),
@@ -1215,7 +1238,7 @@ function boundRowsOf(
       return {
         key,
         ...(key !== row.itemKey ? { itemKey: row.itemKey } : {}),
-        values: buildCollectionRowTemplateItem(row),
+        values: rowTemplateValues(row),
         ...(nested ? { children: nested } : {}),
       };
     });
@@ -1305,7 +1328,7 @@ function boundRowsOf(
         let key = String(row.itemKey);
         if (seen.has(key)) key = `${key}~${row.rowIndex}`;
         seen.add(key);
-        return { key, values: buildCollectionRowTemplateItem(row) };
+        return { key, values: rowTemplateValues(row) };
       }),
     );
     const cut = top.slice(0, Math.max(0, limit));
@@ -1336,7 +1359,7 @@ function boundRowsOf(
       //  group's rows are its leaves, breakdown §5.4.)
       byIndex[index] = {
         key,
-        values: buildCollectionRowTemplateItem(row),
+        values: rowTemplateValues(row),
       };
     }
     const top = catalogGroupBoundRows(
@@ -1410,7 +1433,7 @@ function boundRowsOf(
       key,
       ...(key !== itemKey ? { itemKey } : {}),
       ...(remoteLevels ? { levelKey: row.itemKey } : {}),
-      values: buildCollectionRowTemplateItem(row),
+      values: rowTemplateValues(row),
       ...(children ? { children } : {}),
     };
   };

@@ -1048,6 +1048,11 @@ function keyRowItem(
     if (axis && "title" in axis) props.label = text(axis.title);
     else props.label ??= text(row.values.label);
     if (axis && "start" in axis) props.date = text(axis.start);
+    // (No date role: the template's literal date is the origin's sample — 판독 F2, every row drew
+    //  the palette's 2026-11-24 — and an author's `{field}` date reads the row.)
+    else if (typeof props.date === "string" && props.date.includes("{"))
+      props.date = text(bindRowValue(props.date, row));
+    else props.date = "";
     if (props.description === undefined && row.values.description)
       props.description = text(row.values.description);
     if (axis && "color" in axis) props.status = text(axis.color);

@@ -207,6 +207,7 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
             { id: "f-name", key: "name", type: "string" },
             { id: "f-avatar", key: "avatar", type: "image" },
             { id: "f-off", key: "off", type: "boolean" },
+            { id: "f-when", key: "when", type: "date" },
           ],
         },
       ],
@@ -336,7 +337,7 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
       [...document.querySelectorAll('[role="option"]')].map((o) =>
         o.getAttribute("data-key"),
       ),
-    ).toEqual(["__auto__", "f-id", "f-name"]);
+    ).toEqual(["__auto__", "f-id", "f-name", "f-when"]);
     fireEvent.click(
       document.querySelector('[role="option"][data-key="f-name"]')!,
     );
@@ -344,6 +345,30 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
       expect.objectContaining({ fieldMap: { unavailable: "f-name" } }),
     );
     ruleOf.delete("cal-1");
+  });
+
+  // ADR-323 판독 F8: a Timeline's Date takes the role table's field types (`dateAxisRoleAccepts` —
+  // date only — a text field once filled it).
+  it("Timeline 의 Date 는 날짜 필드만 — 역할 표 그대로", async () => {
+    ruleOf.set("tl-1", { ruleId: "Timeline" });
+    const { Comp, renderFresh } = await withSchema();
+    const { container } = renderFresh(
+      <Comp
+        elementId="tl-1"
+        value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
+        onChange={vi.fn()}
+      />,
+    );
+    const control = container.querySelector(
+      ".binding-fieldmap-select[data-role='start']",
+    )!;
+    fireEvent.click(control.querySelector("button")!);
+    expect(
+      [...document.querySelectorAll('[role="option"]')].map((o) =>
+        o.getAttribute("data-key"),
+      ),
+    ).toEqual(["__auto__", "f-when"]);
+    ruleOf.delete("tl-1");
   });
 
   it("Disabled field 는 disabledKeys 를 받지 않는 대상 (Form) 에는 없다", async () => {

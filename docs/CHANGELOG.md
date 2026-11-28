@@ -27,6 +27,17 @@ ADR-323 Phase 2 닫힘. 날짜 축 컴포넌트 셋 중 첫째인 Timeline 을 �
   - 위치: `packages/shared/src/catalog/{bindings/Timeline.binding.ts,rule/timeline.ts,runtime/timeline.ts,document/timelineOrigins.ts}` · 행 역할 `catalog/runtime/dataBinding.ts` · `resolution/resolver.ts` · 패널 `apps/builder/src/builder/components/property/CollectionBinding.tsx`
 - 문서 contract 87 → 88 (옛 87 문서는 열리지 않는다 — 변환 없음).
 
+### Fixed (Phase 2 판독 수리)
+
+- 연결한 Timeline 의 상태 필드 이름이 `value` 면 모든 항목이 「완료」 로 보이던 것 — 역할 값은 행의 원래 필드에서 읽는다.
+- Date 칸을 비운 연결에서 팔레트 예시 날짜 (2026-11-24) 가 모든 항목에 나오던 것.
+- Preview · Publish 에서 연결한 Timeline 이 100 행까지만 그리던 것 — 불러온 행을 모두 그린다 (원격 API 의 다음 쪽은 아직 불러오지 않는다).
+- 항목을 다 지운 Timeline 에 데이터를 연결하면 항목이 생기지 않던 것 (list 부품 없이 반복하는 다른 목록도 같다).
+- `display: none` 항목이 번갈아 배치 · 마지막 선 판정에 들어가던 것.
+- Canvas 에서 TimelineItem · Step 에 쓴 `padding` 이 표식 자리 여백에 져 Preview 와 크기가 달랐던 것.
+- 항목 상태를 화면 낭독기가 읽는다 (보이지 않는 상태 글자 — 완료 · 진행 중 · 예정).
+- 연결 칸 Date 가 날짜 필드만 받는다 (전에는 글자 필드도 받아 제목이 날짜 자리에 보였다).
+
 ### Notes
 
 - 날짜 글자는 저장된 값 그대로 보인다 (Table 칸과 같다) — 지역 형식은 EventCalendar (Phase 3) 와 같이 정한다. 가로 배치의 좁은 항목에서 긴 ISO 시각은 옆 항목과 겹칠 수 있다.

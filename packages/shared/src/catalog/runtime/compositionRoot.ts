@@ -5890,7 +5890,11 @@ export class CatalogCompositionRoot {
         ? domFont(record, get, (each) => this.declaredFont(each, get))
         : undefined,
       this.wrapBaselines.get(record.id),
-      record.derivedProps?._actionIconOnly === true
+      // (A Step's · TimelineItem's derived pads give way to an authored padding — `catalogBoxModel`.)
+      record.derivedProps?._actionIconOnly === true ||
+        Object.keys(record.derivedProps ?? {}).some(
+          (key) => key.startsWith("_stepPad") || key.startsWith("_timelinePad"),
+        )
         ? catalogAuthoredVisual(this, record)
         : undefined,
     );

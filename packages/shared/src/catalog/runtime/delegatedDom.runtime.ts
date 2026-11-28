@@ -50,6 +50,7 @@ import {
 } from "../rule/stepList";
 import { CatalogStep, CatalogStepListGroup } from "./stepList.components";
 import { catalogTimelineChromeDom } from "./timeline";
+import { CatalogTimelineStatus } from "./timeline.components";
 import { CatalogCascaderField } from "./cascader.components";
 import {
   CASCADER_ITEM_TYPE,
@@ -4621,6 +4622,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: input.style,
         },
         ...renderAll(input),
+        // (The status a screen reader reads after the texts — the marker says it with color.)
+        drawn
+          ? createElement(CatalogTimelineStatus, {
+              key: "timeline-status",
+              status: str(derived?._timelineItemStatus),
+            })
+          : null,
         drawn
           ? createElement("span", {
               key: "timeline-marker",

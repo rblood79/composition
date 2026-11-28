@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { resolveToken, type TokenRef } from "@composition/rendering";
 import {
   insertNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -257,6 +258,12 @@ describe("ADR-323 G2 — Timeline", () => {
     expect(marker.style.left).toBe("0px");
     expect(marker.style.width).toBe("12px");
     expect(lis[2]!.querySelector(".timeline-connector")).toBeNull();
+    // (The status a screen reader reads — the marker says it with color only: 판독 F7.)
+    expect(lis.map((li) => li.textContent)).toEqual([
+      "Order placed2026-11-24Completed",
+      "Shipped2026-11-26In progress",
+      "DeliveredUpcoming",
+    ]);
     // No role, no aria attribute: an ordered list (D1 exception 0).
     expect(host.querySelector("[role]")).toBeNull();
     expect(
@@ -298,6 +305,71 @@ describe("ADR-323 G2 — Timeline", () => {
     ]);
   });
 
+  it("an authored padding wins over the item's derived room on the Canvas, as in the DOM (판독 F6)", async () => {
+    const t = await place();
+    const first = () => t.items()[0]!;
+    expect(t.root.getLayoutInput(first().id)).toMatchObject({
+      paddingLeft: "24px",
+    });
+    t.workspace.execute(
+      setFields({
+        targets: [t.workspace.itemOfRecord(first().id)!.target],
+        visual: { padding: { kind: "set", value: 40 } },
+      } as never),
+    );
+    expect(t.root.getLayoutInput(first().id)).toMatchObject({
+      paddingTop: "40px",
+      paddingRight: "40px",
+      paddingBottom: "40px",
+      paddingLeft: "40px",
+    });
+    const host = await dom(t);
+    const li = host.querySelector("ol > li") as HTMLElement;
+    expect(li.style.padding).toBe("40px");
+    // (Another item keeps its derived room.)
+    expect(t.root.getLayoutInput(t.items()[1]!.id)).toMatchObject({
+      paddingLeft: "24px",
+    });
+  });
+
+  it("an item with display none is not an item: sides · the last connector skip it (판독 F5)", async () => {
+    const t = await place();
+    const hide = (index: number) =>
+      t.workspace.execute(
+        setFields({
+          targets: [t.workspace.itemOfRecord(t.items()[index]!.id)!.target],
+          layout: { display: { kind: "set", value: "none" } },
+        } as never),
+      );
+    t.write("list", { position: "alternate" });
+    hide(1);
+    const shown = () =>
+      t.items().filter((item) => item.layout.display !== "none");
+    expect(shown().map((item) => item.derivedProps?._timelineItemSide)).toEqual(
+      ["end", "start"],
+    );
+    t.workspace.undo();
+    hide(2);
+    expect(
+      shown().map((item) => [
+        item.derivedProps?._timelineItemSide,
+        item.derivedProps?._timelineItemLast,
+      ]),
+    ).toEqual([
+      ["end", false],
+      ["start", true],
+    ]);
+    // (The last shown item draws its marker only — no connector.)
+    expect(
+      catalogTimelineChromeShapes({
+        type: "TimelineItem",
+        node: shown()[1]! as never,
+        rect: { width: 400, height: 60 },
+        theme: "light",
+      }),
+    ).toHaveLength(1);
+  });
+
   it("bound: one item per row — date · title · status from the date-axis roles", async () => {
     const t = await place(ROWS);
     t.workspace.execute(
@@ -327,5 +399,44 @@ describe("ADR-323 G2 — Timeline", () => {
     expect(t.texts(t.items()[1]!)[1]!.derivedProps?._timeDateTime).toBe(
       "2026-11-21T09:30",
     );
+  });
+
+  it("bound without a date role: no row draws the template's sample date (판독 F2)", async () => {
+    const t = await place([
+      { key: "a", values: { id: "a", label: "Alpha" } },
+      { key: "b", values: { id: "b", label: "Beta" } },
+    ]);
+    t.workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id: PLACED }],
+        BINDING,
+        t.workspace.newId,
+      ),
+    );
+    expect(
+      t.items().map((item) => t.texts(item).map((r) => r.props.children)),
+    ).toEqual([["Alpha"], ["Beta"]]);
+    const host = await dom(t);
+    expect(host.querySelector("time")).toBeNull();
+  });
+
+  it("an emptied Timeline gets its row template when bound (판독 F4)", async () => {
+    const t = await place(ROWS);
+    t.workspace.root.execute(
+      removeTargets({
+        targets: t
+          .items()
+          .map((item) => t.workspace.positionOfRecord(item.id)!.target),
+      }),
+    );
+    expect(t.items()).toEqual([]);
+    t.workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id: PLACED }],
+        BINDING,
+        t.workspace.newId,
+      ),
+    );
+    expect(t.items().map((item) => item.props.id)).toEqual(["h1", "h2", "h3"]);
   });
 });

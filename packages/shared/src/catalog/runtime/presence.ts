@@ -1,4 +1,5 @@
 import { catalogSkeletonState } from "./skeletonContext";
+import { catalogParticipatesInLayout } from "./layoutParticipation";
 import {
   catalogTimelineDateTime,
   catalogTimelineDerived,
@@ -4257,14 +4258,21 @@ export function catalogStepPanelWaiting(
   );
 }
 
-/** ADR-323 Phase 2: the TimelineItems a Timeline draws, in order (hidden ones are not items). */
+/**
+ * ADR-323 Phase 2: the TimelineItems a Timeline draws, in order — a hidden one, and one whose
+ * `display` is `none`, is not an item (판독 F5: it took a side and kept the last one's connector).
+ * `every` keeps them all (the items a list change reaches).
+ */
 function timelineItemsOf(
   list: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
+  every = false,
 ): CatalogConsumerNode[] {
   return childrenOf(list, get).filter(
-    (child) => !child.hidden && typeOf(child) === TIMELINE_ITEM_TYPE,
+    (child) =>
+      typeOf(child) === TIMELINE_ITEM_TYPE &&
+      (every || catalogParticipatesInLayout(child)),
   );
 }
 
@@ -5116,11 +5124,11 @@ export function catalogDerivedPropsDependents(
     // (ADR-323 Phase 2: a Timeline's orientation · placement · size reach its items; an item's
     //  place (one more · one fewer · hidden) moves its siblings' index · last · side.)
     ...(typeOf(owner) === TIMELINE_TYPE
-      ? timelineItemsOf(owner, get, typeOf)
+      ? timelineItemsOf(owner, get, typeOf, true)
       : typeOf(owner) === TIMELINE_ITEM_TYPE &&
           get(owner.parentId) &&
           typeOf(get(owner.parentId)!) === TIMELINE_TYPE
-        ? timelineItemsOf(get(owner.parentId)!, get, typeOf).filter(
+        ? timelineItemsOf(get(owner.parentId)!, get, typeOf, true).filter(
             (item) => item.id !== owner.id,
           )
         : []),

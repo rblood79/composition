@@ -171,7 +171,15 @@ function rowTemplateInsert(
   // The collection: the instance itself (ListBox · GridList · Tree), or its part (TagGroup's TagList).
   let path = [rootId];
   let collectionType = typeOf(node.definitionId);
-  if (!CATALOG_EMPTY_STATE_COLLECTIONS.has(collectionType)) {
+  // (A collection whose items are its own children: one with an empty state (ListBox · GridList …)
+  //  or a table owner without a list part that repeats its items — 판독 F4, an emptied Timeline
+  //  got no row template.)
+  const ownsItems =
+    CATALOG_EMPTY_STATE_COLLECTIONS.has(collectionType) ||
+    COLLECTION_TYPE_TABLE.some(
+      (row) => row.owner === collectionType && !row.list && row.repeat,
+    );
+  if (!ownsItems) {
     const part = templateOf(rootId)?.children.find((id) =>
       CATALOG_EMPTY_STATE_COLLECTIONS.has(
         typeOf(templateOf(id)?.definitionId ?? ""),

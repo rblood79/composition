@@ -310,9 +310,17 @@ export function catalogBoxModel(
   //  authored side; the DOM reads the Step rule's same formulas.)
   // (ADR-323 Phase 2: a TimelineItem keeps room for its marker · connector the same way —
   //  `catalogTimelineItemDerived`'s pads.)
+  // (An authored padding on that edge — its side, its axis or the shorthand — wins over them as in
+  //  the DOM, where the inline authored style comes after the derived one: 판독 F6.)
   const stepPad = (edge: "Top" | "Right" | "Bottom" | "Left") =>
-    length(node.derivedProps?.[`_stepPad${edge}`]) ??
-    length(node.derivedProps?.[`_timelinePad${edge}`]);
+    [
+      `padding${edge}`,
+      edge === "Top" || edge === "Bottom" ? "paddingY" : "paddingX",
+      "padding",
+    ].some((key) => authoredVisual[key] !== undefined)
+      ? undefined
+      : (length(node.derivedProps?.[`_stepPad${edge}`]) ??
+        length(node.derivedProps?.[`_timelinePad${edge}`]));
   const padding = {
     // (S2 Card's Content · Footer: their spacing in the card — `catalogCardSection`'s `_cardPadTop` ·
     //  `_cardPadBottom`; an authored padding wins.)

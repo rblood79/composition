@@ -229,4 +229,40 @@ describe("ADR-323 G2 — a binding's date-axis roles ride on its rows", () => {
     )!;
     expect(plain.some((row) => "dateAxis" in row)).toBe(false);
   });
+  it("a role reads the row's own field — not the template value a role name puts over it", () => {
+    // (판독 F1: a status field keyed `value` under `fieldMap.value = id` — the template values'
+    //  `value` is the item's key, the role's is the field's.)
+    const rows = catalogBoundRows(
+      {
+        collectionId: "data:collection:steps",
+        fieldMap: {
+          value: "data:field:f-id",
+          color: "data:field:f-value",
+          title: "data:field:f-label",
+        },
+      } as never,
+      [
+        {
+          id: "steps",
+          name: "Steps",
+          schema: [
+            { id: "f-id", key: "id", type: "string" },
+            { id: "f-value", key: "value", type: "string" },
+            { id: "f-label", key: "label", type: "string" },
+          ],
+          mockData: [
+            { id: "h1", value: "current", label: "" },
+            { id: "h2", value: "upcoming", label: "Ship" },
+          ],
+          useMockData: true,
+        } as never,
+      ],
+      "items",
+    )!;
+    expect(rows.map((row) => row.dateAxis)).toEqual([
+      { color: "current", title: "" },
+      { color: "upcoming", title: "Ship" },
+    ]);
+    expect(rows.map((row) => row.values.value)).toEqual(["h1", "h2"]);
+  });
 });

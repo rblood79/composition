@@ -4963,13 +4963,17 @@ export class CatalogPreviewSession {
   /**
    * ADR-322 Phase 4 — a Cascader (and a level item with its own table) reads every row: its levels
    * are its rows' hierarchy, and a key's path needs the whole of it (no 「더 보기」 window).
+   * ADR-323 — a Timeline too: an `ol` with no collection end to see (no RAC load-more item), its
+   * window would stop at the first 100 rows (판독 F3).
    */
   private readsWholeRows(ownerId: string): boolean {
     const graph = this.graph;
     const entry = graph?.getEntry(ownerId as never);
     if (!graph || entry?.kind !== "node") return false;
     const type = definitionTypeName(graph, (entry as NodeEntry).definitionId);
-    return type === "Cascader" || type === "CascaderItem";
+    return (
+      type === "Cascader" || type === "CascaderItem" || type === "Timeline"
+    );
   }
   /** ADR-310 Phase 7 — a list node's row display (its document `rowDisplay`). */
   private rowDisplayOf(ownerId: string): CatalogRowDisplay | undefined {

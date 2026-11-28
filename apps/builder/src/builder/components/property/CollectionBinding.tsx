@@ -20,7 +20,12 @@ import { useParams } from "react-router";
 import { useI18n } from "@/i18n";
 import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
-import { dateAxisRolesOf } from "../../../../../../packages/shared/src/collections/dateAxisRoles";
+import {
+  DATE_AXIS_ROLES,
+  dateAxisRoleAccepts,
+  dateAxisRolesOf,
+  type DateAxisRole,
+} from "../../../../../../packages/shared/src/collections/dateAxisRoles";
 import { DatabasePlus, ListTree, X } from "lucide-react";
 import React, { Suspense, lazy, memo, useCallback, useState } from "react";
 import { Radio, RadioGroup } from "react-aria-components/RadioGroup";
@@ -525,16 +530,19 @@ export const CollectionBinding = memo(function CollectionBinding({
                       )
                     : role === "disabled"
                       ? fieldOptions.filter((field) => field.type === "boolean")
-                      : role === "unavailable" ||
-                          role === "unavailableEnd" ||
-                          role === "start"
+                      : role === "unavailable" || role === "unavailableEnd"
                         ? fieldOptions.filter(
                             (field) =>
                               field.type === "date" || field.type === "string",
                           )
-                        : role === "title" || role === "color"
-                          ? fieldOptions.filter(
-                              (field) => field.type === "string",
+                        : // (ADR-323 — a date-axis role takes the role table's field types: 판독 F8,
+                          //  a text field once filled Date.)
+                          role in DATE_AXIS_ROLES
+                          ? fieldOptions.filter((field) =>
+                              dateAxisRoleAccepts(
+                                role as DateAxisRole,
+                                field.type,
+                              ),
                             )
                           : fieldOptions
               }
