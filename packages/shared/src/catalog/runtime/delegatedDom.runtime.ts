@@ -4694,8 +4694,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ids.push(child.id);
         child.children.forEach((id) => visit(get(id)));
       };
+      // (Its Popovers even without a list box — a list box removed and put back by Undo comes in
+      //  as a change of the Popover's children: watching only a list box present dropped it.)
+      for (const id of node.children) {
+        const popover = get(id);
+        if (popover && typeOf(popover) === "Popover") ids.push(popover.id);
+      }
       const list = catalogCascaderList(node, get, typeOf);
-      if (list) ids.push(get(list.parentId)!.id, list.id);
+      if (list) ids.push(list.id);
       catalogCascaderItems(node, get, typeOf).forEach(visit);
       return ids;
     },

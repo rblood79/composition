@@ -51,6 +51,7 @@ function rowTemplateInsert(
   reader: CatalogReader,
   nodeId: NodeId,
   newId: NewId,
+  mode: CatalogRowTemplateMode,
 ): CatalogCommand | undefined {
   const node = reader.getEntry(nodeId);
   if (node?.kind !== "node") return undefined;
@@ -142,7 +143,10 @@ function rowTemplateInsert(
       );
     if (!sample) return undefined;
     const id = newId("node") as NodeId;
+    // (「Keep the items」: the samples stay as its own static items, the rows after them — ADR-326
+    //  판독 h1: replacing the list dropped them and an edited name for good.)
     return placeCascaderRowTemplate({
+      keepItems: mode === "keep",
       host: {
         kind: "descendant",
         ownerId: nodeId,
@@ -287,7 +291,7 @@ export const catalogBindingCommand = (
         run(clearRowTemplates(target.id));
         continue;
       }
-      if (newId) run(rowTemplateInsert(stage, target.id, newId));
+      if (newId) run(rowTemplateInsert(stage, target.id, newId, mode));
       run(markRowTemplates({ ownerId: target.id, mode, newId }));
     }
     return { ...first, ops };

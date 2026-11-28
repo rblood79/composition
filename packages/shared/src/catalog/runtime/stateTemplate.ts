@@ -473,6 +473,30 @@ export function catalogBindingKey(
 }
 
 /**
+ * ADR-326 판독 h4 · h7 — `props` with their `{{ }}` · variable values resolved for the node
+ * `ownerId` (its page's variables, the project's, the input variables of the origins it sits in —
+ * as a binding's key reads them): what the resolver reads before the node's record exists. Props
+ * with nothing to resolve come back as they are.
+ */
+export function catalogNodeStateProps<T extends Record<string, unknown>>(
+  graph: CatalogGraph,
+  props: T,
+  ownerId: string,
+  source: CatalogStateSource | undefined,
+  instancePath?: readonly string[],
+): T {
+  return (
+    catalogStateProps(props, () =>
+      catalogStateEnv(
+        pageAndProjectStates(graph, ownerId, source, instancePath),
+        source?.read?.bind(source),
+        source?.params?.bind(source),
+      ),
+    ) ?? props
+  );
+}
+
+/**
  * The bound node's page variables and the project's (what a binding's key · view reads). ADR-294 —
  * also the input variables of the origins it sits in (a template root on its owner chain), valued
  * as the instance on its instance path passes them (none — the default).

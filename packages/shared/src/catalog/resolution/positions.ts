@@ -13,6 +13,10 @@ import type {
   TemplateId,
 } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
+import {
+  hasStateTemplateSyntax,
+  resolveStateTemplateProps,
+} from "../../state/template";
 import { validateInstanceAddress } from "./address";
 import {
   innerOwnerPlace,
@@ -204,19 +208,48 @@ function presentWithGiven(
     const position = readTemplate(reader, inner as TemplateId);
     definitionId = position.definitionId;
     props = position.props ?? {};
+  } else if (inner && inner !== owner.id) {
+    // (ADR-326 판독 h6 — inside a project template node's instance (a component around a
+    //  Cascader): that node's props, an outer instance's path patch over them — the resolver reads
+    //  the bindings of the props the instance wrote.)
+    const node = reader.getEntry(inner as NodeId);
+    if (node?.kind === "node") {
+      definitionId = node.definitionId;
+      props = nodePropsOnPath(reader, owner, node, instancePath);
+    }
   }
   for (let index = 0; index + 1 < path.length; index++) {
     const position = readTemplate(reader, path[index]!);
-    if (templateRootOf(reader, position.definitionId) !== path[index + 1])
-      continue;
+    const next = path[index + 1]!;
+    const rootId = templateRootOf(reader, position.definitionId);
+    // (ADR-326 판독 h6 — a project template node's own copies (its fill, a structure edit copied
+    //  its positions) stand by its props too, as the resolver's `ownedPresence`.)
+    const ownCopy =
+      !!rootId &&
+      !path[index]!.startsWith("lib:") &&
+      !next.startsWith("lib:") &&
+      reader.ownerOf(next as unknown as NodeId) === path[index];
+    if (rootId !== next && !ownCopy) continue;
     definitionId = position.definitionId;
     props = position.props ?? {};
+    // (A project template node: an outer instance's path patch over its props.)
+    if (!path[index]!.startsWith("lib:")) {
+      const { patch } = layeredOverride(
+        overridesAt(
+          (id) => reader.getEntry(id),
+          owner,
+          instancePath,
+          path.slice(0, index + 1),
+        ),
+      );
+      if (patch?.props) props = { ...props, ...patch.props };
+    }
   }
   const definition = definitionId.startsWith("lib:")
     ? reader.library.definitions.get(definitionId as `lib:definition:${string}`)
     : undefined;
   const read = (name: string) => {
-    const own = unwrap(props[name]);
+    const own = canvasStateValue(reader, owner.id, unwrap(props[name]));
     return own !== undefined ? own : definition?.defaults[name];
   };
   // (A key another prop's value picks — `bindingMaps`, as the resolver's template bindings.)
@@ -230,11 +263,80 @@ function presentWithGiven(
 }
 
 /**
+ * ADR-326 판독 h7 — a `{{ }}` value as the Canvas reads it (the record's prop — `mode` =
+ * `{{ panelMode }}`): the variables' defaults, the nearest of a name first — the node's and its
+ * owners' element variables up to its page, the page's, the project's.
+ */
+function canvasStateValue(
+  reader: CatalogReader,
+  ownerId: string,
+  value: unknown,
+): unknown {
+  if (!hasStateTemplateSyntax(value)) return value;
+  const byName = new Map<string, unknown>();
+  const add = (entry: { name: string; defaultValue?: unknown }) => {
+    if (!byName.has(entry.name)) byName.set(entry.name, entry.defaultValue);
+  };
+  for (let id: string | undefined = ownerId; id; id = reader.ownerOf(id)) {
+    for (const ref of reader.referrersOf(id)) {
+      const entry = reader.getEntry(ref);
+      if (entry?.kind === "stateVariable" && entry.ownerId === id) add(entry);
+    }
+    if (reader.getEntry(id)?.kind === "page") break;
+  }
+  const project = reader.getEntry(reader.projectId);
+  for (const id of project?.kind === "project"
+    ? (project.projectVariableIds ?? [])
+    : []) {
+    const entry = reader.getEntry(id);
+    if (entry?.kind === "projectVariable") add(entry);
+  }
+  return resolveStateTemplateProps(
+    { value },
+    { get: (name) => byName.get(name) },
+  ).value;
+}
+
+/**
+ * A project template node's props as an instance above it on `instancePath` writes them: the path
+ * patches of `owner` (and the template nodes after it) at the node's place in its template, the
+ * outer ones winning (ADR-260 Decision 11 — as the resolver layers them).
+ */
+function nodePropsOnPath(
+  reader: CatalogReader,
+  owner: NodeEntry,
+  node: NodeEntry,
+  instancePath: readonly (NodeId | TemplateId)[],
+): Readonly<Record<string, unknown>> {
+  const at = instancePath.lastIndexOf(node.id);
+  if (at <= 0) return node.props;
+  // (Its place in its template: the template root down to it, along the owner chain.)
+  const templatePath: TemplateId[] = [node.id as unknown as TemplateId];
+  for (let id = reader.ownerOf(node.id); id; id = reader.ownerOf(id)) {
+    const entry = reader.getEntry(id);
+    if (entry?.kind !== "node") break;
+    templatePath.unshift(id as unknown as TemplateId);
+  }
+  const { patch } = layeredOverride(
+    overridesAt(
+      (id) => reader.getEntry(id),
+      owner,
+      instancePath.slice(0, at),
+      templatePath,
+    ),
+  );
+  return patch?.props ? { ...node.props, ...patch.props } : node.props;
+}
+
+/**
  * ADR-326 R10 — an owned copy of a `presentWith` position (a structure edit copied the instance's
  * positions — `materialize.ts`) stands while the composite whose copy it is gives that prop: the
  * nearest composite instance up its owner chain, read as the position was.
  */
-function ownedPresentWithGiven(reader: CatalogReader, node: NodeEntry): boolean {
+function ownedPresentWithGiven(
+  reader: CatalogReader,
+  node: NodeEntry,
+): boolean {
   if (!node.presentWith) return true;
   for (let id = reader.ownerOf(node.id); id; id = reader.ownerOf(id)) {
     const owner = reader.getEntry(id);

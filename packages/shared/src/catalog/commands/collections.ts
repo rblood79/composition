@@ -552,7 +552,7 @@ function collectionRootSlot(
  * ADR-326 §4.2 — a bound Cascader's row template: its level list box (`Popover > CascaderList`, a
  * position of the instance) holds that one item. The origin's sample items give way to the rows —
  * they are not copied first (ADR-322 Phase 4 kept them aside while bound; a list box holding them
- * as copies would show them beside the rows).
+ * as copies would show them beside the rows) — unless the binding keeps them (`keepItems`).
  */
 export const placeCascaderRowTemplate =
   (input: {
@@ -560,14 +560,23 @@ export const placeCascaderRowTemplate =
     host: Extract<NodeParent, { kind: "descendant" }>;
     entry: NodeEntry;
     newId: NewId;
+    /**
+     * The first binding's 「keep the items」 choice (ADR-310 Decision 2 `keep`): the list box's items
+     * become its own static items (their edits with them — `ensureChildList`) and the row template
+     * goes after them. Without it they give way to the rows.
+     */
+    keepItems?: boolean;
   }): CatalogCommand =>
   (reader) => {
     const draft = new CommandDraft(reader);
     if (positionType(draft, input.host) !== "CascaderList")
       return fail("NOT_A_CASCADER_LIST", positionId(input.host));
     assertNestable(draft, input.host, [input.entry.definitionId]);
+    const kept = input.keepItems
+      ? ensureChildList(draft, input.host, input.newId)
+      : [];
     draft.create(input.entry);
-    setChildList(draft, input.host, [input.entry.id]);
+    setChildList(draft, input.host, [...kept, input.entry.id]);
     ownSlotContents(draft, [input.entry.id], input.newId);
     return { label: "Bind data", ops: draft.ops(), selectAfter: [] };
   };

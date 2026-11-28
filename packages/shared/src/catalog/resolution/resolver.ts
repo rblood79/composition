@@ -368,6 +368,18 @@ export type CatalogRowSource = ((
    * not known here (the Builder: the chips are the authored start).
    */
   readonly filterTree?: (barId: NodeId) => ViewConditionGroup;
+  /**
+   * ADR-326 판독 h4 · h7 — props with their `{{ }}` · variable values resolved as the node's record
+   * will be (its page's · the project's variables — the Canvas the defaults, the Preview the run's
+   * values): the resolver reads a few props before the record exists — a Cascader's start keys (the
+   * sample keeps their rows), a prop a `bindingMaps` key picks (the parts that stand). Absent = as
+   * written.
+   */
+  readonly stateProps?: (
+    props: Readonly<Record<string, unknown>>,
+    ownerId: NodeId,
+    instancePath: readonly string[],
+  ) => Readonly<Record<string, unknown>>;
 };
 /** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
 export type CatalogLoadingState =
@@ -1750,6 +1762,24 @@ export function resolveCatalogNode(
     readonly CatalogBoundRow[],
     Map<string, CatalogBoundRow[]>
   >();
+  /**
+   * ADR-326 판독 h9 — a level table read whole, once per resolution and place: each item above
+   * asks for it (a parent row each) — reading it per row projected the whole table again and again
+   * (부모 120 × 자식 5,000: 102 reads, 510,000 rows, ~1.1 s an edit) and its index missed every time.
+   */
+  const wholeLevelReads = new Map<string, CatalogBoundRows | undefined>();
+  const wholeLevelRows = (
+    entry: NodeEntry,
+    instancePath: readonly (NodeId | TemplateId)[],
+  ): CatalogBoundRows | undefined => {
+    const key = `${entry.id}\u0001${instancePath.join("/")}`;
+    if (wholeLevelReads.has(key)) return wholeLevelReads.get(key);
+    const all = rows?.(entry.binding!, "items", entry.id, instancePath, {
+      whole: true,
+    });
+    wholeLevelReads.set(key, all);
+    return all;
+  };
   const levelRowsByParent = (
     all: CatalogBoundRows,
   ): Map<string, CatalogBoundRow[]> => {
@@ -1777,7 +1807,16 @@ export function resolveCatalogNode(
     props: Props,
     instancePath: readonly (NodeId | TemplateId)[],
   ): string[] => {
-    const keys = new Set(cascaderStartKeys(props));
+    // (ADR-326 판독 h4 — a variable's value, as the field's record reads it: `{{ chosen }}`.)
+    const keys = new Set(
+      cascaderStartKeys(
+        rows?.stateProps?.(
+          { value: props.value, defaultValue: props.defaultValue },
+          cascader.id,
+          instancePath,
+        ) ?? props,
+      ),
+    );
     cascaderKeeps.set(cascader.id, keys);
     if (!keys.size || !rows) return [...keys];
     // (Its level items: the CascaderItems in its list box bound to tables of their own, by depth.)
@@ -1799,9 +1838,7 @@ export function resolveCatalogNode(
     );
     for (let depth = levels.length - 1; depth >= 0; depth -= 1)
       for (const entry of levels[depth] ?? []) {
-        const all = rows(entry.binding!, "items", entry.id, instancePath, {
-          whole: true,
-        });
+        const all = wholeLevelRows(entry, instancePath);
         if (!all?.levelParent) continue;
         for (const row of all)
           if (keys.has(row.itemKey ?? row.key))
@@ -1810,7 +1847,9 @@ export function resolveCatalogNode(
     return [...keys];
   };
   /** The keys the nearest bound Cascader above a level item keeps (its resolution set them). */
-  const cascaderKeepOf = (entry: NodeEntry): ReadonlySet<string> | undefined => {
+  const cascaderKeepOf = (
+    entry: NodeEntry,
+  ): ReadonlySet<string> | undefined => {
     for (
       let owner = graph.ownerOf(entry.id);
       owner;
@@ -1833,19 +1872,14 @@ export function resolveCatalogNode(
       // (ADR-326 §4.7 — a Cascader level's own table is read whole: each item above finds its rows
       //  among all of them before the height sample cuts, so a branch keeps a child row.)
       const level = isCascaderLevel(entry);
-      const all = rows?.(
-        entry.binding,
-        "items",
-        entry.id,
-        instancePath,
-        level ? { whole: true } : undefined,
-      );
+      const all = level
+        ? wholeLevelRows(entry, instancePath)
+        : rows?.(entry.binding, "items", entry.id, instancePath);
       // (ADR-322 Phase 4 — a Cascader level's own table: under the item above, the rows whose
       //  「parent level」 field is that item's key — `itemKey`, the data's.)
       const own =
         all?.levelParent && outerRow
-          ? (levelRowsByParent(all).get(outerRow.itemKey ?? outerRow.key) ??
-            [])
+          ? (levelRowsByParent(all).get(outerRow.itemKey ?? outerRow.key) ?? [])
           : all;
       if (!own) return own;
       const sampled = sampledRows(own, `${instancePath.join("/")}::${id}`);
@@ -2709,6 +2743,8 @@ export function resolveCatalogNode(
     props: Props,
     /** A row template item: its content defaults are sample content (`dropLiteralContent`). */
     rowStart?: boolean,
+    /** The node the props are of — a `bindingMaps` prop's `{{ }}` reads its variables. */
+    at?: { ownerId: NodeId; instancePath: readonly string[] },
   ): Props | undefined => {
     const definition = lookupDefinition(definitionId);
     if (definition.mode !== "composite") return undefined;
@@ -2730,7 +2766,16 @@ export function resolveCatalogNode(
     const maps =
       "bindingMaps" in definition ? definition.bindingMaps : undefined;
     for (const [key, map] of Object.entries(maps ?? {})) {
-      const chosen = bindings[map.from];
+      // (ADR-326 판독 h7 — a variable's value picks, as the record's prop will read: `mode` =
+      //  `{{ panelMode }}`.)
+      const chosen =
+        at && rows?.stateProps
+          ? rows.stateProps(
+              { [map.from]: bindings[map.from] },
+              at.ownerId,
+              at.instancePath,
+            )[map.from]
+          : bindings[map.from];
       const value =
         chosen !== undefined && Object.hasOwn(map.values, String(chosen))
           ? map.values[String(chosen)]
@@ -3537,6 +3582,7 @@ export function resolveCatalogNode(
             node.definitionId,
             props,
             !!ownedRow && ownedRowing?.rowStart,
+            { ownerId: node.id, instancePath },
           ),
           instanceRoot(
             withoutPropertyKeys(node.definitionId, [
@@ -3793,9 +3839,8 @@ export function resolveCatalogNode(
     // (ADR-326 §4.2 — a Cascader's row template sits in its list box: the rows reach it the way
     //  a picker's reach its ListBox, no owner case of its own.)
     const childRows =
-      (["Tabs", "TabList"].includes(ownedType)
-        ? rowSet
-        : undefined) ?? ownedRowing?.rowSet;
+      (["Tabs", "TabList"].includes(ownedType) ? rowSet : undefined) ??
+      ownedRowing?.rowSet;
     const ownedItems = childRows
       ? ownedChildren.filter((childId) => {
           const child = graph.getEntry(childId);
@@ -4354,7 +4399,7 @@ export function resolveCatalogNode(
               : {}),
           }
         : undefined;
-    const nestedOwnRowing =
+    let nestedOwnRowing =
       ownRowing && lookupDefinition(template.definitionId).mode === "composite"
         ? ownRowing
         : undefined;
@@ -4434,9 +4479,15 @@ export function resolveCatalogNode(
     if (!enabled) return undefined;
     // S2 체크리스트 §9.3: a position there only while its origin prop is given (S2 AlertDialog's
     // `{cancelLabel && <Button>}`).
+    // (ADR-326 R10 — an owned copy projected as a position of an outer instance — its inner
+    //  owner's fill — stands by the bindings of the composite whose fill it sits in.)
     if (
       template.presentWith &&
-      String(bindings?.[template.presentWith] ?? "") === ""
+      String(
+        (bindings ?? ("kind" in template ? ownedPresence : undefined))?.[
+          template.presentWith
+        ] ?? "",
+      ) === ""
     )
       return undefined;
     // A path patch's authoring fields (Phase 4b) layer over the template node's own.
@@ -4532,6 +4583,23 @@ export function resolveCatalogNode(
         templateTypeName(templateId),
       );
       if (labelField) props.children = String(row.values[labelField] ?? "");
+    }
+    // (ADR-326 판독 h3 — a bound Cascader in a project component: its sample keeps its start
+    //  path as an owned one's does — its rows read again with the keys its props name.)
+    if (
+      nestedOwnRowing &&
+      "rowSet" in nestedOwnRowing &&
+      ownBinding?.key === undefined &&
+      "kind" in template &&
+      lookupDefinition(template.definitionId).name === "Cascader"
+    ) {
+      const keep = cascaderKeepKeys(template, props, instancePath);
+      const kept = keep.length
+        ? rows!(ownBinding!, "items", templateId as NodeId, instancePath, {
+            keepKeys: keep,
+          })
+        : undefined;
+      if (kept) nestedOwnRowing = { rowSet: kept };
     }
     // (The owned node's `loadingState` beside its items — a bound Table · Skeleton in the template.)
     const ownLoading = ownRows?.loadingState;
@@ -4897,6 +4965,10 @@ export function resolveCatalogNode(
               template.definitionId,
               props,
               !!row && rowing?.rowStart,
+              {
+                ownerId: "kind" in template ? (templateId as NodeId) : owner.id,
+                instancePath: nestedPath,
+              },
             ),
             withDisplayState(
               displayState,
@@ -4909,6 +4981,11 @@ export function resolveCatalogNode(
                   // component's instance set Orientation and its group stayed vertical).
                   ...Object.keys(root?.props ?? {}),
                   ...(rowing?.rowStart ? ["id"] : []),
+                  // (ADR-326 판독 h2 — a bound Cascader item in a project component: the row's level
+                  //  key reaches its CascaderItem record, as an owned item's does.)
+                  ...(props.catalogCascaderLevelKey !== undefined
+                    ? ["catalogCascaderLevelKey"]
+                    : []),
                 ]),
                 props,
                 [
@@ -4994,11 +5071,14 @@ export function resolveCatalogNode(
     if (libraryFill) children.push(...libraryFill.project(self));
     else children.push(...projectChildren(ownChildIds, childParent, self));
     let ownedRowItems = 0;
+    const outerPresence = ownedPresence;
     if (change?.kind === "fillSlot" && innerPlace) {
       // An inner owner's slot contents: template positions of the instance (ADR-260 Decision 11).
       // A bound collection's own items (a bound ListBox inside a component) repeat per row as the
       // owned ones below do: the item marked `repeat` is the row template, the others are static.
       children.length = 0;
+      // (ADR-326 R10 — this composite's bindings decide its owned copies' `presentWith`.)
+      ownedPresence = bindings ?? outerPresence;
       const rowItems = rowSet
         ? change.childIds.filter((childId) =>
             CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
@@ -5070,10 +5150,10 @@ export function resolveCatalogNode(
           ),
         );
       }
+      ownedPresence = outerPresence;
     } else if (change?.kind === "fillSlot") {
       children.length = 0;
       // (ADR-326 R10 — this composite's bindings decide its owned copies' `presentWith`.)
-      const outerPresence = ownedPresence;
       ownedPresence = bindings ?? outerPresence;
       // A bound collection whose items are its own nodes (placed since 2026-10-14, or added by its
       // "+"): the item marked `repeat` is the row template, repeated per row; the other items are

@@ -311,6 +311,7 @@ import { catalogChildOrder } from "./calendarModel";
 import {
   catalogRecordVariables,
   catalogBindingKey,
+  catalogNodeStateProps,
   catalogStateEnv,
   catalogStateNames,
   catalogStateProps,
@@ -2612,6 +2613,19 @@ export class CatalogCompositionRoot {
           ...(rows.tableColumns ? { tableColumns: rows.tableColumns } : {}),
           // (ADR-320 Phase 3 — a filter bar's chips read its scope's tree.)
           ...(rows.filterTree ? { filterTree: rows.filterTree } : {}),
+          // (ADR-326 판독 h4 · h7 — the props the resolver reads before the record: their `{{ }}`.)
+          stateProps: (
+            props: Readonly<Record<string, unknown>>,
+            ownerId: NodeId,
+            instancePath: readonly string[],
+          ) =>
+            catalogNodeStateProps(
+              this.runtime.graph,
+              props,
+              ownerId,
+              this.viewStateSource(),
+              instancePath,
+            ),
         },
       );
     this.tableState = options.tableState;
@@ -3631,7 +3645,38 @@ export class CatalogCompositionRoot {
         keyed.add(binding.collectionId);
     }
     const rowErrors = keyed.size ? this.refreshRows(keyed) : [];
-    return [...rowErrors, ...this.refreshStateReaders(names)];
+    // (ADR-326 판독 h7 — a prop whose value decides which positions stand (`presentWith` ·
+    //  `bindingMaps` — a Cascader's `mode`) or a bound Cascader's start rows, written as a
+    //  variable: the node resolves again, its structure with it — not only its values.)
+    const structural = new Set<string>();
+    for (const sourceId of this.sourceInstances.keys()) {
+      const entry = this.runtime.graph.getEntry(sourceId);
+      if (entry?.kind !== "node") continue;
+      for (const [key, write] of Object.entries(entry.props)) {
+        const value =
+          (write as { kind?: string } | undefined)?.kind === "set"
+            ? (write as { value?: unknown }).value
+            : write;
+        if (
+          (names
+            ? catalogStateNames({ [key]: value }).some((name) =>
+                names.has(name),
+              )
+            : catalogStateNames({ [key]: value }).length > 0) &&
+          (this.writesPresentWith({ id: sourceId, key }) ||
+            this.writesCascaderStart({ id: sourceId, key }))
+        )
+          structural.add(sourceId);
+      }
+    }
+    const structureErrors = structural.size
+      ? this.refreshNodes(structural)
+      : [];
+    return [
+      ...rowErrors,
+      ...structureErrors,
+      ...this.refreshStateReaders(names),
+    ];
   }
   private refreshStateReaders(names?: ReadonlySet<string>): unknown[] {
     const byRoot = new Map<NodeId, RecordPlan[]>();

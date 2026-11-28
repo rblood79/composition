@@ -201,10 +201,20 @@ export function catalogItemRowFill(
 } {
   const definition = library.definitions.get(
     definitionId as LibraryDefinitionId,
-  ) as { mode?: string; templateRootId?: LibraryTemplateId } | undefined;
+  ) as
+    | {
+        mode?: string;
+        templateRootId?: LibraryTemplateId;
+        accepts?: Readonly<Record<string, unknown>>;
+      }
+    | undefined;
   const rootId = definition?.templateRootId;
   if (definition?.mode !== "composite" || !rootId)
     return { props: {}, patches: () => [] };
+  // (An origin that accepts `label` binds its parts' `{label}` to that prop — a CascaderItem's ·
+  //  Step's name Text: the label is the item's own prop. A path write would cut the binding — the
+  //  item's Label edit no longer reached its Text, ADR-326 판독 h8.)
+  const ownLabel = !!definition.accepts && "label" in definition.accepts;
   const fieldOf = (props: Readonly<Record<string, unknown>> | undefined) => {
     for (const key of ["children", "iconName"]) {
       const match =
@@ -219,12 +229,14 @@ export function catalogItemRowFill(
   const root = library.templates.get(rootId);
   const rootField = fieldOf(root?.props);
   if (rootField?.field === "label") props[rootField.key] = label;
+  if (ownLabel) props.label = label;
   const parts: { path: LibraryTemplateId[]; field: string; key: string }[] = [];
   const visit = (path: LibraryTemplateId[], depth: number) => {
     const node = library.templates.get(path[path.length - 1]!);
     for (const childId of (node?.children ?? []) as LibraryTemplateId[]) {
       const child = library.templates.get(childId);
       const found = fieldOf(child?.props);
+      if (found?.field === "label" && ownLabel) continue;
       if (found) parts.push({ path: [...path, childId], ...found });
       else if (depth < 3) visit([...path, childId], depth + 1);
     }
