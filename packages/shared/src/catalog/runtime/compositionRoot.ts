@@ -9146,6 +9146,18 @@ export class CatalogCompositionRoot {
     const node = this.runtime.graph.getEntry(op.id);
     return node?.kind === "node" && !!node.filtersOf;
   }
+  /**
+   * ADR-326 §4.7: a bound Cascader's start value decides which rows its sample keeps (the start
+   * path — `cascaderKeepKeys`): a write of it reads the rows again (a structure).
+   */
+  private writesCascaderStart(op: { id: string; key: string }): boolean {
+    if (op.key !== "value" && op.key !== "defaultValue") return false;
+    const node = this.runtime.graph.getEntry(op.id);
+    if (node?.kind !== "node" || !node.binding) return false;
+    return (
+      this.runtime.graph.getDefinition(node.definitionId)?.name === "Cascader"
+    );
+  }
   /** ADR-261 Decision 4: whether a prop write is a project component property's value. */
   private writesComponentProperty(op: { id: string; key: string }): boolean {
     const node = this.runtime.graph.getEntry(op.id);
@@ -9184,7 +9196,8 @@ export class CatalogCompositionRoot {
         (op.kind === "patchNodeProp" &&
           !this.writesComponentProperty(op) &&
           !this.writesPresentWith(op) &&
-          !this.writesFilterChips(op)) ||
+          !this.writesFilterChips(op) &&
+          !this.writesCascaderStart(op)) ||
         [
           "patchNodeVisual",
           "patchNodeSizing",

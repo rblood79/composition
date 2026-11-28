@@ -135,6 +135,7 @@ import {
   catalogMergedRows,
 } from "../runtime/tableCellMerge";
 import { catalogRowListMeta } from "../runtime/dataBinding";
+import { cascaderStartKeys } from "../runtime/cascader";
 import {
   CATALOG_ROW_STRIPED_PROP,
   CATALOG_ROW_STRIPE_RUNS_PROP,
@@ -1740,6 +1741,86 @@ export function resolveCatalogNode(
    * `<Collection items={item.children}>`, the binding's `fieldMap.children`), ③ the owner's rows.
    * `undefined` = not repeated here (a static item, or rows not loaded — the template shows).
    */
+  /** ADR-326 §4.7 — a CascaderItem bound to its own table (a level — 사용자 결정 5). */
+  const isCascaderLevel = (entry: NodeEntry): boolean =>
+    !!entry.binding?.fieldMap.levelParent &&
+    ruleDefinitionOf(entry.definitionId).name === "CascaderItem";
+  /** ADR-326 §4.7 — a level table's rows by their 「parent level」 value (one walk per row list). */
+  const levelIndexes = new WeakMap<
+    readonly CatalogBoundRow[],
+    Map<string, CatalogBoundRow[]>
+  >();
+  const levelRowsByParent = (
+    all: CatalogBoundRows,
+  ): Map<string, CatalogBoundRow[]> => {
+    let index = levelIndexes.get(all);
+    if (!index) {
+      index = new Map();
+      for (const row of all) {
+        const parent = String(row.values[all.levelParent!] ?? "");
+        const list = index.get(parent);
+        if (list) list.push(row);
+        else index.set(parent, [row]);
+      }
+      levelIndexes.set(all, index);
+    }
+    return index;
+  };
+  /**
+   * ADR-326 §4.7 — the keys a bound Cascader's sample keeps (start path preservation): its start
+   * keys, then the ancestors its level tables name — deepest level first, each kept row's 「parent
+   * level」 value — so the Builder's table answers the start value as the whole hierarchy does.
+   */
+  const cascaderKeeps = new Map<string, ReadonlySet<string>>();
+  const cascaderKeepKeys = (
+    cascader: NodeEntry,
+    props: Props,
+    instancePath: readonly (NodeId | TemplateId)[],
+  ): string[] => {
+    const keys = new Set(cascaderStartKeys(props));
+    cascaderKeeps.set(cascader.id, keys);
+    if (!keys.size || !rows) return [...keys];
+    // (Its level items: the CascaderItems in its list box bound to tables of their own, by depth.)
+    const levels: NodeEntry[][] = [];
+    const visit = (ids: readonly string[], depth: number) => {
+      for (const id of ids) {
+        const entry = graph.getEntry(id as NodeId);
+        if (entry?.kind !== "node") continue;
+        const own = isCascaderLevel(entry);
+        if (own) (levels[depth] ??= []).push(entry);
+        visit(entry.children, own ? depth + 1 : depth);
+      }
+    };
+    visit(
+      cascader.descendantOverrides.flatMap((override) =>
+        override.kind === "fillSlot" ? override.childIds : [],
+      ),
+      0,
+    );
+    for (let depth = levels.length - 1; depth >= 0; depth -= 1)
+      for (const entry of levels[depth] ?? []) {
+        const all = rows(entry.binding!, "items", entry.id, instancePath, {
+          whole: true,
+        });
+        if (!all?.levelParent) continue;
+        for (const row of all)
+          if (keys.has(row.itemKey ?? row.key))
+            keys.add(String(row.values[all.levelParent] ?? ""));
+      }
+    return [...keys];
+  };
+  /** The keys the nearest bound Cascader above a level item keeps (its resolution set them). */
+  const cascaderKeepOf = (entry: NodeEntry): ReadonlySet<string> | undefined => {
+    for (
+      let owner = graph.ownerOf(entry.id);
+      owner;
+      owner = graph.ownerOf(owner as NodeId)
+    ) {
+      const keep = cascaderKeeps.get(owner);
+      if (keep) return keep;
+    }
+    return undefined;
+  };
   const repeatRows = (
     id: string,
     instancePath: readonly (NodeId | TemplateId)[],
@@ -1749,18 +1830,35 @@ export function resolveCatalogNode(
     if (!repeats(id)) return undefined;
     const entry = graph.getEntry(id as NodeId) as NodeEntry;
     if (entry.binding && entry.binding.key === undefined) {
-      const all = rows?.(entry.binding, "items", entry.id, instancePath);
+      // (ADR-326 §4.7 — a Cascader level's own table is read whole: each item above finds its rows
+      //  among all of them before the height sample cuts, so a branch keeps a child row.)
+      const level = isCascaderLevel(entry);
+      const all = rows?.(
+        entry.binding,
+        "items",
+        entry.id,
+        instancePath,
+        level ? { whole: true } : undefined,
+      );
       // (ADR-322 Phase 4 — a Cascader level's own table: under the item above, the rows whose
       //  「parent level」 field is that item's key — `itemKey`, the data's.)
       const own =
         all?.levelParent && outerRow
-          ? all.filter(
-              (row) =>
-                String(row.values[all.levelParent!] ?? "") ===
-                (outerRow.itemKey ?? outerRow.key),
-            )
+          ? (levelRowsByParent(all).get(outerRow.itemKey ?? outerRow.key) ??
+            [])
           : all;
-      return own ? sampledRows(own, `${instancePath.join("/")}::${id}`) : own;
+      if (!own) return own;
+      const sampled = sampledRows(own, `${instancePath.join("/")}::${id}`);
+      // (ADR-326 §4.7 — the start keys' rows stay past the sample, in their place.)
+      const keep = level ? cascaderKeepOf(entry) : undefined;
+      if (!keep?.size || sampled.length === own.length) return sampled;
+      const shown = new Set(sampled);
+      const kept = own.filter(
+        (row) => shown.has(row) || keep.has(row.itemKey ?? row.key),
+      );
+      return kept.length === sampled.length
+        ? sampled
+        : Object.assign(kept, catalogRowListMeta(sampled as CatalogBoundRows));
     }
     // (A Select's value shape repeats per item of its Select — before the rows passed down to it.)
     const valueRows = selectValueRows(id, instancePath);
@@ -3402,12 +3500,23 @@ export function resolveCatalogNode(
       !!headerState?.filters ||
       !!headerState?.grouping?.length ||
       !!headerState?.pinnedRows;
+    // (ADR-326 §4.7 — a Cascader's sample keeps its start keys' rows and their ancestors'.)
+    const cascaderKeep =
+      nodeBinding && rows && ownedType === "Cascader"
+        ? cascaderKeepKeys(node, props, instancePath)
+        : undefined;
     let rowSet =
       nodeBinding && rows && !charted
         ? (keyedRows ??
           (stated
             ? undefined
-            : rows(nodeBinding, "items", node.id, instancePath)))
+            : rows(
+                nodeBinding,
+                "items",
+                node.id,
+                instancePath,
+                cascaderKeep?.length ? { keepKeys: cascaderKeep } : undefined,
+              )))
         : undefined;
     let rowsRead = !stated;
     if (

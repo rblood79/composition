@@ -1330,6 +1330,22 @@ function boundRowsOf(
         )
       : undefined;
   const rest = pinned && !pins?.rows ? pinned.rest : order;
+  // (ADR-326 §4.7 — a Cascader's sample: its start keys' rows stay past the window; a level's own
+  //  table is read whole.)
+  const keep =
+    slices?.keepKeys?.length && ref.key === undefined && !sourceRows
+      ? new Set(slices.keepKeys)
+      : undefined;
+  const whole = slices?.whole === true && ref.key === undefined;
+  const keeps = (row: CatalogBoundRow): boolean =>
+    !!keep &&
+    (keep.has(row.itemKey ?? row.key) || !!row.children?.some(keeps));
+  const windowed = (all: CatalogBoundRow[]): CatalogBoundRow[] =>
+    whole
+      ? all
+      : keep
+        ? all.filter((row, index) => index < limit || keeps(row))
+        : all;
   const taken = rest ? Math.min(Math.max(0, limit), rest.length) : 0;
   const projected =
     sourceRows && rest
@@ -1338,7 +1354,9 @@ function boundRowsOf(
         )
       : getFlatProjectionRows(
           { dataBinding, collections },
-          parentKey || ref.key !== undefined ? Number.MAX_SAFE_INTEGER : limit,
+          parentKey || ref.key !== undefined || keep || whole
+            ? Number.MAX_SAFE_INTEGER
+            : limit,
         );
   const boundRow = (
     row: (typeof projected)[number],
@@ -1378,13 +1396,21 @@ function boundRowsOf(
       )
     : undefined;
   const rows: CatalogBoundRow[] = flatRoots
-    ? flatRoots
-        .slice(0, ref.key === undefined ? limit : undefined)
-        .map(function visit(node): CatalogBoundRow {
-          const row = boundRow(node.row);
-          const children = node.children.map(visit);
-          return children.length ? { ...row, children } : row;
-        })
+    ? keep || whole
+      ? windowed(
+          flatRoots.map(function visit(node): CatalogBoundRow {
+            const row = boundRow(node.row);
+            const children = node.children.map(visit);
+            return children.length ? { ...row, children } : row;
+          }),
+        )
+      : flatRoots
+          .slice(0, ref.key === undefined ? limit : undefined)
+          .map(function visit(node): CatalogBoundRow {
+            const row = boundRow(node.row);
+            const children = node.children.map(visit);
+            return children.length ? { ...row, children } : row;
+          })
     : sourceRows && rest && taken === rest.length
       ? // (Every row is shown: a duplicate key's index mark goes by the source order — the same
         //  row keeps the same key under every sort.)
@@ -1401,7 +1427,7 @@ function boundRowsOf(
           }
           return projected.map((row) => bound[row.rowIndex]!);
         })()
-      : projected.map((row) => boundRow(row, childRows(row.item)));
+      : windowed(projected.map((row) => boundRow(row, childRows(row.item))));
   /** (The rows a sort ordered say so — their reader does not sort them again. A totals row's.) */
   const marked = (out: CatalogBoundRows): CatalogBoundRows => {
     if (totals) Object.assign(out, { totals });

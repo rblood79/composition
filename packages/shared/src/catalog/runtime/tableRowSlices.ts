@@ -136,6 +136,16 @@ export interface CatalogRowSlices {
    * its one row's aggregates by Column key): it stands in for the totals over the rows here.
    */
   readonly servedTotals?: Readonly<Record<string, unknown>>;
+  /**
+   * ADR-326 §4.7 — a Cascader's start keys and their ancestors' (the Builder's sample window): the
+   * rows carrying them — and a root holding one below it — stay past the window, in their place.
+   */
+  readonly keepKeys?: readonly string[];
+  /**
+   * ADR-326 §4.7 — a Cascader level's own table: every row (each item above finds its rows among
+   * all of them, then the height sample cuts — a branch keeps a child row).
+   */
+  readonly whole?: boolean;
 }
 
 /**

@@ -196,9 +196,17 @@ try {
       const level = add("Cascader");
       bind(level, "cats", { value: f("c-id") });
       const graph = ws.runtime.graph;
+      // (ADR-326 Phase 1 — the row template sits in the list box: the instance's
+      //  `Popover > CascaderList` fill.)
       const level1 = graph
         .getEntry(level)
-        .children.find(
+        .descendantOverrides.find(
+          (o) =>
+            o.kind === "fillSlot" &&
+            o.address.templatePath.at(-1) ===
+              "lib:template:component-cascader__list",
+        )
+        .childIds.find(
           (id) =>
             graph.getDefinition(graph.getEntry(id).definitionId)?.name ===
             "CascaderItem",
