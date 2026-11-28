@@ -229,6 +229,29 @@ function presentWithGiven(
   return String(value ?? "") !== "";
 }
 
+/**
+ * ADR-326 R10 — an owned copy of a `presentWith` position (a structure edit copied the instance's
+ * positions — `materialize.ts`) stands while the composite whose copy it is gives that prop: the
+ * nearest composite instance up its owner chain, read as the position was.
+ */
+function ownedPresentWithGiven(reader: CatalogReader, node: NodeEntry): boolean {
+  if (!node.presentWith) return true;
+  for (let id = reader.ownerOf(node.id); id; id = reader.ownerOf(id)) {
+    const owner = reader.getEntry(id);
+    if (owner?.kind !== "node") return true;
+    const rootId = templateRootOf(reader, owner.definitionId);
+    if (rootId)
+      return presentWithGiven(
+        reader,
+        owner,
+        [owner.id],
+        [rootId],
+        node.presentWith,
+      );
+  }
+  return true;
+}
+
 /** Options of a child listing. */
 export interface ChildPositionOptions {
   /** List switched-off template positions too (`disabled: true`), so they can be switched on. */
@@ -373,9 +396,10 @@ export function childPositions(
             options,
           )
         : []),
-      ...node.children.map((id) =>
-        ownedPosition(readNode(reader, id), [...instancePath, id]),
-      ),
+      ...node.children
+        .map((id) => readNode(reader, id))
+        .filter((child) => ownedPresentWithGiven(reader, child))
+        .map((child) => ownedPosition(child, [...instancePath, child.id])),
     ];
   }
   const { scope } = position;
@@ -399,9 +423,10 @@ export function childPositions(
       return child ? [child] : [];
     });
   if (change?.kind === "fillSlot")
-    return change.childIds.map((id) =>
-      ownedPosition(readNode(reader, id), [...instancePath, id]),
-    );
+    return change.childIds
+      .map((id) => readNode(reader, id))
+      .filter((child) => ownedPresentWithGiven(reader, child))
+      .map((child) => ownedPosition(child, [...instancePath, child.id]));
   const template = readTemplate(reader, templateId);
   const nestedRoot = templateRootOf(reader, template.definitionId);
   const nestedPath = [...instancePath, templateId];

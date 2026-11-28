@@ -218,9 +218,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      `{ field, op, value }`. 옛 85 문서는 열리지 않는다 (변환 없음).
  * 87 — ADR-322 Phase 1: `Cascader` (Select 의 닫힌 필드 부품 + 중첩 `CascaderItem` 계층) 과 그 원본
  *      (`component-cascader`). 옛 86 문서는 열리지 않는다 (변환 없음).
+ * 88 — ADR-326 Phase 1: Cascader 의 열린 내용이 노드다 — `Popover > SearchField + Breadcrumbs (drill) +
+ *      「Back」 (drill) + CascaderList > CascaderItem…` (Select 의 `Popover > ListBox` 자리), 원본의
+ *      `accepts.mode` · `bindingMaps`, 항목 원본 (`component-cascaderitem` — 이름 Text · chevron Icon,
+ *      사용자 결정 2). 옛 87 문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 87 as const;
+export const LIBRARY_CONTRACT_VERSION = 88 as const;
 
 export type EntryKind =
   | "project"

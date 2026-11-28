@@ -53,6 +53,8 @@ import { CatalogCascaderField } from "./cascader.components";
 import {
   CASCADER_ITEM_TYPE,
   CASCADER_TYPE,
+  catalogCascaderItems,
+  catalogCascaderList,
   cascaderMultiple,
   cascaderStartKeys,
   cascaderValueKeys,
@@ -4680,17 +4682,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-322 Phase 1: a Cascader's closed field — its part nodes (Select's origins) inside the
   //  contexts the field gives (`CatalogCascaderField`); its items are the hierarchy, drawn by none.
   cascader: {
-    // (Its items are its hierarchy: an item's key · name edit re-renders the field.)
+    // (Its items are its hierarchy: an item's key · name edit re-renders the field — ADR-326 §4.2,
+    //  read through `catalogCascaderItems` in the Popover's list box.)
     watchesChildren: (node, root) => {
       const ids: string[] = [];
-      const visit = (id: string) => {
-        const child = root.domInputs.get(id);
-        if (!child || catalogTypeName(root, child) !== CASCADER_ITEM_TYPE)
-          return;
-        ids.push(id);
-        child.children.forEach(visit);
+      const get = (id: string) => root.domInputs.get(id);
+      const typeOf = (record: CatalogConsumerNode) =>
+        catalogTypeName(root, record);
+      const visit = (child: CatalogConsumerNode | undefined) => {
+        if (!child || typeOf(child) !== CASCADER_ITEM_TYPE) return;
+        ids.push(child.id);
+        child.children.forEach((id) => visit(get(id)));
       };
-      node.children.forEach(visit);
+      const list = catalogCascaderList(node, get, typeOf);
+      if (list) ids.push(get(list.parentId)!.id, list.id);
+      catalogCascaderItems(node, get, typeOf).forEach(visit);
       return ids;
     },
     render: (input) => {
@@ -4775,17 +4781,23 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             "data-quiet": isQuiet ? "true" : undefined,
           },
         },
+        // (ADR-326 Phase 1 — the open content's Popover node is drawn from Phase 2; the field's
+        //  lazy chunk still builds the open content from the item table.)
         ...renderAll(
           input,
           children(input).filter(
-            (child) =>
-              catalogTypeName(input.root, child) !== CASCADER_ITEM_TYPE,
+            (child) => catalogTypeName(input.root, child) !== "Popover",
           ),
         ),
       );
     },
   },
   cascaderitem: {
+    render: (input) => createElement(Fragment, { key: input.node.id }),
+  },
+  // ADR-326 Phase 1: the level list box — drawn with the open content (Phase 2); the field's lazy
+  //  chunk builds the open content from the item table until then.
+  cascaderlist: {
     render: (input) => createElement(Fragment, { key: input.node.id }),
   },
   // ADR-321 Phase 3 (사용자 결정 2): a Stepper is a role-less box around its StepList and the steps'

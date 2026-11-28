@@ -3021,6 +3021,12 @@ export function resolveCatalogNode(
    * the library's), as its locked sample showed them. Set while that subtree resolves.
    */
   let ownedForkBindings: Props | undefined;
+  /**
+   * ADR-326 R10 — the template bindings of the composite whose fill the owned nodes resolving now
+   * sit in: an owned copy of a `presentWith` position (a structure edit copied the instance's
+   * positions) stands by them, as the position did. Set while a fill's owned nodes resolve.
+   */
+  let ownedPresence: Props | undefined;
   const resolveOwned = (
     ...args: Parameters<typeof resolveOwnedNode>
   ): ResolvedCatalogNode | undefined => {
@@ -3062,6 +3068,12 @@ export function resolveCatalogNode(
       sampleOwner?: NodeId;
     },
   ): ResolvedCatalogNode | undefined => {
+    if (
+      node.presentWith &&
+      ownedPresence &&
+      String(ownedPresence[node.presentWith] ?? "") === ""
+    )
+      return undefined;
     // `useListData.getItem(key)` — a keyed binding is one item: its descendants read its fields
     // (a container), a collection repeats it alone. Inside a data row the key may name the row's
     // fields (ADR-284 — `{teamId}`: the Teams row a Users row points at · `{id}`: an Orders count
@@ -3664,9 +3676,10 @@ export function resolveCatalogNode(
       rowSet = rows(nodeBinding, "items", node.id, instancePath);
     const ownedChildren =
       selection?.ownedChildren?.(node.id, instancePath) ?? node.children;
-    // (A Cascader's row template is its own item beside the origin's parts — ADR-322 Phase 4.)
+    // (ADR-326 §4.2 — a Cascader's row template sits in its list box: the rows reach it the way
+    //  a picker's reach its ListBox, no owner case of its own.)
     const childRows =
-      (["Tabs", "TabList", "Cascader"].includes(ownedType)
+      (["Tabs", "TabList"].includes(ownedType)
         ? rowSet
         : undefined) ?? ownedRowing?.rowSet;
     const ownedItems = childRows
@@ -4630,7 +4643,8 @@ export function resolveCatalogNode(
       const out: ResolvedCatalogNode[] = [];
       for (const childId of ids) {
         if (selection && !selection.include(childId, instancePath)) continue;
-        // (ADR-322 Phase 4 — a bound Cascader: its origin's sample items give way to its rows.)
+        // (ADR-322 Phase 4 — a bound Cascader: its origin's sample items give way to its rows —
+        //  ADR-326: the list box's, when its fill holds no row template of the instance's own.)
         if (
           rowSet &&
           childId.startsWith("lib:") &&
@@ -4942,6 +4956,9 @@ export function resolveCatalogNode(
       }
     } else if (change?.kind === "fillSlot") {
       children.length = 0;
+      // (ADR-326 R10 — this composite's bindings decide its owned copies' `presentWith`.)
+      const outerPresence = ownedPresence;
+      ownedPresence = bindings ?? outerPresence;
       // A bound collection whose items are its own nodes (placed since 2026-10-14, or added by its
       // "+"): the item marked `repeat` is the row template, repeated per row; the other items are
       // static (ADR-310).
@@ -5051,6 +5068,7 @@ export function resolveCatalogNode(
           self,
         );
       }
+      ownedPresence = outerPresence;
       // (ADR-310: a bound collection with no item of its own has no row template — binding it adds
       //  one, marked `repeat` (`catalogBindingCommand`); the origin's items are not read as one.)
     }

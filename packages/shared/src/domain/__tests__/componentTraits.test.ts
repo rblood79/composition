@@ -298,6 +298,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "TreeItem",
         // ADR-322: a Cascader's nested items (its hierarchy).
         "CascaderItem",
+        // ADR-326: the level list box its items sit in.
+        "CascaderList",
         "TagList",
         "TabList",
         "Table",
@@ -359,7 +361,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       Tree: ["TreeItem"],
       CardView: ["Card", "SkeletonCollection"],
       TreeItem: ["TreeItem", "TreeItemContent"],
-      CascaderItem: ["CascaderItem"],
+      CascaderItem: ["CascaderItem", "Text", "Icon"],
+      CascaderList: ["CascaderItem"],
       ColorSwatchPicker: ["ColorSwatchPickerItem"],
       CalendarGrid: ["CalendarHeaderCell", "CalendarCell"],
       DateInput: ["DateSegment"],
@@ -438,6 +441,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SwitchIndicator: ["SwitchButton"],
       TreeItemContent: ["TreeItem"],
       CascaderItem: ["Cascader"],
+      CascaderList: ["Cascader"],
       SliderOutput: ["Slider", "RangeSlider", "ColorSlider"],
       SliderTrack: ["Slider", "RangeSlider", "ColorSlider"],
       SliderThumb: ["SliderTrack"],

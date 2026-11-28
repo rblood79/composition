@@ -206,7 +206,11 @@ import {
   stepperBinding,
 } from "./StepList.binding";
 import { ratingBinding } from "./Rating.binding";
-import { cascaderBinding, cascaderItemBinding } from "./Cascader.binding";
+import {
+  cascaderBinding,
+  cascaderItemBinding,
+  cascaderListBinding,
+} from "./Cascader.binding";
 
 export * from "./Avatar.binding";
 export * from "./AvatarGroup.binding";
@@ -628,6 +632,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-322 Phase 1: Cascader · CascaderItem (`Cascader.binding.ts`).
   Cascader: cascaderBinding,
   CascaderItem: cascaderItemBinding,
+  // ADR-326 §4.1: the level list box the items sit in.
+  CascaderList: cascaderListBinding,
   Table: tableBinding,
   // ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25): Table 가족의 자식 노드
   //   5종(Column/Cell=text leaf, TableHeader/TableBody/Row=container shell). Canvas 는 rule box+text.

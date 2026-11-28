@@ -145,6 +145,7 @@ export {
   COLLECTION_FAMILIES,
   GROUP_ITEM_TYPES,
   insertCollectionItem,
+  placeCascaderRowTemplate,
   insertGroupItem,
   insertTableColumns,
   insertTableRow,

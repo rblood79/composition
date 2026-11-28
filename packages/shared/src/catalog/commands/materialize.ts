@@ -134,6 +134,7 @@ type TemplateView = Pick<
   | "enabled"
   | "stateRules"
   | "presentWhen"
+  | "presentWith"
   | "showWhen"
 > & {
   props: PropWrites;
@@ -167,6 +168,9 @@ export function readTemplate(
       slot: node.slot,
       enabled: node.enabled,
       presentWhen: node.presentWhen,
+      // (ADR-326 R10 — a copy keeps the prop its position stands by: the drill trail of a Cascader
+      //  stays absent while the mode is not `drill`, after a structure edit copied it.)
+      presentWith: node.presentWith,
       showWhen: node.showWhen,
       stateRules: node.stateRules,
       // (A copy writes what the instance shows: its literal texts in the site's language.)
@@ -440,6 +444,7 @@ export function createMaterializer(
       ...(template.enabled !== undefined ? { enabled: template.enabled } : {}),
       ...(template.stateRules ? { stateRules: template.stateRules } : {}),
       ...(template.presentWhen ? { presentWhen: template.presentWhen } : {}),
+      ...(template.presentWith ? { presentWith: template.presentWith } : {}),
       // ADR-256 §1-1: a reference to a position of this origin becomes that position's new node.
       ...(template.showWhen
         ? {

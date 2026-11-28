@@ -11955,6 +11955,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {},
     structure: { archetype: "container", element: "div" },
   } as ComponentRule,
+  // ADR-326 §4.1: a Cascader's level list box (its items' column). Not drawn yet — its open look
+  //   (S2 Menu's padding, one border) comes with the open content (ADR-326 Phase 2).
+  CascaderList: {
+    variants: {},
+    sizes: {},
+    containerStyles: { display: "flex", flexDirection: "column" },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: { display: "flex", flexDirection: "column" },
+    },
+  } as ComponentRule,
   SelectValue: {
     defaultVariant: "default",
     defaultSize: "M",

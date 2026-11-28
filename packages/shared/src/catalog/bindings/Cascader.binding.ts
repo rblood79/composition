@@ -148,6 +148,17 @@ export const cascaderBinding: PrimitiveBinding = {
 };
 
 /**
+ * ADR-326 §4.1 — a Cascader's level list box (`Popover > CascaderList > CascaderItem…` — Select's
+ * `Popover > ListBox` place). No prop of its own: the field's size reaches it. DOM (ADR-326 Phase
+ * 2): the RAC collection the mode builds (`Menu` · `Tree` · `GridList`) is this node's element; until
+ * then it is not drawn (the field's lazy chunk builds the open content from the item table).
+ */
+export const cascaderListBinding: PrimitiveBinding = {
+  source: { kind: "internal", renderer: "cascaderlist" },
+  props: { accepts: {}, toRacProps: "default", propPassthrough: ["size"] },
+};
+
+/**
  * ADR-322 — one item of a Cascader's hierarchy (nested: its child items are its next level). Its key
  * is the value (`id`), its name the text the field shows. Not drawn while the field is closed.
  */

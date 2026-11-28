@@ -1,0 +1,28 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog CascaderList — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-CascaderList {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: column;
+}
+
+
+@media (forced-colors: active) {
+  .react-aria-CascaderList {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

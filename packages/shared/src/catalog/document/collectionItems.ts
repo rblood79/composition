@@ -123,8 +123,10 @@ export const COLLECTION_TYPE_TABLE: readonly CollectionTypeRow[] = [
   //   field's value — not an item selection — is what it picks (`runtime/cascader.ts`). Phase 4: a
   //   bound one repeats its item per row (a Tree's child rows — `nestTreeRows`), a level item with
   //   its own table repeats that table's rows under the item above (사용자 결정 5).
+  // ADR-326 §4.1: the items sit in its level list box (`Popover > CascaderList`).
   {
     owner: "Cascader",
+    list: "CascaderList",
     item: "CascaderItem",
     recursive: true,
     insert: true,

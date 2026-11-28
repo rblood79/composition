@@ -343,12 +343,21 @@ describe("ADR-322 G4 — a bound Cascader's levels and its repeated keys", () =>
     // The row template (the Cascader's own item) takes a nested item: the second level, bound to
     // its own table.
     const graph = workspace.runtime.graph;
-    const placed = graph.getEntry(PLACED) as { children: readonly NodeId[] };
-    const level1Id = placed.children.find((id) => {
+    // (ADR-326 §4.2 — the row template sits in the list box: the instance's `Popover >
+    //  CascaderList` fill.)
+    const placed = graph.getEntry(PLACED) as NodeEntry;
+    const listFill = placed.descendantOverrides.find(
+      (override) =>
+        override.kind === "fillSlot" &&
+        override.address.templatePath.at(-1) ===
+          "lib:template:component-cascader__list",
+    ) as { childIds: readonly NodeId[] } | undefined;
+    const level1Id = listFill?.childIds.find((id) => {
       const child = graph.getEntry(id);
       return (
         child?.kind === "node" &&
-        graph.getDefinition(child.definitionId)?.name === "CascaderItem"
+        graph.getDefinition(child.definitionId)?.name ===
+          "CascaderItem"
       );
     })!;
     expect(level1Id).toBeDefined();

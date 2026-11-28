@@ -60,8 +60,12 @@ export function catalogRowItemGroups(
   const start = nodePosition(reader, ownerId);
   // (A RadioGroup's · CheckboxGroup's … items are its row items — ADR-310 Phase 5.)
   const ownerType = typeOf(reader, start);
+  // (ADR-326 §4.1 — a Cascader's rows are its items': its drill trail's crumb positions are not
+  //  row items.)
   const isItem = (type: string) =>
-    CATALOG_ROW_ITEM_TYPES.has(type) || GROUP_REPEAT_ITEMS[type] === ownerType;
+    ownerType === "Cascader"
+      ? type === "CascaderItem"
+      : CATALOG_ROW_ITEM_TYPES.has(type) || GROUP_REPEAT_ITEMS[type] === ownerType;
   const walk = (position: CatalogPosition) => {
     const rows = childPositions(reader, position);
     const items = rows.filter((row) => isItem(typeOf(reader, row)));
@@ -70,6 +74,8 @@ export function catalogRowItemGroups(
     for (const row of rows) {
       if (items.includes(row)) continue;
       if (nodeOf(reader, row)?.binding) continue;
+      if (ownerType === "Cascader" && typeOf(reader, row) === "Breadcrumbs")
+        continue;
       walk(row);
     }
   };

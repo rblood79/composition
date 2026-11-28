@@ -17,6 +17,8 @@ import type { CatalogConsumerNode } from "./compositionRoot";
 
 export const CASCADER_TYPE = "Cascader";
 export const CASCADER_ITEM_TYPE = "CascaderItem";
+/** ADR-326 §4.1 — the level list box the items sit in (`Popover > CascaderList`). */
+export const CASCADER_LIST_TYPE = "CascaderList";
 /** The closed field's path separator when the author writes none (breakdown §4.1). */
 export const CASCADER_DEFAULT_SEPARATOR = " / ";
 
@@ -280,6 +282,43 @@ export function cascaderDescriptionText(
   return own ? `${own} · ${notice}` : notice;
 }
 
+/**
+ * ADR-326 §4.2 — a Cascader's level list box: `Cascader > Popover > CascaderList` (Select's
+ * `Popover > ListBox` place). Undefined when the author removed it.
+ */
+export function catalogCascaderList(
+  cascader: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode | undefined {
+  for (const id of cascader.children) {
+    const popover = get(id);
+    if (!popover || typeOf(popover) !== "Popover") continue;
+    for (const listId of popover.children) {
+      const list = get(listId);
+      if (list && typeOf(list) === CASCADER_LIST_TYPE) return list;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * ADR-326 §4.2 — every reader of a Cascader's hierarchy starts here: the first level's items (the
+ * list box's `CascaderItem` children — an item's own children are its next level).
+ */
+export function catalogCascaderItems(
+  cascader: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode[] {
+  const list = catalogCascaderList(cascader, get, typeOf);
+  if (!list) return [];
+  return list.children.flatMap((id) => {
+    const child = get(id);
+    return child && typeOf(child) === CASCADER_ITEM_TYPE ? [child] : [];
+  });
+}
+
 /** A Cascader's static items (`CascaderItem` children, nested) as source items. */
 export function cascaderStaticItems(
   cascader: CatalogConsumerNode,
@@ -288,15 +327,17 @@ export function cascaderStaticItems(
   /** ADR-322 Phase 6 — the keys of branches whose level is not loaded yet. */
   branchKeys?: ReadonlySet<string>,
 ): CascaderSourceItem[] {
-  const level = (node: CatalogConsumerNode): CascaderSourceItem[] =>
-    node.children.flatMap((id) => {
-      const child = get(id);
+  const level = (
+    nodes: readonly (CatalogConsumerNode | undefined)[],
+  ): CascaderSourceItem[] =>
+    nodes.flatMap((child) => {
       if (!child || typeOf(child) !== CASCADER_ITEM_TYPE) return [];
       const own = child.props.id;
       const name = child.props.label;
       const key = own === undefined || own === null ? child.id : String(own);
       const levelKey = String(child.props.catalogCascaderLevelKey ?? key);
-      const children = level(child);
+      // (사용자 결정 2 — an item's name Text · chevron Icon are its children too: not items.)
+      const children = level(child.children.map(get));
       return [
         {
           key,
@@ -310,7 +351,7 @@ export function cascaderStaticItems(
         },
       ];
     });
-  return level(cascader);
+  return level(catalogCascaderItems(cascader, get, typeOf));
 }
 
 /** The table of a Cascader's static items. */

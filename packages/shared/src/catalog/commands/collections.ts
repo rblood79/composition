@@ -548,6 +548,30 @@ function collectionRootSlot(
     : undefined;
 }
 
+/**
+ * ADR-326 §4.2 — a bound Cascader's row template: its level list box (`Popover > CascaderList`, a
+ * position of the instance) holds that one item. The origin's sample items give way to the rows —
+ * they are not copied first (ADR-322 Phase 4 kept them aside while bound; a list box holding them
+ * as copies would show them beside the rows).
+ */
+export const placeCascaderRowTemplate =
+  (input: {
+    /** The list box position (`descendant` — the Cascader instance's `Popover > CascaderList`). */
+    host: Extract<NodeParent, { kind: "descendant" }>;
+    entry: NodeEntry;
+    newId: NewId;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    if (positionType(draft, input.host) !== "CascaderList")
+      return fail("NOT_A_CASCADER_LIST", positionId(input.host));
+    assertNestable(draft, input.host, [input.entry.definitionId]);
+    draft.create(input.entry);
+    setChildList(draft, input.host, [input.entry.id]);
+    ownSlotContents(draft, [input.entry.id], input.newId);
+    return { label: "Bind data", ops: draft.ops(), selectAfter: [] };
+  };
+
 export const insertCollectionItem =
   (input: {
     /** The list frame (TabList, TagList, ListBox …), a section, or an item that holds items. */

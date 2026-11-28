@@ -219,15 +219,21 @@ describe("ADR-326 P8 (a) — 지금의 코드: Builder 의 창이 시작 값을 
         ),
       );
       const graph = workspace.runtime.graph;
-      const level1Id = (graph.getEntry(placed) as NodeEntry).children.find(
-        (id) => {
-          const child = graph.getEntry(id);
-          return (
-            child?.kind === "node" &&
-            graph.getDefinition(child.definitionId)?.name === "CascaderItem"
-          );
-        },
-      )!;
+      // (ADR-326 Phase 1 — the row template sits in the list box's fill.)
+      const fill = (graph.getEntry(placed) as NodeEntry).descendantOverrides.find(
+        (override) =>
+          override.kind === "fillSlot" &&
+          override.address.templatePath.at(-1) ===
+            "lib:template:component-cascader__list",
+      ) as { childIds: readonly NodeId[] };
+      const level1Id = fill.childIds.find((id) => {
+        const child = graph.getEntry(id);
+        return (
+          child?.kind === "node" &&
+          graph.getDefinition(child.definitionId)?.name ===
+            "CascaderItem"
+        );
+      })!;
       const level2Id = "project:node:level2" as NodeId;
       workspace.execute(
         insertCollectionItem({

@@ -130,6 +130,8 @@ describe("ADR-310 — the collection type table", () => {
       Tabs: ["TabList"],
       TagGroup: ["TagList"],
       Table: ["TableHeader", "TableBody"],
+      // ADR-326 §4.1: a Cascader's items sit in its level list box.
+      Cascader: ["CascaderList"],
     });
     expect(Object.keys(COLLECTION_ITEM_OWNERS).sort()).toEqual(
       [

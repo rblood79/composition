@@ -4,6 +4,7 @@ import {
   insertCollectionItem,
   insertTableRow,
   markRowTemplates,
+  placeCascaderRowTemplate,
   setOwnRows,
   setWholeField,
   tableBodyPosition,
@@ -103,44 +104,62 @@ function rowTemplateInsert(
   const templateOf = (id: string) =>
     reader.library.templates.get(id as never) as
       { definitionId: string; children: readonly string[] } | undefined;
-  // ADR-322 Phase 4 — a Cascader's items sit beside its field parts in the origin's root list (the
-  // positions stay the origin's — they hold the label binding): its row template is its own item,
-  // after them; the origin's sample items give way to the rows (resolver — a bound Cascader).
+  // ADR-322 Phase 4 · ADR-326 §4.2 — a Cascader's items sit in its level list box (`Popover >
+  // CascaderList`): its row template is its own item there; the origin's sample items give way to
+  // the rows (`placeCascaderRowTemplate` — not copied).
   if (typeOf(node.definitionId) === "Cascader") {
-    const itemOf = (id: string) => {
-      const child = reader.getEntry(id as NodeId);
-      return (
-        child?.kind === "node" && typeOf(child.definitionId) === "CascaderItem"
-      );
-    };
-    if (node.children.some(itemOf)) return undefined;
-    const sample = templateOf(rootId)
+    const popoverId = templateOf(rootId)?.children.find(
+      (id) => typeOf(templateOf(id)?.definitionId ?? "") === "Popover",
+    );
+    const listId = popoverId
+      ? templateOf(popoverId)?.children.find(
+          (id) => typeOf(templateOf(id)?.definitionId ?? "") === "CascaderList",
+        )
+      : undefined;
+    if (!popoverId || !listId) return undefined;
+    const path = [rootId, popoverId, listId];
+    const fill = node.descendantOverrides.find(
+      (override) =>
+        override.kind === "fillSlot" &&
+        override.address.templatePath.join("/") === path.join("/"),
+    ) as { childIds: readonly NodeId[] } | undefined;
+    // (Own items in the list box: `markRowTemplates` marks one.)
+    if (
+      fill?.childIds.some((id) => {
+        const child = reader.getEntry(id);
+        return (
+          child?.kind === "node" &&
+          typeOf(child.definitionId) === "CascaderItem"
+        );
+      })
+    )
+      return undefined;
+    const sample = templateOf(listId)
       ?.children.map(templateOf)
       .find(
         (template) =>
           template && typeOf(template.definitionId) === "CascaderItem",
       );
     if (!sample) return undefined;
-    const key = crypto.randomUUID();
     const id = newId("node") as NodeId;
-    return insertCollectionItem({
-      host: { kind: "node", id: nodeId },
-      entries: [
-        {
-          kind: "node",
-          id,
-          definitionId: sample.definitionId as NodeEntry["definitionId"],
-          children: [],
-          props: { id: { kind: "set", value: key } },
-          repeat: true,
-          visual: {},
-          sizing: {},
-          descendantOverrides: [],
-        },
-      ],
-      rootId: id,
-      key,
+    return placeCascaderRowTemplate({
+      host: {
+        kind: "descendant",
+        ownerId: nodeId,
+        address: { instances: [nodeId], templatePath: path as never },
+      },
       newId,
+      entry: {
+        kind: "node",
+        id,
+        definitionId: sample.definitionId as NodeEntry["definitionId"],
+        children: [],
+        props: { id: { kind: "set", value: crypto.randomUUID() } },
+        repeat: true,
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      },
     });
   }
   // The collection: the instance itself (ListBox · GridList · Tree), or its part (TagGroup's TagList).

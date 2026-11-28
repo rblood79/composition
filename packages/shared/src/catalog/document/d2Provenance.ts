@@ -65,6 +65,8 @@ export const CATALOG_D2_COMPOSITION_TYPES: ReadonlySet<string> = new Set([
   //  Picker's names.)
   "Cascader",
   "CascaderItem",
+  // (ADR-326 — the Cascader's level list box: no prop of its own.)
+  "CascaderList",
 ]);
 
 /** Per-type keys — the S2 type lacks the axis; the source says where composition took it from. */

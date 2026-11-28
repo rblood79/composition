@@ -108,7 +108,14 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   the ListBox in the Popover (passed through) takes it and gives it to its items.
   Select: [...FIELD_PARTS, "Button", "ListBox"],
   // ADR-322: Select's closed field (its open content is built from the items — no ListBox node).
-  Cascader: [...FIELD_PARTS, "Button"],
+  // (ADR-326 §4.1 — its open content: the level list, the search box, the drill trail.)
+  Cascader: [
+    ...FIELD_PARTS,
+    "Button",
+    "CascaderList",
+    "SearchField",
+    "Breadcrumbs",
+  ],
   ComboBox: [...WRAPPED_FIELD_PARTS, "ListBox"],
   // A ListBox's size is its items' (S2 picker list — the items are the list's control rows).
   ListBox: ["ListBoxItem"],

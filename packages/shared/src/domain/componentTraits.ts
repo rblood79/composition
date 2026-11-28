@@ -501,7 +501,14 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   Rating: {},
   // ADR-322 Phase 1: a Cascader's hierarchy — nested items (a Tree's way); the field reads them,
   //   RAC never sees them as nodes (the open content is built from their table).
+  // (ADR-326 사용자 결정 2 — and its name Text · chevron Icon, as child nodes.)
   CascaderItem: {
+    container: "collection",
+    owners: ["Cascader"],
+    children: ["CascaderItem", "Text", "Icon"],
+  },
+  // ADR-326 §4.1: the level list box — `Cascader > Popover > CascaderList > CascaderItem…`.
+  CascaderList: {
     container: "collection",
     owners: ["Cascader"],
     children: ["CascaderItem"],

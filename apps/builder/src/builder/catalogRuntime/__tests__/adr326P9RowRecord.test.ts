@@ -11,6 +11,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
+  catalogCascaderItems,
   cascaderStaticItems,
   cascaderTableOf,
   type CascaderTable,
@@ -89,7 +90,10 @@ async function place() {
       out.push(node);
       node.children.forEach(visit);
     };
-    cascader().children.forEach(visit);
+    // (ADR-326 Phase 1 — the items sit in the Popover's list box.)
+    catalogCascaderItems(cascader(), get, typeOf).forEach((item) =>
+      visit(item.id),
+    );
     return out;
   };
   const edit = (record: CatalogConsumerNode, change: object) =>
@@ -117,8 +121,11 @@ function recordIds(
     const siblings = table.entries.filter(
       (entry) => entry.parentPathId === parentPathId,
     );
-    const records = node.children
-      .map(get)
+    const records = (
+      typeOf(node) === "Cascader"
+        ? catalogCascaderItems(node, get, typeOf)
+        : node.children.map(get)
+    )
       .filter(
         (child): child is CatalogConsumerNode =>
           !!child && typeOf(child) === "CascaderItem",

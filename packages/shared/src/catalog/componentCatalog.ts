@@ -1011,6 +1011,12 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "cascader item",
     icon: "ChevronDown",
   }),
+  // ADR-326 §4.1: the level list box in the Cascader's Popover (its items sit in it).
+  primitiveEntry("CascaderList", "collections", FAMILY_4_CUTOVER, {
+    category: "forms",
+    label: "cascader list",
+    icon: "ChevronDown",
+  }),
   primitiveEntry("Tabs", "collections", FAMILY_4_CUTOVER, {
     category: "layout",
     label: "tabs",
@@ -1839,6 +1845,9 @@ export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "SideNavItem",
   // ADR-321 — a StepList's item origin (`component-step`: its label · description Texts).
   "Step",
+  // ADR-326 사용자 결정 2 — a Cascader's item origin (`component-cascaderitem`: its name Text ·
+  //   chevron Icon).
+  "CascaderItem",
 ];
 
 const NESTED_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(

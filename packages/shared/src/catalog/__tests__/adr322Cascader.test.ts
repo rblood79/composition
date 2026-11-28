@@ -175,8 +175,9 @@ describe("ADR-322 — registration", () => {
     expect(cascader.displayMode?.default).toBe("path");
   });
   it("the origin's items have unique keys (11 items, three levels)", () => {
+    // (ADR-326 사용자 결정 2 — the items are the item origin's instances.)
     const keys = CASCADER_TEMPLATES.filter((node) =>
-      node.definitionId.endsWith("type-CascaderItem"),
+      node.definitionId.endsWith("origin-component-cascaderitem"),
     ).map((node) => String(node.props.id));
     expect(keys).toHaveLength(11);
     expect(new Set(keys).size).toBe(11);
