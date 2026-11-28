@@ -13,6 +13,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-323 Phase 1 — 날짜 축 역할 · 기하 모듈] - 2026-11-28
+
+ADR-323 (Timeline · Event Calendar · Gantt) Phase 1 닫힘. 사용자 기능 변경은 아직 없다 — 세 컴포넌트가 같이 읽을 바탕을 만들었다.
+
+### Added
+
+- 날짜 축 역할 표 (시작 · 끝 · 종일 · 이름 · 색 · 자원 · 진행률 · 선행) — 세 컴포넌트가 한 표에서 읽는다.
+  - 위치: `packages/shared/src/collections/dateAxisRoles.ts`
+- 날짜 값 읽기 — 컴포넌트의 시간대 (`timeZone`, 비면 보는 사람의 브라우저 — 사용자 결정 7) · 날만 있는 값은 종일 · 끝은 exclusive · 끝이 없으면 기본 길이 · 끝이 시작보다 앞서면 거절 · 보이는 기간 겹침 판정.
+  - 위치: `packages/shared/src/collections/scheduleSpan.ts`
+- 기하 모듈 둘 (Canvas 와 DOM 이 같이 읽을 순수 함수, lazy 전용) — 시간 격자 (겹치는 일정의 칸 · 자정 자르기 · 종일 띠 줄 배정 · 월 칸 「+N」) 와 날짜 축 (scale 다섯 · 두 단 눈금 · 주말 · 막대 · 마일스톤 · 요약 · 진행률 · 의존선).
+  - 위치: `packages/rendering/src/schedule/timeGrid.ts` · `dateAxis.ts` · 첫 화면 import 게이트 `adr323ScheduleImports.static.test.ts`
+
 ## [ADR-326 Phase 0 — Cascader 열린 목록을 노드로 착수] - 2026-11-28
 
 ADR-326 (Cascader 열린 목록을 원본 노드로 — Select 와 같은 구조 · Canvas 펼침) Accepted · Phase 0 닫힘. 사용자 기능 변경은 아직 없다 — 시제품 아홉으로 구조를 확인했다 (catalog Popover 노드로 옮겨도 키보드 · focus · 낭독 이름이 지금과 같다 · drill 경로 줄의 crumb 자리 넷이 전부 그린 Breadcrumbs 와 같은 crumb 을 보이고 접힌 메뉴의 모든 조상으로 이동한다 · 표본 창 밖의 시작 값도 Builder 와 Preview 가 같은 단계를 연다).

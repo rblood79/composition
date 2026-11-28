@@ -1,0 +1,237 @@
+/**
+ * ADR-323 G1 — the date-axis geometry against a written answer table (hard-coded px, not the
+ * module's own output). Wall ms = `Date.UTC` of the local date and time.
+ */
+import { describe, expect, it } from "vitest";
+
+import {
+  createDateAxis,
+  dateAxisTicks,
+  dateAxisWeekends,
+  dateAxisX,
+  layoutDateAxisRows,
+} from "../dateAxis";
+
+const w = (y: number, m: number, d: number, h = 0) => Date.UTC(y, m - 1, d, h);
+/** Px are floating — the answer is to 1e-6 (HC4 allows ±1 px). */
+const round = (n: number) => Math.round(n * 1e6) / 1e6;
+const ticks = (list: readonly { start: number; x: number; width: number }[]) =>
+  list.map((t) => [new Date(t.start).toISOString().slice(0, 10), t.x, t.width]);
+
+describe("createDateAxis · ticks", () => {
+  it("day scale — month-end inside the window, weekend shading merged", () => {
+    const axis = createDateAxis({
+      start: w(2026, 11, 28),
+      end: w(2026, 12, 3),
+      scale: "day",
+      unitWidth: 30,
+    });
+    expect(axis.width).toBe(150);
+    const { major, minor } = dateAxisTicks(axis);
+    expect(ticks(minor)).toEqual([
+      ["2026-11-28", 0, 30],
+      ["2026-11-29", 30, 30],
+      ["2026-11-30", 60, 30],
+      ["2026-12-01", 90, 30],
+      ["2026-12-02", 120, 30],
+    ]);
+    expect(ticks(major)).toEqual([
+      ["2026-11-01", 0, 90],
+      ["2026-12-01", 90, 60],
+    ]);
+    expect(dateAxisWeekends(axis)).toEqual([{ x: 0, width: 60 }]);
+    expect(dateAxisX(axis, w(2026, 11, 30, 18))).toBe(82.5);
+  });
+
+  it("week scale from Monday — the window widens to whole weeks, a month boundary mid-week", () => {
+    const axis = createDateAxis({
+      start: w(2026, 11, 25),
+      end: w(2026, 12, 10),
+      scale: "week",
+      unitWidth: 70,
+      firstDayOfWeek: 1,
+    });
+    expect([axis.start, axis.end, axis.width]).toEqual([
+      w(2026, 11, 23),
+      w(2026, 12, 14),
+      210,
+    ]);
+    expect(dateAxisX(axis, w(2026, 11, 25, 12))).toBe(25);
+    expect(ticks(dateAxisTicks(axis).major)).toEqual([
+      ["2026-11-01", 0, 80],
+      ["2026-12-01", 80, 130],
+    ]);
+    expect(
+      dateAxisWeekends(axis)
+        .slice(0, 2)
+        .map(({ x, width }) => ({ x: round(x), width: round(width) })),
+    ).toEqual([
+      { x: 50, width: 20 },
+      { x: 120, width: 20 },
+    ]);
+  });
+
+  it("month scale — months of different lengths are equally wide", () => {
+    const axis = createDateAxis({
+      start: w(2026, 1, 15),
+      end: w(2026, 3, 1),
+      scale: "month",
+      unitWidth: 62,
+    });
+    expect(axis.width).toBe(124);
+    expect(dateAxisX(axis, w(2026, 2, 15))).toBe(93);
+    expect(dateAxisX(axis, w(2026, 1, 16, 12))).toBe(31);
+    expect(ticks(dateAxisTicks(axis).major)).toEqual([["2026-01-01", 0, 124]]);
+    expect(dateAxisWeekends(axis)).toEqual([]);
+  });
+
+  it("quarter and year scales", () => {
+    const quarter = createDateAxis({
+      start: w(2026, 2, 10),
+      end: w(2026, 8, 1),
+      scale: "quarter",
+      unitWidth: 90,
+    });
+    expect(ticks(dateAxisTicks(quarter).minor)).toEqual([
+      ["2026-01-01", 0, 90],
+      ["2026-04-01", 90, 90],
+      ["2026-07-01", 180, 90],
+    ]);
+    const year = createDateAxis({
+      start: w(2025, 6, 1),
+      end: w(2027, 1, 1),
+      scale: "year",
+      unitWidth: 100,
+    });
+    expect(ticks(dateAxisTicks(year).minor)).toEqual([
+      ["2025-01-01", 0, 100],
+      ["2026-01-01", 100, 100],
+    ]);
+    expect(dateAxisTicks(year).major).toEqual([]);
+    expect(dateAxisX(year, w(2026, 7, 2, 12))).toBe(150);
+  });
+});
+
+describe("layoutDateAxisRows", () => {
+  const axis = createDateAxis({
+    start: w(2026, 11, 23),
+    end: w(2026, 11, 30),
+    scale: "day",
+    unitWidth: 20,
+  });
+  const layout = layoutDateAxisRows(
+    axis,
+    [
+      { key: "g" },
+      {
+        key: "t1",
+        parentKey: "g",
+        start: w(2026, 11, 23),
+        end: w(2026, 11, 25),
+        progress: 50,
+      },
+      {
+        key: "t2",
+        parentKey: "g",
+        start: w(2026, 11, 26),
+        end: w(2026, 11, 28),
+        predecessors: ["t1"],
+      },
+      {
+        key: "m",
+        parentKey: "g",
+        start: w(2026, 11, 28),
+        predecessors: ["t2"],
+      },
+      {
+        key: "late",
+        start: w(2026, 11, 20),
+        end: w(2026, 11, 24),
+        progress: 100,
+      },
+      { key: "out", start: w(2026, 12, 1), end: w(2026, 12, 2) },
+      {
+        key: "v",
+        start: w(2026, 11, 24),
+        end: w(2026, 11, 26),
+        predecessors: ["t2", "gone"],
+      },
+      { key: "bad", start: w(2026, 11, 25), end: w(2026, 11, 24) },
+    ],
+    { rowHeight: 40 },
+  );
+  const bar = (key: string) => {
+    const b = layout.bars.find((item) => item?.key === key);
+    return b
+      ? [
+          b.index,
+          b.kind,
+          b.x,
+          b.width,
+          b.progressWidth,
+          b.clippedStart,
+          b.clippedEnd,
+        ]
+      : null;
+  };
+
+  it("tasks · milestone · summary of the children · cut bars · nothing outside", () => {
+    expect(bar("g")).toEqual([0, "summary", 0, 100, 0, false, false]);
+    expect(bar("t1")).toEqual([1, "task", 0, 40, 20, false, false]);
+    expect(bar("t2")).toEqual([2, "task", 60, 40, 0, false, false]);
+    expect(bar("m")).toEqual([3, "milestone", 100, 0, 0, false, false]);
+    expect(bar("late")).toEqual([4, "task", 0, 20, 20, true, false]);
+    expect(layout.bars[5]).toBeNull();
+    expect(bar("v")).toEqual([6, "task", 20, 40, 0, false, false]);
+    expect(layout.bars[7]).toBeNull();
+  });
+
+  it("finish → start lines — straight elbow, back-around, a violated one, a missing key skipped", () => {
+    expect(
+      layout.dependencies.map((d) => [
+        d.from,
+        d.to,
+        d.violated,
+        d.points.map((p) => [p.x, p.y]),
+      ]),
+    ).toEqual([
+      [
+        "t1",
+        "t2",
+        false,
+        [
+          [40, 60],
+          [48, 60],
+          [48, 100],
+          [60, 100],
+        ],
+      ],
+      [
+        "t2",
+        "m",
+        false,
+        [
+          [100, 100],
+          [108, 100],
+          [108, 120],
+          [92, 120],
+          [92, 140],
+          [100, 140],
+        ],
+      ],
+      [
+        "t2",
+        "v",
+        true,
+        [
+          [100, 100],
+          [108, 100],
+          [108, 120],
+          [12, 120],
+          [12, 260],
+          [20, 260],
+        ],
+      ],
+    ]);
+  });
+});

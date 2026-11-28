@@ -248,3 +248,38 @@ HEAD `90b35a386` (ADR-322 종결 · 326 Proposed 위, worktree `autorun/adr-323`
 **기준선**: initial gzip Builder **1,668,315** B · Preview 172,335 B (HEAD `90b35a386`, 배포와 같은 빌드 → `adr209-bundle-closure.mjs`). HEAD 가 이미 앞 상한 1,668,000 을 315 B 넘고 있었다 (ADR-322 종결 뒤 커밋들 — 배포 workflow 의 상한 단계가 막는 상태). 사용자 승인 (2026-11-27, 값 = Phase 0 의 HEAD 절대 실측 + 결정 9 몫) 대로 Builder 상한 = 1,668,315 + 5,000 = 1,673,315 이었으나 ADR-326 이 같은 기준선에서 몫 +3,685 (1,672,000) 를 먼저 올려, 두 몫을 합친 **1,677,000** 으로 정했다 (사용자 「권장대로」 2026-11-28 · `adr201-bundle-gate.mjs` · `deploy.yml` · CLAUDE.md · ADR-201 재승인 절 같은 값, 만료 2026-12-25 그대로). 323 의 Phase 는 1,668,315 와의 차이로 본다 (몫 Builder +5,000 · Preview +3,000). perf ratchet (`pnpm gate:perf-ratchet`): 이 worktree 에 하니스 로그인 세션 (`apps/builder/scripts/.auth-session.json`, gitignore 보호 파일) 이 없어 측정 실패 — 사본을 만들지 않았다. 323 의 속도 기준선은 위 P2 · P3 의 대조군 arm 이고 HC5 는 G8 에서 잰다.
 
 **Phase 1 에 넘기는 것**: 기하 모듈 (`R/schedule/timeGrid.ts`) 의 겹침 칸 나누기는 시제품 `layoutDay` 의 방식 (시작 순 · 덩어리마다 빈 첫 칸 · 칸 수 = 폭) 을 정답표로 고정한다. contract 는 Phase 2 착수 때 `LIBRARY_CONTRACT_VERSION` 을 다시 본다 (지금 87).
+
+### Phase 1 (G1) — 2026-11-28 닫힘
+
+HEAD `a83fca226` 위 (worktree `autorun/adr-323`). 사용자 결정 7 = 「둘 다」 (컴포넌트 `timeZone`, 비면 브라우저).
+
+**만든 것** (제품 코드 — 아직 어디서도 import 하지 않는다):
+
+| 파일                                                               | 내용                                                                                                                                                                         |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S/collections/dateAxisRoles.ts`                                   | 역할 표 한 곳 (R6) — `start` · `end` · `allDay` · `title` · `color` · `resource` · `progress` · `predecessors`, 컴포넌트별 역할 · 필드 종류 · `fieldMap` id → 행 key. 의존 0 |
+| `S/collections/scheduleSpan.ts`                                    | 시간대 (`resolveScheduleTimeZone`) · 값 읽기 · 「실제 끝」 (`readScheduleSpan`) · 겹침 계약 (`scheduleSpanOverlaps`)                                                         |
+| `R/schedule/timeGrid.ts`                                           | 주 · 일 열 (겹침 칸 · 자정 자르기 · 보이는 시간 밖) · 종일 띠 · 월 칸 (`layoutScheduleDayBands` — 줄 배정 · 「+N」)                                                          |
+| `R/schedule/dateAxis.ts`                                           | scale 다섯 · 두 단 눈금 · 주말 음영 · 막대 · 마일스톤 · 요약 (자식 범위) · 진행률 · 의존선 (끝 → 시작, 어긋남)                                                               |
+| `S/catalog/runtime/__tests__/adr323ScheduleImports.static.test.ts` | G1 import 게이트 — shared · rendering · builder · publish 원본에서 기하 둘의 값 import 0 (허용 목록 `LAZY_READERS` 는 지금 비어 있다 — Phase 2 부터 lazy 모듈을 넣는다)      |
+
+**내린 판단** (고른 것과 이유):
+
+- **두 시계** — 시간대는 shared 의 읽기 한 곳에서만 다룬다. 값마다 instant (겹침 · 쓰기) 와 wall (그 시간대의 날짜 · 시각을 UTC 처럼 적은 ms — `instant + offset`) 을 같이 내고, 기하는 wall 만 받는다. 지역 자정이 하루의 배수라 기하는 UTC 산술로 날 · 시 · 달을 놓고 시간대를 모른다. 버린 접근: rendering 에 `@internationalized/date` 를 넣어 기하가 시간대를 받기 — rendering 의 시간 모듈은 외부 의존 0 원칙 (`chart/timeIntervals.ts` 머리말) 이고, rendering 은 shared 를 읽을 수 없다 (의존 방향).
+- **일광 절약 전환일 = 시계 자리** — 열에서 일정은 wall 분으로 놓인다 (Google · FullCalendar 와 같다). 봄의 없는 시각 (02:00 ~ 03:00) 은 빈 칸으로 남고 01:30 ~ 03:30 일정은 실제 1 시간이지만 2 시간 높이다. 가을의 겹친 시각은 같은 자리에 겹친다 (한 시간짜리 01:30 → 01:30 = 최소 높이). 없는 지역 시각을 적은 값은 `compatible` (늦은 쪽 — 02:30 → 03:30) 로 읽는다. 날만 있는 값의 그 날은 25 시간 (가을) 이고, 자정이 없는 날 (America/Santiago 2026-09-06) 은 01:00 에 시작한다.
+- **열 vs 띠** — 종일이거나 24 시간 이상인 일정은 종일 띠로 (`scheduleGridBanded`, Google 방식), 24 시간 미만이 자정을 넘으면 날마다 잘라 열에 둔다 (`continuesBefore` · `continuesAfter`). 보이는 시간 밖에 통째로 있는 조각은 그리지 않고 `hidden` (위 · 아래) 으로 돌려준다 — 조용히 버리지 않는다.
+- **겹침 칸** — 시제품 `layoutDay` 그대로 (시작 순 · 같으면 긴 것 먼저 · key) 를 정답표로 고정. 판정은 그려지는 높이 (`minEventMinutes`, 기본 15) 로 한다 — 길이 0 · 5 분 일정이 겹쳐 보이는데 다른 칸이 되는 일이 없다.
+- **월 칸의 「+N」** — 한 날의 일정이 `maxLines` 를 넘으면 그 날은 `maxLines − 1` 줄 + 「+N」. 여러 날 띠는 줄 번호를 지키며 숨는 날에서 끊기고 다음 날에 이어진다 (`continuesBefore`).
+- **실제 끝** — 끝 값, 없으면 시각 값은 시작 + 기본 길이 · 날만 있는 값은 하루. 날만 있는 끝은 exclusive (HC8). 종일 역할이 켜진 시각 값은 날로 넓힌다 (끝이 날 중간이면 그 날 끝까지). 끝이 시작 날과 같은 종일 값은 하루 (Gantt 는 `keepZeroLength` 로 마일스톤). **끝이 시작보다 앞서면 거절** (`reversed`) — 그리지 않고 호출자가 센다 (Phase 3 의 상위집합 조회가 「끝 after」 로 그 행을 뺄 수 있어, 기본 길이로 살리면 조회와 그리기가 갈린다).
+- **겹침 계약** — `start < 창 끝` 그리고 `end > 창 시작`, 길이 0 은 그 순간이 창 안일 때 (Decision 8). 조회의 여유 상수 (이틀) 와 조건 만들기는 그것을 쓰는 Phase 3 에서 같이 둔다.
+- **날짜 축** — scale 의 한 칸은 늘 `unitWidth` px (31 일 달과 28 일 달이 같은 폭 — Gantt 머리글 칸) 이고 칸 안은 길이의 비율이다. 큰 단 = day · week → 달, month · quarter → 년, year → 없음. 창은 칸 단위로 넓힌다. 창 밖 x 는 첫 · 끝 칸의 비율로 이어서 낸다 (의존선 · 자른 막대의 진행률).
+- **요약 막대** — 자식 (손자 포함) 의 범위, 자식에 기간이 하나도 없으면 자기 값. 진행률은 0 (가중 평균은 정하지 않았다 — Phase 7 에 닿으면 본다).
+- **의존선** — 선행의 끝 → 후행의 시작 (결정 6 권고 형식을 입력으로 받는다 — 결정 6 은 Phase 7 에서 확정). 여유가 있으면 꺾은선 4 점, 없으면 행 경계로 돌아가는 6 점. 어긋남 = 후행 시작 < 선행 끝 (시각 비교 — px 아님). 행 목록에 없는 key 는 건너뛴다.
+
+**검사**:
+
+- 정답표 (손으로 쓴 분 · px · 순간 — 모듈 출력으로 채점하지 않음): rendering `schedule/__tests__/timeGrid.test.ts` 8 · `dateAxis.test.ts` 6, shared `collections/__tests__/scheduleSpan.test.ts` 14 (날짜변경선 둘 = G3 의 경계 값 · 뉴욕 봄 · 가을 전환일 → 시간 격자 · Santiago 없는 자정) · `dateAxisRoles.test.ts` 3, 게이트 3.
+- 원복 RED 6 / 6 (`/tmp/adr323-p1/red.sh` — 바이트 복원 `cmp` 확인): 첫 화면 barrel 에 `export * from "./schedule/timeGrid"` → 게이트 · 겹침 칸 `<=` → `<` · 「+N」 한도 제거 · 칸 안 비율 → 일 단위 선형 · 날만 있는 끝 exclusive 제거 · wall 에서 offset 제거.
+- 회귀: `pnpm type-check` 6 / 6 · rendering 1,829 · shared 3,077 전량 통과. `pnpm codex:preflight` — guard · format · typecheck · registration · agent-catalog 통과, **rule-size 실패는 HEAD 그대로** (`canvas-rendering.md` 55,244 > 55,100 · `panel-structure.md` 39,913 > 39,624 — 이 Phase 가 건드리지 않은 파일).
+- 번들: 새 모듈을 아무도 import 하지 않는다 (게이트) — initial Δ 0.
+- live (chrome-autorun, dev `5174`): Builder 첫 화면 리소스에 schedule 모듈 요청 0 · 콘솔 오류 0. 같은 페이지에서 모듈을 동적 import 해 실제 Chrome (Intl · ICU) 으로 실행 — 브라우저 시간대 `Asia/Seoul` · 컴포넌트 `America/New_York` 그대로 · 모르는 이름 → 브라우저 · 뉴욕 봄 전환일 01:30 ~ 03:30 = 06:30Z ~ 07:30Z 의 열 자리 top 90 · height 120 · Kiritimati 경계 값 wall 11-23 00:05 · Santiago 04:00Z · 날짜 축 day scale 폭 150 · 달 경계 90 / 60 · 주말 0 ~ 60 — 정답표와 같다.
