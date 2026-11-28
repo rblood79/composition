@@ -135,6 +135,7 @@ const cartesian = {
   showAxis: true,
   showGrid: true,
 } as const;
+const { stackType: _lineIgnoresStack, ...lineCartesian } = cartesian;
 /**
  * ADR-306 Phase 6 — 공통 옵션: 강조 (`highlight`) 는 강조할 항목이 있는 종류 전부 (gauge 는 값 하나라 없다
  * — ztd 도 없다). 범위 선택 · 동기화는 범주 축이 있는 line · area · bar · candlestick (실행 상태라 scene
@@ -257,7 +258,9 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
     "Line Chart",
     "ChartLine",
     ["선", "선 차트", "꺾은선", "折れ線"],
-    { ...cartesian, curve: "monotone", showDots: false },
+    // `stackType` 은 빼고 둔다 — line 은 읽지 않는다 (layout.ts 누적 모드). 프리셋 patch 에 있으면 숨은
+    //   저장값이 「Custom」 판정을 만들고 프리셋 적용이 그 값을 덮어쓴다. 새 차트는 `chartCreateBase` 가 채운다.
+    { ...lineCartesian, curve: "monotone", showDots: false },
     [
       ["linear", "Linear", { curve: "linear" }],
       ["step", "Step", { curve: "step" }],

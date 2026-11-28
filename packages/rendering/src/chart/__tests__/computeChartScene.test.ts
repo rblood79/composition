@@ -12,6 +12,7 @@ import {
   computeChartScene,
   resolveChartMetrics,
 } from "../computeChartScene";
+import { resolveChartData } from "../runtimeData";
 import type { ChartProps, ChartRow, ChartScene, Mark } from "../types";
 
 const SIZE = { width: 320, height: 240 };
@@ -447,6 +448,30 @@ describe("누적 (shadcn stacked / stacked-expand 대조)", () => {
     const labels = valueAxis?.ticks.map((t) => t.text) ?? [];
     expect(labels[0]).toBe("0");
     expect(labels[labels.length - 1]).toBe("100");
+  });
+
+  // line 은 값을 쌓지 않는다 (Recharts `Line` 에 stackId 없음) — 축만 누적 범위가 되면 선이 plot 밖에 놓인다
+  //   (expand: 원래 값 1,235 가 0~100 축 위). radar (R8) 와 같이 `stackType` 을 읽지 않는다.
+  it.each(["stacked", "expand"] as const)(
+    "line 은 stackType=%s 을 읽지 않는다 — scene 이 dodged 와 같다",
+    (stackType) => {
+      const line = (type: ChartProps["stackType"]) =>
+        computeChartScene(
+          props({ chartType: "line", stackType: type, showValueLabels: true }),
+          ROWS,
+          SIZE,
+        );
+      expect(line(stackType)).toEqual(line("dodged"));
+    },
+  );
+
+  it("line 의 runtime 모델도 누적 없이 같은 눈금을 낸다 (DOM 이 읽는 값)", () => {
+    const model = (type: ChartProps["stackType"]) =>
+      resolveChartData(ROWS, props({ chartType: "line", stackType: type }), 8);
+    for (const stackType of ["stacked", "expand"] as const) {
+      expect(model(stackType).stackMode).toBe("none");
+      expect(model(stackType).ticks).toEqual(model("dodged").ticks);
+    }
   });
 
   it("시리즈가 1개면 expand 도 원래 값 축을 쓴다 (전부 100% 로 접히지 않는다)", () => {

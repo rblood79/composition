@@ -222,9 +222,15 @@ describe("ADR-306 Phase 6 — 손익 색 · 띠 시작 · 띠 밖 점", () => {
     const s50 = scene({ signColors: true, baseline: 50 });
     const t = s50.axes.find((x) => x.axis === "y")!.ticks;
     expect(Number(t[t.length - 1].text)).toBeGreaterThanOrEqual(50);
-    // 누적이면 나누지 않는다 (ztd 와 같음).
-    const st = scene({ signColors: true, stackType: "stacked" });
+    // 누적이면 나누지 않는다 (ztd 와 같음) — 쌓는 것은 area 다. line 은 `stackType` 을 읽지 않아 그대로 나눈다.
+    const st = scene({
+      chartType: "area",
+      signColors: true,
+      stackType: "stacked",
+    });
     expect(paths(st.marks).some((p) => p.clip)).toBe(false);
+    const lineStacked = scene({ signColors: true, stackType: "stacked" });
+    expect(lineStacked).toEqual(s);
   });
 
   it("bandFrom forecast — 띠가 예측 시작 범주부터 · 예측 주석이 없으면 띠 없음", () => {

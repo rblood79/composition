@@ -59,6 +59,13 @@ describe("ADR-209 공통 저작/데이터 계약", () => {
     expect(base.showDots).toBe(false);
     expect(getChartPresetId("line", dots)).toBe("dots");
     expect(getChartPresetId("line", { ...dots, curve: "step" })).toBe("custom");
+    // line 은 `stackType` 을 읽지 않는다 (layout.ts 누적 모드) — 숨은 값이 프리셋 판정을 바꾸거나
+    //   프리셋 적용이 그 값을 덮어쓰지 않는다 (area · bar 로 돌아가면 저장값이 그대로).
+    for (const preset of line.presets)
+      expect(preset.patch).not.toHaveProperty("stackType");
+    expect(getChartPresetId("line", { ...dots, stackType: "expand" })).toBe(
+      "dots",
+    );
     for (const d of CHART_DESCRIPTORS)
       for (const p of d.presets) {
         expect(Object.keys(p.patch)).not.toEqual(

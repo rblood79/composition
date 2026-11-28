@@ -13,11 +13,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Recharts 3.11.2 · Line 차트는 Stack type 을 읽지 않는다] - 2026-11-29
+
+### Changed
+
+- Recharts 를 3.10.1 → 3.11.2 로 올렸다 (Preview · Publish 의 차트 runtime).
+- Line 차트는 「Stack type」 을 읽지 않고 Design 패널에서도 그 칸을 숨긴다 (사용자 결정 2026-11-29). 선은 값을 쌓지 않으므로 축도 원래 값 범위다 — 전에 「Stacked」 로 저장한 Line 차트는 축 눈금이 합계 범위에서 값 범위로 바뀐다.
+
+### Fixed
+
+- Line 차트를 「Stacked 100%」 로 두면 축만 0 ~ 100% 가 되어 선과 값 라벨이 차트 밖에 그려지던 문제를 고쳤다 (Canvas · Preview 같음). Recharts 3.11 은 plot 밖 요소의 값 라벨을 그리지 않아, 이 상태에서 Canvas 와 Preview 의 라벨 수가 갈렸다.
+
 ## [Navigator Layers 선택 행 자동 스크롤] - 2026-11-29
 
 ### Fixed
 
 - Canvas에서 요소를 선택하면 Navigator의 Layers 목록이 위나 아래로 필요한 만큼 스크롤해 선택 행과 펼쳐진 자식 행을 함께 표시한다. 펼친 목록이 패널보다 길면 선택 행부터 보여주고, 이미 모두 보이면 스크롤 위치를 유지한다.
+
+## [ADR-326 Phase 5 후속 — Cascader 를 원본 (ReUI) 동작에 맞춤] - 2026-11-29
+
+Cascader 의 기본 동작을 ReUI Cascader 원본에 맞췄다 (「가벼운 쪽」 — RAC 조립은 그대로).
+
+### Changed
+
+- 기본 방식이 「drill」 이다 — 방식을 고르지 않은 Cascader 는 한 단계씩 들어가며 연다. 패널의 순서도 Drill · Columns · Tree.
+- drill 의 머리줄: 「뒤로」 버튼이 검색 칸 왼쪽 같은 줄에 있다. 맨 위 단계에서는 「뒤로」 와 경로 줄이 없고 검색 칸이 줄을 채운다.
+- 검색은 기본으로 지금 단계의 행만 거른다 — 가지에 들어가면 검색어가 비워진다. 「전체」 줄도 이름으로 걸러진다.
+- drill 목록에서 고른 행이 있어도 가지 행을 누르면 그 단계로 들어가고, Enter 로 고를 수 있다. 다중 선택에서 다른 단계에서 고른 값이 남는다.
+
+### Added
+
+- 「Search scope」 (검색 범위) 칸 — 지금 단계 · 지금 단계와 그 아래 · 모든 단계 (drill · columns).
+- 가지 행에 자식 수 — Canvas 와 Preview 같은 자리. 잎 · 「전체」 줄 · 아직 읽지 않은 원격 가지에는 없다.
 
 ## [ADR-326 Phase 5 — Canvas 에 Cascader tree · drill 열린 목록] - 2026-11-29
 

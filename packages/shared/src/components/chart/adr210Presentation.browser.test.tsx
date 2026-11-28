@@ -240,8 +240,9 @@ describe("ADR-210 P3 · T10 — columns + 시리즈 설정 + 통화의 DOM/scene
           expect(mobile, "mobile series uses --chart-series-5").toBeTruthy();
           if (chartType !== "radar") {
             const ticks = scene.axes[1].ticks.map((tick) => tick.text);
-            if (stackType === "expand")
+            if (stackType === "expand" && chartType !== "line")
               // expand 축만 정규화 % — 통화 형식이어도 축은 %다 (R4 2500% 금지).
+              //   line 은 `stackType` 을 읽지 않는다 — 선을 쌓지 않으니 축도 raw 다 (layout.ts 누적 모드).
               expect(ticks.every((tick) => /%$/.test(tick))).toBe(true);
             else
               // raw 축은 KRW 통화 문자열 (ko-KR).

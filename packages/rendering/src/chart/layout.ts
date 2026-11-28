@@ -159,8 +159,12 @@ export function resolveChartLayout(
 
   // ── 축 자리 확보 ─────────────────────────────────────────────────────────
   // 누적은 시리즈가 2개 이상일 때만 의미가 있다 (1개면 expand 가 전부 100% 가 된다).
+  //   line 은 `stackType` 을 읽지 않는다 — 선은 쌓지 않아 (Recharts `Line` 에 stackId 없음) 축만 누적
+  //   범위가 되면 선 · 값 라벨이 plot 밖에 놓인다 (expand: 원래 값이 0~100 축 위). 사용자 결정 2026-11-29.
   const stackMode: StackMode =
-    grid.series.length > 1 && props.stackType !== "dodged"
+    props.chartType !== "line" &&
+    grid.series.length > 1 &&
+    props.stackType !== "dodged"
       ? props.stackType
       : "none";
   const ticks = chartValueTicks(
@@ -219,7 +223,13 @@ export function resolveChartLayout(
     const legendBelow = wantsLegend && props.legendPosition === "bottom";
     const bottomGutter =
       fontSize *
-      (twoTier && !horizontal ? (legendBelow ? 2.7 : 2.8) : legendBelow ? 1.4 : 1.6);
+      (twoTier && !horizontal
+        ? legendBelow
+          ? 2.7
+          : 2.8
+        : legendBelow
+          ? 1.4
+          : 1.6);
     // 세로 값 축의 맨 위 눈금 글자는 plot 위끝에 가운데 맞춰 글자 반 높이만큼 위로 나온다 — 범례가 위에 있으면
     //   그만큼 내려 범례와의 간격 (`LEGEND_CHART_GAP`) 이 글자에서도 지켜진다 (2026-11-16 사용자 결정 16px).
     const topGutter =

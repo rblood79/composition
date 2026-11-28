@@ -84,7 +84,7 @@
     "react-aria": "catalog:",
     "react-aria-components": "catalog:",
     "react-stately": "catalog:",
-    "recharts": "3.10.1",
+    "recharts": "3.11.2",
     "tailwind-merge": "catalog:",
     "zod": "catalog:"
   },

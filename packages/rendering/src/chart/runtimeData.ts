@@ -120,9 +120,10 @@ function radarTicks(grid: SeriesGrid): TickResult {
   return niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
 }
 
-/** radar 는 `stackType` 을 무시한다 (scene 의 R8 과 같은 규칙) — 시리즈 수는 input 기준. */
+/** radar (scene 의 R8) · line (layout 의 누적 모드) 은 `stackType` 을 무시한다 — 시리즈 수는 input 기준. */
 function runtimeStackMode(props: ChartProps, grid: SeriesGrid): StackMode {
   return props.chartType !== "radar" &&
+    props.chartType !== "line" &&
     grid.series.length > 1 &&
     props.stackType !== "dodged"
     ? props.stackType

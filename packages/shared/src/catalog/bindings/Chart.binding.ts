@@ -972,12 +972,12 @@ export const chartBinding: PrimitiveBinding = {
           { value: "stacked", label: "Stacked" },
           { value: "expand", label: "Stacked 100%" },
         ],
-        // radar 만 무시한다 (ADR-207 R8, computeChartScene.ts:155). pie 도 읽는다 —
-        //   값 축이 없어 링 분할을 따로 판정하는 자리가 있다 (:363-365). cartesian 은
-        //   bar·line·area 가 같은 분기(:411-413)라 셋 다.
+        // radar (ADR-207 R8) · line 은 무시한다 — line 은 값을 쌓지 않아 축만 누적 범위가 되면 선이
+        //   plot 밖에 놓였다 (layout.ts 누적 모드, 사용자 결정 2026-11-29). pie 도 읽는다 —
+        //   값 축이 없어 링 분할을 따로 판정하는 자리가 있다. cartesian 은 bar · area.
         visibleWhen: {
           key: "chartType",
-          oneOf: ["bar", "line", "area", "pie", "radial"],
+          oneOf: ["bar", "area", "pie", "radial"],
         },
       },
       curve: {
