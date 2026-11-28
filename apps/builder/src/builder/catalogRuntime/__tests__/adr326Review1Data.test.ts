@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
+  addRecord,
   createComponent,
   insertCollectionItem,
   insertNodes,
@@ -118,6 +119,8 @@ interface Open {
   value?: string;
   /** A project variable `chosen` = this. */
   chosen?: string;
+  /** A page variable `picked` (the home page's) = this. */
+  picked?: string;
 }
 
 async function open(input: Open) {
@@ -177,6 +180,19 @@ async function open(input: Open) {
           defaultValue: input.chosen,
           persist: false,
         } satisfies ProjectVariableEntry,
+      }),
+    );
+  if (input.picked !== undefined)
+    workspace.execute(
+      addRecord({
+        entry: {
+          kind: "stateVariable",
+          id: "project:stateVariable:picked" as EntryId<"stateVariable">,
+          ownerId: "project:page:home" as EntryId<"page">,
+          name: "picked",
+          valueType: "string",
+          defaultValue: input.picked,
+        },
       }),
     );
   const node = (id: NodeId, type: string, children: NodeId[] = []) =>
@@ -338,6 +354,22 @@ describe("ADR-326 Phase 1 판독 수리 — 데이터", () => {
         count: 120,
         start: "{{ chosen }}",
         chosen: "R120-1",
+      });
+      expect(verdict(table(), "R120-1"), shape).toEqual({
+        kind: "item",
+        chain: ["R120"],
+      });
+    }
+  });
+
+  it("검증 h1: 컴포넌트 안 Cascader · 시작 값이 페이지 변수 (`{{ picked }}` = R120-1) — 세 모양 모두 item · 부모 R120", async () => {
+    for (const shape of ["flat", "nested", "levels"] as const) {
+      const { table } = await open({
+        shape,
+        count: 120,
+        start: "{{ picked }}",
+        picked: "R120-1",
+        component: true,
       });
       expect(verdict(table(), "R120-1"), shape).toEqual({
         kind: "item",

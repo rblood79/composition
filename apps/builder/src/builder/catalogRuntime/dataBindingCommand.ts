@@ -143,8 +143,10 @@ function rowTemplateInsert(
       );
     if (!sample) return undefined;
     const id = newId("node") as NodeId;
-    // (「Keep the items」: the samples stay as its own static items, the rows after them — ADR-326
-    //  판독 h1: replacing the list dropped them and an edited name for good.)
+    // (「Keep the items」: the samples become its own static items and `markRowTemplates` below
+    //  repeats a copy of the last after them, as for any collection — ADR-326 판독 h1: replacing
+    //  the list dropped them and an edited name for good; 수리 검증 h3: a fresh item lost the
+    //  last item's settings.)
     return placeCascaderRowTemplate({
       keepItems: mode === "keep",
       host: {

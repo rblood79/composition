@@ -109,6 +109,7 @@ import type { ComponentRule } from "../../types/catalog-style.types";
 import { componentOriginOf } from "../document/componentOrigin";
 import { definitionTypeName } from "../commands/context";
 import { catalogNearestSkeletonOwner } from "../resolution/skeletonOwner";
+import { descendantPatchOf } from "../document/types";
 import type {
   CatalogReader,
   DefinitionId,
@@ -492,6 +493,7 @@ export const CATALOG_TEXT_STYLE_CONTAINERS: ReadonlySet<string> = new Set([
 // ToggleButton's native <button> and catalog font-family own these defaults. Unlike the
 // bound Button (which explicitly forwards resolved text CSS), its rule DOM does not inherit
 // them from a wrapper. Descendant text must stop at the same CSS inheritance boundary.
+const NO_KEYS: ReadonlySet<string> = new Set();
 const TOGGLE_OWN_TEXT_DEFAULTS: ReadonlySet<string> = new Set([
   "fontFamily",
   "fontStyle",
@@ -3667,6 +3669,25 @@ export class CatalogCompositionRoot {
             this.writesCascaderStart({ id: sourceId, key }))
         )
           structural.add(sourceId);
+      }
+      // (ADR-326 수리 검증 h2 — the same written by an instance at one of its template positions
+      //  (`descendantOverrides` — a component around a Cascader, its `mode` = `{{ panelMode }}`).)
+      for (const override of entry.descendantOverrides) {
+        const patch = descendantPatchOf(override);
+        const targetId = patch?.address.templatePath.at(-1);
+        if (!patch?.props || !targetId) continue;
+        for (const [key, write] of Object.entries(patch.props)) {
+          const value =
+            (write as { kind?: string } | undefined)?.kind === "set"
+              ? (write as { value?: unknown }).value
+              : write;
+          const read = catalogStateNames({ [key]: value });
+          if (
+            (names ? read.some((name) => names.has(name)) : read.length > 0) &&
+            this.writesStructureAt(targetId, key)
+          )
+            structural.add(sourceId);
+        }
       }
     }
     const structureErrors = structural.size
@@ -7152,7 +7173,8 @@ export class CatalogCompositionRoot {
         : Math.max(contentWidth, single.minWidth ?? 0);
       if (
         contentWidth > 0 &&
-        breakWidth + CATALOG_LINE_FIT_SLACK < (single.exactWidth ?? single.width)
+        breakWidth + CATALOG_LINE_FIT_SLACK <
+          (single.exactWidth ?? single.width)
       ) {
         const wrapped = this.textMeasure!(
           leaf.text,
@@ -9158,9 +9180,15 @@ export class CatalogCompositionRoot {
   private writesPresentWith(op: { id: string; key: string }): boolean {
     const node = this.runtime.graph.getEntry(op.id);
     if (node?.kind !== "node") return false;
-    const definition = this.runtime.graph.getDefinition(node.definitionId);
+    return this.presentWithKeysOf(node.definitionId).has(op.key);
+  }
+  /** The props whose value decides which of a composite's template positions stand. */
+  private presentWithKeysOf(definitionId: string): ReadonlySet<string> {
+    const definition = this.runtime.graph.getDefinition(
+      definitionId as DefinitionId,
+    );
     if (definition?.mode !== "composite" || !definition.templateRootId)
-      return false;
+      return NO_KEYS;
     let keys = this.presentWithKeys.get(definition.templateRootId);
     if (!keys) {
       const found = new Set<string>();
@@ -9182,9 +9210,19 @@ export class CatalogCompositionRoot {
       }
       this.presentWithKeys.set(definition.templateRootId, (keys = found));
     }
-    return keys.has(op.key);
+    return keys;
   }
   private readonly presentWithKeys = new Map<string, ReadonlySet<string>>();
+  /** Whether a prop written at a template position (a node · a library template) is structural. */
+  private writesStructureAt(targetId: string, key: string): boolean {
+    if (this.runtime.graph.getEntry(targetId)?.kind === "node")
+      return (
+        this.writesPresentWith({ id: targetId, key }) ||
+        this.writesCascaderStart({ id: targetId, key })
+      );
+    const template = this.templateNode(targetId);
+    return !!template && this.presentWithKeysOf(template.definitionId).has(key);
+  }
   /** ADR-320: a connected filter bar's start tree is its chips' rows (which exist — a structure). */
   private writesFilterChips(op: { id: string; key: string }): boolean {
     if (op.key !== "defaultQuery") return false;

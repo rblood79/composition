@@ -13,6 +13,7 @@ import type {
   TemplateId,
 } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
+import { isPropVar } from "../document/valueType";
 import {
   hasStateTemplateSyntax,
   resolveStateTemplateProps,
@@ -265,17 +266,21 @@ function presentWithGiven(
 /**
  * ADR-326 판독 h7 — a `{{ }}` value as the Canvas reads it (the record's prop — `mode` =
  * `{{ panelMode }}`): the variables' defaults, the nearest of a name first — the node's and its
- * owners' element variables up to its page, the page's, the project's.
+ * owners' element variables up to its page, the page's, the project's. 수리 검증 h4 — a variable
+ * reference (`PropVar` — `!var.<id>[.path]`) reads that variable's default the same way.
  */
 function canvasStateValue(
   reader: CatalogReader,
   ownerId: string,
   value: unknown,
 ): unknown {
-  if (!hasStateTemplateSyntax(value)) return value;
+  const reference = isPropVar(value);
+  if (!reference && !hasStateTemplateSyntax(value)) return value;
   const byName = new Map<string, unknown>();
-  const add = (entry: { name: string; defaultValue?: unknown }) => {
+  const byId = new Map<string, unknown>();
+  const add = (entry: { id: string; name: string; defaultValue?: unknown }) => {
     if (!byName.has(entry.name)) byName.set(entry.name, entry.defaultValue);
+    if (!byId.has(entry.id)) byId.set(entry.id, entry.defaultValue);
   };
   for (let id: string | undefined = ownerId; id; id = reader.ownerOf(id)) {
     for (const ref of reader.referrersOf(id)) {
@@ -290,6 +295,16 @@ function canvasStateValue(
     : []) {
     const entry = reader.getEntry(id);
     if (entry?.kind === "projectVariable") add(entry);
+  }
+  if (reference) {
+    const [id, ...path] = value.ref.slice("!var.".length).split(".");
+    let read = id ? byId.get(id) : undefined;
+    for (const segment of path)
+      read =
+        read !== null && typeof read === "object"
+          ? (read as Record<string, unknown>)[segment]
+          : undefined;
+    return read;
   }
   return resolveStateTemplateProps(
     { value },

@@ -488,7 +488,7 @@ export function catalogNodeStateProps<T extends Record<string, unknown>>(
   return (
     catalogStateProps(props, () =>
       catalogStateEnv(
-        pageAndProjectStates(graph, ownerId, source, instancePath),
+        pageAndProjectStates(graph, ownerId, source, instancePath, true),
         source?.read?.bind(source),
         source?.params?.bind(source),
       ),
@@ -506,8 +506,25 @@ function pageAndProjectStates(
   ownerId: string | undefined,
   source: CatalogStateSource | undefined,
   instancePath?: readonly string[],
+  /**
+   * ADR-326 수리 검증 h1 — a node inside a component's origin reads the page its instance stands
+   * on (as its record does — `catalogRecordVariables` reads the record's page): past the origin,
+   * the outermost instance on its instance path leads to that page.
+   */
+  throughInstances?: boolean,
 ): CatalogVisibleState[] {
   const visible: CatalogVisibleState[] = [];
+  const pushPage = (pageId: EntryId<"page">) => {
+    for (const variable of ownedVariables(graph, pageId))
+      visible.push({
+        id: variable.id,
+        name: variable.name,
+        type: variableType(variable.valueType),
+        defaultValue: documentDefault(variable),
+        scope: { kind: "page", pageId },
+      });
+  };
+  let reachedPage = false;
   for (let id = ownerId; id; id = graph.ownerOf(id)) {
     const owner = graph.getEntry(graph.ownerOf(id) ?? "");
     if (owner?.kind === "definition" && owner.templateRootId === id) {
@@ -561,17 +578,19 @@ function pageAndProjectStates(
             },
           });
     if (graph.getEntry(id)?.kind !== "page") continue;
-    const pageId = id as EntryId<"page">;
-    for (const variable of ownedVariables(graph, pageId))
-      visible.push({
-        id: variable.id,
-        name: variable.name,
-        type: variableType(variable.valueType),
-        defaultValue: documentDefault(variable),
-        scope: { kind: "page", pageId },
-      });
+    pushPage(id as EntryId<"page">);
+    reachedPage = true;
     break;
   }
+  if (!reachedPage && throughInstances)
+    find: for (const instanceId of instancePath ?? []) {
+      if (graph.getEntry(instanceId as never)?.kind !== "node") continue;
+      for (let id: string | undefined = instanceId; id; id = graph.ownerOf(id))
+        if (graph.getEntry(id as never)?.kind === "page") {
+          pushPage(id as EntryId<"page">);
+          break find;
+        }
+    }
   for (const variable of source?.projectVariables() ?? [])
     visible.push({
       id: `${PROJECT_VARIABLE}${variable.id}`,

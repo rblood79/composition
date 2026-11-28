@@ -2738,6 +2738,10 @@ export function resolveCatalogNode(
    * valued from the resolved props, then the declared default. Nested composites bind their own
    * template; an outer binding never reaches an inner composite's placeholders.
    */
+  /** A composite's bindings with their variables read (`templateBindings`) — for `presentWith`. */
+  const presenceValues = new WeakMap<Props, Props>();
+  const presenceOf = (bindings: Props): Props =>
+    presenceValues.get(bindings) ?? bindings;
   const templateBindings = (
     definitionId: DefinitionId,
     props: Props,
@@ -2781,6 +2785,13 @@ export function resolveCatalogNode(
           ? map.values[String(chosen)]
           : map.otherwise;
       if (value !== undefined) bindings[key] = value;
+    }
+    // (ADR-326 수리 검증 h5 — whether a `presentWith` prop is given reads its variable's value, as
+    //  the record's prop will (`cancelLabel` = `{{ empty }}` gives no button); the bindings keep the
+    //  `{{ }}` for the positions' text, which re-reads on a variable change.)
+    if (at && rows?.stateProps) {
+      const read = rows.stateProps(bindings, at.ownerId, at.instancePath);
+      if (read !== bindings) presenceValues.set(bindings, read as Props);
     }
     return bindings;
   };
@@ -3214,7 +3225,7 @@ export function resolveCatalogNode(
     if (
       node.presentWith &&
       ownedPresence &&
-      String(ownedPresence[node.presentWith] ?? "") === ""
+      String(presenceOf(ownedPresence)[node.presentWith] ?? "") === ""
     )
       return undefined;
     // `useListData.getItem(key)` — a keyed binding is one item: its descendants read its fields
@@ -4481,12 +4492,13 @@ export function resolveCatalogNode(
     // `{cancelLabel && <Button>}`).
     // (ADR-326 R10 — an owned copy projected as a position of an outer instance — its inner
     //  owner's fill — stands by the bindings of the composite whose fill it sits in.)
+    const presence =
+      bindings ?? ("kind" in template ? ownedPresence : undefined);
     if (
       template.presentWith &&
       String(
-        (bindings ?? ("kind" in template ? ownedPresence : undefined))?.[
-          template.presentWith
-        ] ?? "",
+        (presence ? presenceOf(presence) : undefined)?.[template.presentWith] ??
+          "",
       ) === ""
     )
       return undefined;

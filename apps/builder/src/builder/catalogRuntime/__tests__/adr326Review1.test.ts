@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
+  addRecord,
   createComponent,
   insertNodes,
   removeTargets,
@@ -382,5 +383,177 @@ describe("ADR-326 Phase 1 판독 수리 — 구조", () => {
     );
     expect(String(added().props.label)).toBe("New Label");
     expect(text().props.children).toBe("New Label");
+  });
+});
+
+/** Every position under `position` (Layers rows, depth first). */
+function allPositions(
+  workspace: CatalogWorkspace,
+  position: CatalogPosition,
+): CatalogPosition[] {
+  return positionsOf(workspace, position).flatMap((child) => [
+    child,
+    ...allPositions(workspace, child),
+  ]);
+}
+
+describe("ADR-326 Phase 1 수리 검증 수리 — 구조", () => {
+  it("검증 h1: 컴포넌트 안 Cascader 의 mode 가 페이지 변수 (`{{ pageMode }}` = drill) — record 에 drill 부품", async () => {
+    const { workspace, parts } = await placed({
+      mode: { kind: "set", value: "{{ pageMode }}" },
+    });
+    workspace.execute(
+      addRecord({
+        entry: {
+          kind: "stateVariable",
+          id: "project:stateVariable:page-mode" as EntryId<"stateVariable">,
+          ownerId: "project:page:home" as EntryId<"page">,
+          name: "pageMode",
+          valueType: "string",
+          defaultValue: "drill",
+        },
+      }),
+    );
+    expect(parts()).toEqual({ dom: DRILL_PARTS, canvas: DRILL_PARTS });
+    workspace.execute(
+      createComponent({ id: PLACED, name: "Picker", newId: workspace.newId }),
+    );
+    const body = workspace.runtime.graph.getEntry(BODY) as NodeEntry;
+    const instance = body.children.find((id) => id !== PLACED)!;
+    expect(parts(instance)).toEqual({ dom: DRILL_PARTS, canvas: DRILL_PARTS });
+    expect(layersOfPopover(workspace, instance)).toEqual(DRILL_PARTS);
+  });
+
+  it("검증 h2: instance 가 덮어쓴 mode = `{{ panelMode }}` — 실행 중 변수 변경에 drill 부품이 선다", async () => {
+    const values = new Map<string, unknown>();
+    const read: Read = (id) =>
+      id.includes("panel-mode") ? values.get("panelMode") : undefined;
+    const { workspace, parts } = await placed({}, true, read, "columns");
+    workspace.execute(
+      createComponent({ id: PLACED, name: "Picker", newId: workspace.newId }),
+    );
+    const body = workspace.runtime.graph.getEntry(BODY) as NodeEntry;
+    const instance = body.children.find((id) => id !== PLACED)!;
+    workspace.execute(
+      setFields({
+        targets: [
+          {
+            kind: "descendant",
+            ownerId: instance,
+            address: { instances: [instance], templatePath: [PLACED] },
+          },
+        ],
+        props: { mode: { kind: "set", value: "{{ panelMode }}" } },
+      } as never),
+    );
+    expect(parts(instance).dom).toEqual(COLUMNS_PARTS);
+    values.set("panelMode", "drill");
+    workspace.root.refreshState(new Set(["panelMode"]));
+    expect(parts(instance)).toEqual({ dom: DRILL_PARTS, canvas: DRILL_PARTS });
+  });
+
+  it("검증 h3: 「모두 고정 항목으로」 연결 — 데이터 행이 마지막 항목 (비활성 Books) 의 설정을 이어받는다", async () => {
+    const { workspace, items } = await placed();
+    const books = positionsOf(workspace, listPosition(workspace)).find(
+      (position) =>
+        workspace.readModel.propSource(position.target, "label").value ===
+        "Books",
+    )!;
+    workspace.execute(
+      setFields({
+        targets: [books.target],
+        props: { isDisabled: { kind: "set", value: true } },
+      } as never),
+    );
+    workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id: PLACED }],
+        {
+          collectionId: col("t"),
+          fieldMap: { value: ref("f-id"), label: ref("f-name") },
+        },
+        workspace.newId,
+        "keep",
+      ),
+    );
+    expect(
+      items().map((item) => [
+        String(item.props.label),
+        item.props.isDisabled === true,
+      ]),
+    ).toEqual([
+      ["Electronics", false],
+      ["Clothing", false],
+      ["Books", true],
+      ["Remote", true],
+    ]);
+  });
+
+  it("검증 h4: mode 가 변수 참조 (`!var` = drill) — Layers 에도 drill 부품", async () => {
+    const { workspace, parts } = await placed(
+      {
+        mode: {
+          kind: "set",
+          value: { kind: "var", ref: "!var.data:variable:panel-mode" },
+        },
+      } as never,
+      true,
+    );
+    expect(parts()).toEqual({ dom: DRILL_PARTS, canvas: DRILL_PARTS });
+    expect(layersOfPopover(workspace, PLACED)).toEqual(DRILL_PARTS);
+  });
+
+  it("검증 h5: AlertDialog 의 cancelLabel 이 빈 변수 — record 와 Layers 모두 취소 버튼 없음", async () => {
+    const CANCEL = "lib:template:component-alertdialog__cancel";
+    for (const [label, present] of [
+      ["{{ cancelText }}", false],
+      ["Cancel", true],
+    ] as const) {
+      const { workspace, library } = await place({}, true);
+      workspace.execute(
+        setProjectVariable({
+          entry: {
+            kind: "projectVariable",
+            id: "data:variable:cancel-text" as ProjectVariableId,
+            name: "cancelText",
+            valueType: "string",
+            defaultValue: "",
+            persist: false,
+          } satisfies ProjectVariableEntry,
+        }),
+      );
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [
+            {
+              kind: "node",
+              id: PLACED,
+              definitionId: catalogPaletteDefinitionId(library, "AlertDialog"),
+              children: [],
+              props: { cancelLabel: { kind: "set", value: label } },
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            },
+          ],
+          rootIds: [PLACED],
+          newId: workspace.newId,
+        }),
+      );
+      const records = [...workspace.root.domInputs.values()].filter(
+        (record) => record.sourceId === CANCEL,
+      );
+      const rows = allPositions(
+        workspace,
+        nodePosition(workspace.runtime.graph, PLACED),
+      ).filter(
+        (position) =>
+          position.target.kind === "descendant" &&
+          position.target.address.templatePath.at(-1) === CANCEL,
+      );
+      expect(records.length > 0, label).toBe(present);
+      expect(rows.length > 0, label).toBe(present);
+    }
   });
 });
