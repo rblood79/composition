@@ -31,7 +31,8 @@ const FROZEN_KEY_COUNTS: Partial<
   // 2026-10-31 — deleteGuide · deleteVerticalGuides · deleteHorizontalGuides (안내선 우클릭 삭제, 63ecb9b9e)
   // 2026-11-15 — useAsRowTemplate (ADR-310 Phase 3 「템플릿 바꾸기」)
   contextMenu: 30,
-  command: 71,
+  // 2026-11-28 — toggleCodeView (Code Editor 패널 ⌥9, 0d8655e53)
+  command: 72,
   // ADR-252 — scopePanelStyles 제거 (scope panel:styles 가 Design 패널의 panel:properties 로)
   commandPalette: 25,
 };
