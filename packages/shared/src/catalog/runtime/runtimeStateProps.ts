@@ -147,6 +147,8 @@ const CATALOG_OPEN_PICKER_TYPES: ReadonlySet<string> = new Set([
   "ComboBox",
   "DatePicker",
   "DateRangePicker",
+  // ADR-326 §5 — a Cascader's open content is its Popover node (the field gives its open state).
+  "Cascader",
 ]);
 
 /**

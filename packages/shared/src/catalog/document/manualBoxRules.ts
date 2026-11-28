@@ -1222,6 +1222,9 @@ export const MANUAL_ITEM_LABEL_COLORS: Readonly<
   ListBoxItem: { iconSlots: ["icon"] },
   // The reference GridList card's label · description inherit its color.
   GridListItem: {},
+  // ADR-326: a Cascader's row (S2 menu item) — its label and its chevron (S2 `Menu.tsx` `descriptor`
+  //   `--iconPrimary: currentColor`) take the row's color.
+  CascaderItem: { iconSlots: ["descriptor"] },
 };
 
 export function manualBoxRule(type: string): ManualBoxRule | undefined {

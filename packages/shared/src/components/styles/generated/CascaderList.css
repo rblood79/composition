@@ -13,8 +13,13 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  min-height: 0;
+  max-height: 300px;
+  overflow: auto;
+  outline: none;
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
 }
 
 

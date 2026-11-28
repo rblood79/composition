@@ -158,6 +158,19 @@
   display: none;
 }
 
+.react-aria-Popover[data-trigger="Cascader"] {
+  width: var(--trigger-width);
+  min-width: var(--trigger-width);
+  max-height: 300px;
+  contain: layout style;
+  overflow: hidden;
+  gap: var(--spacing-sm);
+}
+
+.react-aria-CascaderItem .react-aria-Text[slot="label"] {
+  color: inherit;
+}
+
 .react-aria-Popover.cascader-panel {
   min-width: var(--trigger-width);
 }

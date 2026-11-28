@@ -12,6 +12,15 @@ export const LISTBOX_PICKER_TYPES: ReadonlySet<string> = new Set([
   "ComboBox",
 ]);
 
+/**
+ * ADR-326 §5 — the pickers whose Popover follows the trigger's width and shares the collision budget
+ * (the ListBox pickers, and a Cascader — its list box is its own).
+ */
+export const PICKER_POPOVER_TYPES: ReadonlySet<string> = new Set([
+  ...LISTBOX_PICKER_TYPES,
+  "Cascader",
+]);
+
 /** 선택 부품의 소유자: Select/ComboBox의 Popover 또는 가장 가까운 Menu. */
 export function catalogPickerOfOption(
   node: CatalogConsumerNode,

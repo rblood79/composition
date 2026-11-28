@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   insertNodes,
   setFields,
+  setLibraryDefault,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
@@ -159,6 +160,38 @@ describe("ADR-326 HC4 — a bound Cascader's bound prop resolves its records tog
         JSON.stringify(props),
       ).toBeLessThan(records * 4);
       expect(drawn(workspace), JSON.stringify(props)).toEqual(drawn(fresh()));
+    }
+    workspace.undo();
+    expect(drawn(workspace)).toEqual(drawn(fresh()));
+  }, 120000);
+
+  // (Stop 판독 2026-11-28: the origin's default size written a second time — an override patch,
+  //  not a structural step — reached the first level's rows only; the nested ones kept the old.)
+  it("the origin's default size, written twice: every level's rows take it, records = a fresh root's", async () => {
+    const { workspace, fresh } = await open();
+    const records = workspace.root.domInputs.size;
+    // (The template root's own definition — the Cascader primitive.)
+    const definitionId = [
+      ...workspace.runtime.graph.library.definitions.values(),
+    ].find(
+      (definition) =>
+        definition.name === "Cascader" && definition.mode === "primitive",
+    )!.id;
+    for (const size of ["L", "XL", "S"]) {
+      workspace.execute(
+        setLibraryDefault({
+          definitionId: definitionId as never,
+          scope: "defaults",
+          key: "size",
+          write: { kind: "set", value: size },
+          newId: workspace.newId,
+        }),
+      );
+      // (Resolved together too — the size reaches the rows while the step runs.)
+      expect(workspace.root.metrics.resolverVisits, size).toBeLessThan(
+        records * 4,
+      );
+      expect(drawn(workspace), size).toEqual(drawn(fresh()));
     }
     workspace.undo();
     expect(drawn(workspace)).toEqual(drawn(fresh()));

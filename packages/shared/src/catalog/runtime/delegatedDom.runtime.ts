@@ -50,7 +50,10 @@ import {
 } from "../rule/stepList";
 import { CatalogStep, CatalogStepListGroup } from "./stepList.components";
 import { catalogTimelineChromeDom } from "./timeline";
-import { CatalogCascaderField } from "./cascader.components";
+import {
+  CatalogCascaderField,
+  CatalogCascaderListHost,
+} from "./cascader.components";
 import {
   CASCADER_ITEM_TYPE,
   CASCADER_TYPE,
@@ -59,7 +62,7 @@ import {
   cascaderMultiple,
   cascaderStartKeys,
   cascaderValueKeys,
-  cascaderTableOf,
+  cascaderTableMemo,
 } from "./cascader";
 import {
   catalogRatingBox,
@@ -475,6 +478,13 @@ export interface DelegatedDomInput {
    * the record also carries rule values the sheet draws: `wroteStyleKey`).
    */
   readonly writtenStyleOf?: (recordId: string) => CSSProperties;
+  /** A record's state values for an element this binding draws itself (`catalogStateStyleProps`). */
+  readonly stateStyleOf?: (recordId: string) =>
+    | {
+        readonly attributes: Record<string, unknown>;
+        readonly variables: Record<string, string>;
+      }
+    | undefined;
 }
 
 /**
@@ -996,7 +1006,14 @@ function catalogWithActionBar(
  */
 const inAutocomplete = (input: DelegatedDomInput) => {
   const owner = catalogDomPartParent(input.root, input.node);
-  return !!owner && catalogTypeName(input.root, owner) === "Autocomplete";
+  if (!owner) return false;
+  const type = catalogTypeName(input.root, owner);
+  if (type === "Autocomplete") return true;
+  // (ADR-326 Phase 2 — a Cascader's search field: the field's search scope is the Autocomplete over
+  //  its Popover node's children — a runtime value would outlive the closed popover's query.)
+  if (type !== "Popover") return false;
+  const field = catalogDomPartParent(input.root, owner);
+  return !!field && catalogTypeName(input.root, field) === CASCADER_TYPE;
 };
 
 /** ADR-280 — a picker's open state: controlled in a running Preview (RAC's own otherwise). */
@@ -2000,7 +2017,9 @@ function fieldBase(input: DelegatedDomInput) {
     labelPosition: props.labelPosition ?? form.labelPosition ?? "top",
     labelAlign: props.labelAlign ?? form.labelAlign,
     name: opt(props.name),
-    autoFocus: bool(props.autoFocus),
+    // (Unset, not `false` — a context's `autoFocus` (a Cascader's search field — ADR-326 Phase 2)
+    //  survives RAC's merge, which keeps a defined prop.)
+    autoFocus: props.autoFocus === true ? true : undefined,
   };
 }
 
@@ -4795,6 +4814,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ? cascaderValueKeys(own.value)
           : cascaderStartKeys(props);
       const multiple = cascaderMultiple(props);
+      const mode =
+        props.mode === "tree" || props.mode === "drill"
+          ? props.mode
+          : "columns";
       // (ADR-322 Phase 6 — levels loaded one by one: the branches not opened yet are branches.)
       const levels = input.cascaderLevels?.(input.node.id);
       const open = input.setRuntimeProps
@@ -4837,11 +4860,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           name: str(props.name) || undefined,
           startKeys: cascaderStartKeys(props),
           levels,
-          table: cascaderTableOf(input.node, get, typeOf, levels),
-          mode:
-            props.mode === "tree" || props.mode === "drill"
-              ? props.mode
-              : "columns",
+          table: cascaderTableMemo(input.node, get, typeOf, levels),
+          mode,
           display: {
             displayMode: props.displayMode,
             separator: props.separator,
@@ -4866,13 +4886,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             "data-quiet": isQuiet ? "true" : undefined,
           },
         },
-        // (ADR-326 Phase 1 — the open content's Popover node is drawn from Phase 2; the field's
-        //  lazy chunk still builds the open content from the item table.)
+        // (ADR-326 Phase 2 — a `columns` field's open content is its Popover node (RAC draws it while
+        //  open); the `tree` · `drill` lazy chunk still builds its own until Phase 3.)
         ...renderAll(
           input,
-          children(input).filter(
-            (child) => catalogTypeName(input.root, child) !== "Popover",
-          ),
+          mode === "columns"
+            ? children(input)
+            : children(input).filter(
+                (child) => catalogTypeName(input.root, child) !== "Popover",
+              ),
         ),
       );
     },
@@ -4880,10 +4902,28 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   cascaderitem: {
     render: (input) => createElement(Fragment, { key: input.node.id }),
   },
-  // ADR-326 Phase 1: the level list box — drawn with the open content (Phase 2); the field's lazy
-  //  chunk builds the open content from the item table until then.
+  // ADR-326 Phase 2 (§4.3): the level list box — while its `columns` Cascader is open, RAC `Menu`
+  //  (the node's element) of the field's table (`CascaderOpenContext`). A row takes its item record's
+  //  DOM input (`row`) and draws the record's own parts (`parts` — the label Text, a branch's chevron
+  //  Icon) with the catalog renderer.
   cascaderlist: {
-    render: (input) => createElement(Fragment, { key: input.node.id }),
+    // (A row redraws with its item record — a look edit · Undo: the field watches every item, and its
+    //  open values reach the host anew; the table stays, ADR-326 §4.3.)
+    render: (input) => {
+      const { key, slot: _slot, ...base } = marker(input);
+      return createElement(CatalogCascaderListHost, {
+        key,
+        base: {
+          ...base,
+          className: "react-aria-CascaderList",
+          // (The field's size — the list's carried default is M.)
+          "data-size": input.node.props.size,
+          style: input.style,
+        },
+        // (The renderer's lookups — `CascaderRowRecords`.)
+        records: { ...input, ...domLookup(input) },
+      });
+    },
   },
   // ADR-321 Phase 3 (사용자 결정 2): a Stepper is a role-less box around its StepList and the steps'
   //  panels — the panels sit outside the list's named group.

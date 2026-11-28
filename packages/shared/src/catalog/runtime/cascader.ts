@@ -43,6 +43,11 @@ export interface CascaderEntry {
   readonly pickable: boolean;
   /** Its key is carried by another pickable item too — it cannot be picked (Decision 4). */
   readonly duplicate: boolean;
+  /**
+   * ADR-326 §4.3 — the item's own record (its DOM row takes that record's DOM input: the catalog id
+   * and the author's style). Absent for a hierarchy that is not made of records.
+   */
+  readonly recordId?: string;
 }
 
 /** A hierarchy node, whatever its source (static items now; bound rows in Phase 4). */
@@ -57,6 +62,8 @@ export interface CascaderSourceItem {
    * children here, still a branch (not a value while the field picks leaves).
    */
   readonly hasChildItems?: boolean;
+  /** ADR-326 §4.3 — the item's record (`CascaderEntry.recordId`). */
+  readonly recordId?: string;
 }
 
 export interface CascaderTable {
@@ -125,6 +132,7 @@ export function cascaderTable(
         pickable: options.anyLevel === true || !hasChildren,
         duplicate: false,
         isDisabled: item.isDisabled === true,
+        ...(item.recordId ? { recordId: item.recordId } : {}),
       };
       entries.push(entry);
       byPathId.set(pathId, entry);
@@ -344,6 +352,7 @@ export function cascaderStaticItems(
           levelKey,
           name: typeof name === "string" ? name : String(name ?? ""),
           isDisabled: child.props.isDisabled === true,
+          recordId: child.id,
           children,
           // (ADR-326 §4.7 (4) — the Builder's mark of a branch not loaded: its row read.)
           ...(!children.length &&
@@ -371,6 +380,43 @@ export function cascaderTableOf(
       anyLevel: cascader.props.allowsBranchSelection === true,
     },
   );
+}
+
+/**
+ * The last table each Cascader record built, by its data signature (`cascaderTableMemo`) — the most
+ * recently built 64 (a removed Cascader's table goes as others are built).
+ */
+const TABLE_MEMO = new Map<string, readonly [string, CascaderTable]>();
+
+/**
+ * ADR-326 §4.3 · P9 — the DOM's table, rebuilt only when its data changes: the signature is the
+ * table's whole input (the source items — keys, names, disabled, branches, records — and the
+ * options), so a look edit of an item (its record's style) keeps the table and its rows redraw with
+ * their own input only (HC4).
+ */
+export function cascaderTableMemo(
+  cascader: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+  levels?: Pick<CatalogCascaderLevels, "branchKeys" | "conflicts">,
+): CascaderTable {
+  const items = cascaderStaticItems(cascader, get, typeOf, levels?.branchKeys);
+  const options = {
+    conflicts: levels?.conflicts,
+    anyLevel: cascader.props.allowsBranchSelection === true,
+  };
+  const signature = JSON.stringify([
+    items,
+    options.anyLevel,
+    options.conflicts ? [...options.conflicts] : null,
+  ]);
+  const prior = TABLE_MEMO.get(cascader.id);
+  if (prior?.[0] === signature) return prior[1];
+  const table = cascaderTable(items, options);
+  TABLE_MEMO.delete(cascader.id);
+  TABLE_MEMO.set(cascader.id, [signature, table]);
+  if (TABLE_MEMO.size > 64) TABLE_MEMO.delete(TABLE_MEMO.keys().next().value!);
+  return table;
 }
 
 /**

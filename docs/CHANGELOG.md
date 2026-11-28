@@ -13,6 +13,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-326 Phase 2 — Cascader columns 열린 목록을 원본 노드로] - 2026-11-28
+
+ADR-326 Phase 2 닫힘. 「columns」 방식 Cascader 의 열린 목록을 원본의 노드 (Popover · 검색 칸 · 목록 · 항목) 로 그린다 — Select 의 열린 목록과 같은 구조. 「tree」 · 「drill」 방식은 Phase 3 까지 그대로다.
+
+### Changed
+
+- 열린 상자 = Cascader 원본의 Popover 노드, 목록 = CascaderList 노드, 행 = 항목 노드. 항목에 쓴 모양 (배경 · 글자색 · Hover 같은 상태 값) 이 그 행에 보이고, 이름 · chevron 은 항목의 Text · Icon 노드다.
+  - 위치: `packages/shared/src/catalog/runtime/cascader.components.tsx` · `cascaderMenu.components.tsx` · `delegatedDom.runtime.ts` (`cascaderlist`) · `CatalogPopover.tsx`
+- 필드의 size 가 목록 · 모든 단계의 행 · 행 글자에 닿는다 (XL 필드면 XL 행).
+  - 위치: `packages/shared/src/catalog/bindings/Cascader.binding.ts` · `document/sizePropagation.ts`
+
+### Fixed
+
+- 열린 상자 폭이 필드 폭과 달랐다 — 이제 필드 폭과 같다. 상자와 목록이 테두리를 둘 그리던 것도 하나로.
+- 첫 단계의 잎 (예: Books) 을 고른 뒤 다시 열면 Esc 가 목록을 닫지 않고 선택을 지웠다.
+- 바깥을 눌러 닫으면 focus 가 페이지로 빠졌다 — 여는 버튼으로 돌아온다.
+- 검색한 뒤 닫고 다시 열면 지난 검색어가 남아 있었다.
+- 항목의 글자색이 이름에 적용되지 않았다 (어두운 배경 + 흰 글자에서 이름이 안 보임).
+- 목록이 길면 화면 높이까지 늘어났다 — 300 px 안에서 스크롤한다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Cascader · CascaderList) · `document/manualBoxRules.ts` (`MANUAL_ITEM_LABEL_COLORS`) · `runtime/runtimeStateProps.ts`
+
 ## [ADR-326 Phase 1 — Cascader 열린 목록의 문서 구조 · 시작 경로 보존] - 2026-11-28
 
 ADR-326 (Cascader 열린 목록을 원본 노드로) Phase 1 닫힘. 화면 모양은 그대로다 — 열린 목록이 문서 노드가 됐고, Builder 와 Preview 가 시작 값을 같은 항목으로 읽는다.

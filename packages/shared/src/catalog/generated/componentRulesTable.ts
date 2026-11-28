@@ -1751,6 +1751,51 @@ const CASCADER_PANEL_STYLES = [
   },
 ];
 
+/**
+ * The picker's open box (the RAC reference's `.select-popover` · S2 Picker): the trigger's width at
+ * least, 300 high at most — Select's and a Cascader's (ADR-326 §4.6).
+ */
+const PICKER_POPOVER_BOX = {
+  width: "var(--trigger-width)",
+  "min-width": "var(--trigger-width)",
+  "max-height": "300px",
+  contain: "layout style",
+};
+
+/**
+ * ADR-326 Phase 2 — a `columns` Cascader's open box (its Popover node, `trigger: "Cascader"`): the
+ * picker box over the Popover's own 8 inset — the search field, then (8 below) the list box
+ * scrolling in the rest (the search stays). One edge — the Popover's; the list box draws none.
+ */
+const CASCADER_POPOVER_STYLES = [
+  {
+    selector: '.react-aria-Popover[data-trigger="Cascader"]',
+    styles: {
+      ...PICKER_POPOVER_BOX,
+      overflow: "hidden",
+      gap: "var(--spacing-sm)",
+    },
+  },
+  // (A row's label takes the row's color — `MANUAL_ITEM_LABEL_COLORS.CascaderItem`, every level.)
+  {
+    selector: '.react-aria-CascaderItem .react-aria-Text[slot="label"]',
+    styles: { color: "inherit" },
+  },
+];
+
+/** ADR-326 §4.1 — a Cascader's level list box: a column with no box of its own (the Popover's inset). */
+const CASCADER_LIST_BOX = {
+  display: "flex",
+  flexDirection: "column",
+  outline: "none",
+  // (It scrolls in the rest of the open box, 300 high at most as a picker's list — RAC's inline
+  //  `max-height` is the Popover's, the viewport's room: it does not bound the list.)
+  minHeight: "0",
+  maxHeight: "300px",
+  flex: "1 1 auto",
+  overflow: "auto",
+} satisfies ComponentRule["containerStyles"];
+
 /** A delegation list with its prefixes and their CSS variables renamed (`--select-…` → `--cascader-…`). */
 function renamedDelegation<T>(list: T, from: string, to: string): T {
   const rename = (value: unknown): unknown =>
@@ -1872,13 +1917,7 @@ const SELECT_RULE: ComponentRule = {
         },
         {
           selector: '.react-aria-Popover[data-trigger="Select"]',
-          styles: {
-            width: "var(--trigger-width)",
-            "min-width": "var(--trigger-width)",
-            "max-height": "300px",
-            overflow: "auto",
-            contain: "layout style",
-          },
+          styles: { ...PICKER_POPOVER_BOX, overflow: "auto" },
           nested: [
             {
               selector: ".react-aria-ListBox",
@@ -11943,7 +11982,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   — RAC Tree · GridList · Breadcrumbs built from the items, not nodes: the Canvas never draws
         //   them, R6) takes its look here, as Select's picker Popover does. The `columns` Menu takes
         //   the Menu · MenuItem sheets as they are.
-        externalStyles: CASCADER_PANEL_STYLES,
+        externalStyles: [...CASCADER_POPOVER_STYLES, ...CASCADER_PANEL_STYLES],
         // (A delegation prefix is one rule's — the trigger's variables take the field's name.)
         delegation: renamedDelegation(
           SELECT_RULE.structure?.composition?.delegation,
@@ -11953,22 +11992,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   } as ComponentRule,
-  // ADR-322 Phase 1: a Cascader's item — the hierarchy, not drawn (no box of its own).
-  CascaderItem: {
-    variants: {},
-    sizes: {},
-    structure: { archetype: "container", element: "div" },
-  } as ComponentRule,
-  // ADR-326 §4.1: a Cascader's level list box (its items' column). Not drawn yet — its open look
-  //   (S2 Menu's padding, one border) comes with the open content (ADR-326 Phase 2).
+  // ADR-326 §4.1 · §4.6: a Cascader's level list box (its items' column) — in the Popover's 8 inset
+  //   (S2 Menu's), no surface of its own. The Popover draws the one edge.
   CascaderList: {
     variants: {},
     sizes: {},
-    containerStyles: { display: "flex", flexDirection: "column" },
+    containerStyles: CASCADER_LIST_BOX,
     structure: {
       archetype: "container",
       element: "div",
-      containerStyles: { display: "flex", flexDirection: "column" },
+      containerStyles: CASCADER_LIST_BOX,
     },
   } as ComponentRule,
   SelectValue: {
@@ -16803,6 +16836,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
 };
+
+// ADR-326 §4.6: a Cascader's item — its row is S2's menu item: the MenuItem rule itself (height · edge
+//   · font · corners · hover · focus · selected · disabled), one object for both. The Canvas draws it
+//   from Phase 4.
+COMPONENT_RULES_TABLE.CascaderItem = COMPONENT_RULES_TABLE.MenuItem!;
 
 // S2 LabeledValue uses field() grid and field label typography.
 COMPONENT_RULES_TABLE.LabeledValue = {

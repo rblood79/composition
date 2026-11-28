@@ -35,7 +35,11 @@ export const cascaderBinding: PrimitiveBinding = {
       // An item's key (HC4) — a key list while `selectionMode: "multiple"` (사용자 결정 3); the path is
       //   computed (breakdown §4.2). The Design panel offers the pickable items as Select's Value
       //   does (`catalogGroupKeysFields` — 2026-11-28 사용자 요청).
-      defaultValue: { kind: "selection-value", label: "Value", section: "value" },
+      defaultValue: {
+        kind: "selection-value",
+        label: "Value",
+        section: "value",
+      },
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",
@@ -147,6 +151,15 @@ export const cascaderBinding: PrimitiveBinding = {
   },
 };
 
+/** A size the field carries to its list and rows (no panel field — S2 menu items have none). */
+const CASCADER_CARRIED_SIZE = {
+  kind: "size",
+  label: "Size",
+  section: "appearance",
+  default: "M",
+  editorHidden: true,
+} as const;
+
 /**
  * ADR-326 §4.1 — a Cascader's level list box (`Popover > CascaderList > CascaderItem…` — Select's
  * `Popover > ListBox` place). No prop of its own: the field's size reaches it. DOM (ADR-326 Phase
@@ -155,7 +168,12 @@ export const cascaderBinding: PrimitiveBinding = {
  */
 export const cascaderListBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "cascaderlist" },
-  props: { accepts: {}, toRacProps: "default", propPassthrough: ["size"] },
+  props: {
+    // (The field's size, carried — `CATALOG_SIZE_PROPAGATION.Cascader`; not edited here.)
+    accepts: { size: CASCADER_CARRIED_SIZE },
+    toRacProps: "default",
+    propPassthrough: ["size"],
+  },
 };
 
 /**
@@ -173,6 +191,8 @@ export const cascaderItemBinding: PrimitiveBinding = {
       dataBinding: ITEM_DATA_BINDING_PROP,
       label: { kind: "string", label: "Label", section: "content" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // (Its list's size, carried — the row's look · its label text, S2 menu item.)
+      size: CASCADER_CARRIED_SIZE,
     },
     toRacProps: "default",
   },

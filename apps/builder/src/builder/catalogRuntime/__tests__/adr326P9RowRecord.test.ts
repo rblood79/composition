@@ -13,6 +13,7 @@ import type {
 import {
   catalogCascaderItems,
   cascaderStaticItems,
+  cascaderTableMemo,
   cascaderTableOf,
   type CascaderTable,
 } from "../../../../../../packages/shared/src/catalog/runtime/cascader";
@@ -125,11 +126,10 @@ function recordIds(
       typeOf(node) === "Cascader"
         ? catalogCascaderItems(node, get, typeOf)
         : node.children.map(get)
-    )
-      .filter(
-        (child): child is CatalogConsumerNode =>
-          !!child && typeOf(child) === "CascaderItem",
-      );
+    ).filter(
+      (child): child is CatalogConsumerNode =>
+        !!child && typeOf(child) === "CascaderItem",
+    );
     records.forEach((record, i) => {
       const entry = siblings[i];
       if (!entry) return;
@@ -204,5 +204,39 @@ describe("ADR-326 P9 — 항목 행 ↔ 항목 record", () => {
     expect(signature()).not.toBe(start);
     expect(signature()).toContain("Magazines");
     t.workspace.dispose();
+  });
+
+  it("ADR-326 Phase 2 — the DOM's table memo: a look edit keeps the table (and every entry's record); a name edit builds a new one", async () => {
+    const t = await place();
+    const table = () =>
+      cascaderTableMemo(t.cascader(), t.get, t.typeOf, undefined);
+    const start = table();
+    const books = t.items().find((item) => item.props.id === "books")!;
+    expect(start.entries.find((entry) => entry.key === "books")?.recordId).toBe(
+      books.id,
+    );
+    t.edit(books, {
+      visual: { backgroundColor: { kind: "set", value: PAINT } },
+    });
+    expect(table()).toBe(start);
+    t.edit(books, { props: { label: { kind: "set", value: "Magazines" } } });
+    const renamed = table();
+    expect(renamed).not.toBe(start);
+    expect(renamed.entries.find((entry) => entry.key === "books")?.name).toBe(
+      "Magazines",
+    );
+    t.workspace.dispose();
+  });
+
+  it("the table memo keeps at most 64 Cascaders — the oldest built goes first", () => {
+    const node = (id: string) =>
+      ({ id, props: {}, children: [] }) as unknown as CatalogConsumerNode;
+    const none = () => undefined;
+    const first = cascaderTableMemo(node("memo-0"), none, () => "");
+    expect(cascaderTableMemo(node("memo-0"), none, () => "")).toBe(first);
+    for (let i = 1; i <= 64; i += 1)
+      cascaderTableMemo(node(`memo-${i}`), none, () => "");
+    // (`memo-0` was dropped — a new table for the same data.)
+    expect(cascaderTableMemo(node("memo-0"), none, () => "")).not.toBe(first);
   });
 });

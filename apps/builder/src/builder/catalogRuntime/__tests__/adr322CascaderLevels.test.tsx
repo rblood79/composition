@@ -1,12 +1,16 @@
 import { act, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, Fragment } from "react";
 import { renderToString } from "react-dom/server";
 import { Button } from "react-aria-components/Button";
+import { Input } from "react-aria-components/Input";
+import { SearchField } from "react-aria-components/SearchField";
+import { CatalogPopover } from "../../../../../../packages/shared/src/catalog/runtime/CatalogPopover";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cascaderTable } from "../../../../../../packages/shared/src/catalog/runtime/cascader";
 import {
   CatalogCascaderField,
+  CatalogCascaderListHost,
   CatalogCascaderValue,
   type CascaderMode,
 } from "../../../../../../packages/shared/src/catalog/runtime/cascader.components";
@@ -28,16 +32,11 @@ afterEach(() => {
 });
 // (The open contents are lazy chunks — their first import outlasts a few frames.)
 beforeAll(async () => {
-  await import(
-    "../../../../../../packages/shared/src/catalog/runtime/cascaderMenu.components"
-  );
-  await import(
-    "../../../../../../packages/shared/src/catalog/runtime/cascaderPanel.components"
-  );
+  await import("../../../../../../packages/shared/src/catalog/runtime/cascaderMenu.components");
+  await import("../../../../../../packages/shared/src/catalog/runtime/cascaderPanel.components");
 });
 
-const settle = () =>
-  act(async () => new Promise((r) => setTimeout(r, 600)));
+const settle = () => act(async () => new Promise((r) => setTimeout(r, 600)));
 
 function levelsOf(states: Map<string, CatalogCascaderLevelState>) {
   const listeners = new Set<() => void>();
@@ -103,6 +102,28 @@ function field(
           catalogId: "value",
         }),
       ),
+      // (ADR-326 Phase 2 — a `columns` field's open content is its nodes: the Popover > the search
+      //  field + the list box body, as the catalog renderer draws them.)
+      mode === "columns"
+        ? createElement(CatalogPopover, {
+            children: createElement(
+              Fragment,
+              null,
+              createElement(SearchField, {}, createElement(Input)),
+              createElement(CatalogCascaderListHost, {
+                base: {
+                  className: "react-aria-CascaderList",
+                  "data-size": "M",
+                },
+                records: {
+                  get: () => undefined,
+                  typeOf: () => "",
+                  renderChild: () => createElement(Fragment),
+                },
+              }),
+            ),
+          })
+        : null,
     ),
   );
 }

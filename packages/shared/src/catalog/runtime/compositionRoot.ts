@@ -8409,12 +8409,13 @@ export class CatalogCompositionRoot {
     queue: readonly string[],
     breakpoint: BreakpointName,
     counts: { resolverVisits: number; includeChecks: number },
+    // (Records anchored while the step runs — a Cascader's size, below.)
+    anchorOf = new Map<string, string>(),
   ): (
     id: string,
   ) => { top: ResolvedCatalogNode; resolved: ResolvedCatalogNode } | undefined {
     const queued = new Set(queue);
     const under = new Map<string, number>();
-    const anchorOf = new Map<string, string>();
     for (const id of queue)
       for (
         let parent = this.records.get(this.records.get(id)?.parentId ?? "");
@@ -8428,7 +8429,6 @@ export class CatalogCompositionRoot {
         count >= BULK_PRUNED_MIN ? [id] : [],
       ),
     );
-    if (!anchors.size) return () => undefined;
     for (const id of queue) {
       // (The outermost anchor at or above the record.)
       let anchor: string | undefined;
@@ -8519,7 +8519,8 @@ export class CatalogCompositionRoot {
       queue.push(...(this.sourceInstances.get(sourceId) ?? []));
     for (const id of extraRecords) if (!queue.includes(id)) queue.push(id);
     const queued = new Set(queue);
-    const bulk = this.bulkPruned(queue, this.breakpoint, counts);
+    const late = new Map<string, string>();
+    const bulk = this.bulkPruned(queue, this.breakpoint, counts, late);
     for (let index = 0; index < queue.length; index++) {
       const id = queue[index];
       const before = this.records.get(id)!;
@@ -8614,6 +8615,19 @@ export class CatalogCompositionRoot {
               : [childId];
           });
         const reached = sized ? through(record.children) : [];
+        // ADR-326: a Cascader's size reaches its rows at every level (`CATALOG_SIZE_CONTEXT_OF`) —
+        //  its records resolve again together; one each projects the bound rows' hierarchy.
+        if (this.typeOf(record) === "Cascader")
+          for (const stack = [...record.children]; stack.length;) {
+            const child = this.records.get(stack.pop()!);
+            if (!child) continue;
+            stack.push(...child.children);
+            late.set(child.id, id);
+            if (!queued.has(child.id)) {
+              queued.add(child.id);
+              queue.push(child.id);
+            }
+          }
         // (A toggle group's size reaches every toggle of its own — at any depth in the group.)
         const itemType = Object.keys(CATALOG_SIZE_CONTEXT_OF).find(
           (item) => CATALOG_SIZE_CONTEXT_OF[item] === this.typeOf(record),

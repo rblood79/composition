@@ -22,7 +22,8 @@ import { catalogLocalized } from "./localizedStrings";
 /** At most this many results (breakdown §4.4). */
 export const CASCADER_SEARCH_LIMIT = 200;
 
-const STRINGS: Readonly<
+/** The search's words (the field's · its results' — shared with the `columns` list box). */
+export const CASCADER_SEARCH_STRINGS: Readonly<
   Record<
     string,
     {
@@ -84,7 +85,7 @@ export function CascaderSearch({
 }): ReactElement {
   const { table, keys, multiple, onPick } = content;
   const { locale } = useLocale();
-  const strings = catalogLocalized(STRINGS, locale);
+  const strings = catalogLocalized(CASCADER_SEARCH_STRINGS, locale);
   const [query, setQuery] = useState("");
   const found = cascaderSearch(table, query, locale);
   const shown = found.slice(0, CASCADER_SEARCH_LIMIT);

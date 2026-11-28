@@ -13,6 +13,15 @@ import {
 } from "react";
 import { useCascaderForm } from "./cascaderForm.components";
 import { Provider } from "react-aria-components";
+import {
+  DialogContext,
+  OverlayTriggerStateContext,
+} from "react-aria-components/Dialog";
+import {
+  MenuContext,
+  RootMenuTriggerStateContext,
+} from "react-aria-components/Menu";
+import { PopoverContext } from "react-aria-components/Popover";
 import { useField } from "react-aria";
 import { useMenuTrigger } from "react-aria/useMenu";
 import { useOverlayTrigger } from "react-aria/useOverlayTrigger";
@@ -22,11 +31,14 @@ import { LabelContext } from "react-aria-components/Label";
 import { TextContext } from "react-aria-components/Text";
 import { useMenuTriggerState } from "react-stately/useMenuTriggerState";
 import {
+  CASCADER_DEFAULT_SEPARATOR,
   cascaderValueRefusal,
   cascaderValueText,
   type CascaderTable,
 } from "./cascader";
 import type { CatalogCascaderLevels } from "./cascaderLevels";
+import { CatalogPopoverContentContext } from "./CatalogPopover";
+import type { CascaderListBodyProps } from "./cascaderMenu.components";
 
 /**
  * ADR-322 — a Cascader's field (breakdown §3 · §4.5). No RAC picker owns its parts (Select's part
@@ -35,14 +47,62 @@ import type { CatalogCascaderLevels } from "./cascaderLevels";
  * help and error text (`TextContext` slots · `FieldErrorContext`); the open Button takes RAC
  * `MenuTrigger`'s trigger (react-aria `useMenuTrigger` + `useMenuTriggerState` — its props through
  * `ButtonContext`, as RAC Select passes its trigger's: the label row's help button keeps its own
- * press, `slot={null}`). The open content (`columns` — Phase 2) takes `MenuTrigger`'s contexts and
- * loads with the first open (`cascaderMenu.components.tsx`). The field writes no role, `aria-*`
+ * press, `slot={null}`). The `columns` open content is the field's nodes (ADR-326 Phase 2): the field
+ * gives `MenuTrigger`'s contexts always and the Popover node opens with them; its search scope and list
+ * box body load with the first open (`cascaderMenu.components.tsx`). The field writes no role, `aria-*`
  * attribute or key handler of its own (HC2 — those are RAC's · react-aria's).
  */
 
-const CatalogCascaderMenu = lazy(() => import("./cascaderMenu.components"));
-// (Phase 3 — the `tree` · `drill` modes: RAC `Popover` > `Dialog` > `Tree` · `GridList`, their own chunk.)
+// (ADR-326 Phase 2 — `columns`: the Popover node's search scope, loaded with the first open.)
+const CascaderOpenScope = lazy(() =>
+  import("./cascaderMenu.components").then((module) => ({
+    default: module.CascaderOpenScope,
+  })),
+);
+// (ADR-322 Phase 3 — the `tree` · `drill` modes: RAC `Popover` > `Dialog` > `Tree` · `GridList`, their
+//  own chunk. ADR-326 Phase 3 draws them from the nodes too.)
 const CatalogCascaderPanel = lazy(() => import("./cascaderPanel.components"));
+
+/**
+ * ADR-326 §4.3 — what the field gives its open content's list box node (`cascaderlist`): the table,
+ * the picked keys and a pick, its levels and words. Given while the field is a `columns` one.
+ */
+export interface CascaderOpenValue {
+  readonly table: CascaderTable;
+  readonly keys: readonly string[];
+  readonly multiple: boolean;
+  readonly label: string;
+  readonly onPick: (key: string) => void;
+  readonly separator: string;
+  readonly levels?: CatalogCascaderLevels;
+}
+
+const CascaderOpenContext = createContext<CascaderOpenValue | null>(null);
+
+// (The list box body is the same chunk as the search scope. It takes the field's values as props
+//  — a lazy chunk importing a value of this first-screen module makes rollup split this module and
+//  its imports into chunks of their own: the first screen grew by 4 KB, Phase 2 A/B.)
+const CascaderListBody = lazy(() =>
+  import("./cascaderMenu.components").then((module) => ({
+    default: module.CascaderListBody,
+  })),
+);
+
+/**
+ * ADR-326 Phase 2 — the `CascaderList` node's DOM while its `columns` field is open (the catalog
+ * renderer's — `delegatedDom.runtime.ts` `cascaderlist`): the field's open values, then the lazy body.
+ */
+export function CatalogCascaderListHost(
+  props: Omit<CascaderListBodyProps, "open">,
+) {
+  const open = useContext(CascaderOpenContext);
+  if (!open) return null;
+  return (
+    <Suspense fallback={null}>
+      <CascaderListBody {...props} open={open} />
+    </Suspense>
+  );
+}
 
 /** The open content's way (사용자 결정 1 — `columns` by default). */
 export type CascaderMode = "columns" | "tree" | "drill";
@@ -203,7 +263,57 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
     children,
     inputs,
   );
-  const OpenContent = menuMode ? CatalogCascaderMenu : CatalogCascaderPanel;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const onPick = (key: string) => {
+    if (!multiple) write([key]);
+    else if (current.includes(key))
+      write(current.filter((selected) => selected !== key));
+    else write([...current, key]);
+  };
+  // (ADR-326 Phase 2 — `columns`: the contexts RAC `MenuTrigger` gives its Popover and Menu, given
+  //  always — the Popover node opens with them, `trigger: "Cascader"`; its children take the search
+  //  scope · the open values.)
+  const opened = menuMode ? (
+    <Provider
+      values={[
+        [MenuContext, { ...menuProps, ref: scrollRef }],
+        [DialogContext, null],
+        [OverlayTriggerStateContext, state],
+        [RootMenuTriggerStateContext, state],
+        [
+          PopoverContext,
+          {
+            trigger: "Cascader",
+            triggerRef,
+            scrollRef,
+            placement: "bottom start",
+            "aria-labelledby": menuProps["aria-labelledby"],
+          },
+        ],
+      ]}
+    >
+      <CatalogPopoverContentContext.Provider value={CASCADER_POPOVER_CONTENT}>
+        <CascaderOpenContext.Provider
+          value={{
+            table,
+            keys: current,
+            multiple,
+            label: label || placeholder,
+            onPick,
+            separator:
+              typeof display.separator === "string"
+                ? display.separator
+                : CASCADER_DEFAULT_SEPARATOR,
+            levels,
+          }}
+        >
+          {field}
+        </CascaderOpenContext.Provider>
+      </CatalogPopoverContentContext.Provider>
+    </Provider>
+  ) : (
+    field
+  );
   return (
     <Provider
       values={[
@@ -234,10 +344,10 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
         [CascaderValueContext, { id: valueId, text, placeholder }],
       ]}
     >
-      {field}
-      {state.isOpen && (
+      {opened}
+      {!menuMode && state.isOpen && (
         <Suspense fallback={null}>
-          <OpenContent
+          <CatalogCascaderPanel
             state={state}
             triggerRef={triggerRef}
             menuProps={menuProps}
@@ -257,6 +367,16 @@ export function CatalogCascaderField(props: CatalogCascaderFieldProps) {
     </Provider>
   );
 }
+
+/** The Popover node's children of a `columns` Cascader, in its search scope (a lazy chunk). */
+const CASCADER_POPOVER_CONTENT = {
+  trigger: "Cascader",
+  wrap: (children: ReactNode) => (
+    <Suspense fallback={null}>
+      <CascaderOpenScope>{children}</CascaderOpenScope>
+    </Suspense>
+  ),
+};
 
 /**
  * The value text in a Cascader's open Button (RAC `SelectValue`'s element and class — the field's

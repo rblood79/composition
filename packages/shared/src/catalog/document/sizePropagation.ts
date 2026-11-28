@@ -171,6 +171,8 @@ export const CATALOG_TOGGLE_GROUP_OF: Readonly<Record<string, string>> = {
 export const CATALOG_SIZE_CONTEXT_OF: Readonly<Record<string, string>> = {
   ...CATALOG_TOGGLE_GROUP_OF,
   ActionButton: "ActionButtonGroup",
+  // ADR-326: a Cascader's row at any level takes its list's size (S2 menu items — the Menu's).
+  CascaderItem: "CascaderList",
 };
 
 /**

@@ -1,17 +1,132 @@
 /* ============================================================
  * AUTO-GENERATED from catalog CascaderItem — DO NOT EDIT MANUALLY
  * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
- * Archetype: container
+ * Archetype: simple
  * ============================================================ */
 
 @layer components {
 
 .react-aria-CascaderItem {
-  /* Base styles — archetype: container */
-    display: block;
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
     box-sizing: border-box;
-    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: grid;
+  align-items: center;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  column-gap: 0px;
+  row-gap: 1px;
+
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-cascader-item-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-sm--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
 }
+
+.react-aria-CascaderItem:where([data-variant="default"]) {
+  background: transparent;
+}
+
+.react-aria-CascaderItem:where([data-variant="default"]:is([data-focused],[data-focus-within])) {
+  background: var(--collection-item-focus);
+}
+
+.react-aria-CascaderItem:where([data-variant="default"][data-disabled]) {
+  background: transparent;
+}
+
+.react-aria-CascaderItem[data-size="S"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-cascader-item-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
+}
+
+.react-aria-CascaderItem[data-size="M"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-cascader-item-padding-x-M, calc(var(--catalog-token-size-height-M) * 3 / 8));
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-sm--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
+}
+
+.react-aria-CascaderItem[data-size="L"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-base) * var(--catalog-token-text-base--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-cascader-item-padding-x-L, calc(var(--catalog-token-size-height-L) * 3 / 8));
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-lg);
+  line-height: var(--catalog-token-text-base--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-L);
+}
+
+.react-aria-CascaderItem[data-size="XL"] {
+  height: auto;
+  padding: calc((var(--catalog-token-size-height-XL) - var(--catalog-token-text-lg) * var(--catalog-token-text-lg--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-cascader-item-padding-x-XL, calc(var(--catalog-token-size-height-XL) * 3 / 8));
+  font-size: var(--catalog-token-text-lg);
+  border-radius: var(--catalog-token-radius-xl);
+  line-height: var(--catalog-token-text-lg--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-XL);
+}
+
+.react-aria-CascaderItem.react-aria-CascaderItem {
+  background: transparent;
+  outline: none;
+  will-change: transform;
+  transition: transform 150ms cubic-bezier(0.45, 0, 0.4, 1);
+}
+
+.react-aria-CascaderItem.react-aria-CascaderItem:where(:is([data-focused],[data-focus-within])) {
+  background: var(--collection-item-focus);
+}
+
+.react-aria-CascaderItem.react-aria-CascaderItem:where([data-disabled]) {
+  background: transparent;
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.react-aria-CascaderItem.react-aria-CascaderItem:where([data-focus-visible]) {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-CascaderItem.react-aria-CascaderItem:where([data-pressed]) {
+  transform: perspective(max(var(--catalog-press-height, 0px), calc(var(--catalog-press-width, 0px) / 3), 24px)) translate3d(0, 0, -2px);
+}
+
+.react-aria-CascaderItem.react-aria-CascaderItem:where([href]) {
+  text-decoration: none;
+  color: inherit;
+}
+
+.react-aria-CascaderItem.react-aria-CascaderItem[data-selection-mode="multiple"]:where([data-selected])::before {
+  content: "✓" / "";
+}
+
+.react-aria-CascaderItem.react-aria-CascaderItem[data-selection-mode="single"]:where([data-selected])::before {
+  content: "●" / "";
+}
+
+/* ── Tier 2: Composite Delegation ── */
 
 
 @media (forced-colors: active) {
@@ -19,6 +134,137 @@
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-CascaderItem .react-aria-Icon[slot="selection"] {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .react-aria-CascaderItem .react-aria-Checkbox[slot="selection"] {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .react-aria-CascaderItem .react-aria-Icon[slot="icon"] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .react-aria-CascaderItem .react-aria-Text[slot="label"] {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .react-aria-CascaderItem .react-aria-Text[slot="description"] {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .react-aria-CascaderItem .react-aria-Keyboard {
+    grid-column: 4;
+    grid-row: 1;
+    margin-left: 8px;
+  }
+
+  .react-aria-CascaderItem .react-aria-Icon[slot="descriptor"] {
+    grid-column: 5;
+    grid-row: 1;
+    margin-left: 8px;
+  }
+
+
+  .react-aria-CascaderItem[data-size="S"] .react-aria-Icon[slot="selection"] {
+    margin-right: calc(var(--catalog-token-text-xs) * 10 / 14);
+  }
+
+  .react-aria-CascaderItem[data-size="S"] .react-aria-Checkbox[slot="selection"] {
+    margin-right: calc(var(--catalog-token-text-xs) * 10 / 14);
+  }
+
+  .react-aria-CascaderItem[data-size="S"] .react-aria-Icon[slot="icon"] {
+    margin-right: calc(var(--catalog-token-text-xs) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  }
+
+  .react-aria-CascaderItem[data-size="S"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-CascaderItem[data-size="S"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-2xs);
+    line-height: var(--catalog-token-text-2xs--line-height);
+  }
+
+  .react-aria-CascaderItem[data-size="M"] .react-aria-Icon[slot="selection"] {
+    margin-right: calc(var(--catalog-token-text-sm) * 10 / 14);
+  }
+
+  .react-aria-CascaderItem[data-size="M"] .react-aria-Checkbox[slot="selection"] {
+    margin-right: calc(var(--catalog-token-text-sm) * 10 / 14);
+  }
+
+  .react-aria-CascaderItem[data-size="M"] .react-aria-Icon[slot="icon"] {
+    margin-right: calc(var(--catalog-token-text-sm) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  }
+
+  .react-aria-CascaderItem[data-size="M"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-CascaderItem[data-size="M"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-xs);
+    line-height: var(--catalog-token-text-xs--line-height);
+  }
+
+  .react-aria-CascaderItem[data-size="L"] .react-aria-Icon[slot="selection"] {
+    margin-right: calc(var(--catalog-token-text-base) * 10 / 14);
+  }
+
+  .react-aria-CascaderItem[data-size="L"] .react-aria-Checkbox[slot="selection"] {
+    margin-right: calc(var(--catalog-token-text-base) * 10 / 14);
+  }
+
+  .react-aria-CascaderItem[data-size="L"] .react-aria-Icon[slot="icon"] {
+    margin-right: calc(var(--catalog-token-text-base) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  }
+
+  .react-aria-CascaderItem[data-size="L"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-CascaderItem[data-size="L"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-sm);
+    line-height: var(--catalog-token-text-sm--line-height);
+  }
+
+  .react-aria-CascaderItem[data-size="XL"] .react-aria-Icon[slot="selection"] {
+    margin-right: calc(var(--catalog-token-text-lg) * 10 / 14);
+  }
+
+  .react-aria-CascaderItem[data-size="XL"] .react-aria-Checkbox[slot="selection"] {
+    margin-right: calc(var(--catalog-token-text-lg) * 10 / 14);
+  }
+
+  .react-aria-CascaderItem[data-size="XL"] .react-aria-Icon[slot="icon"] {
+    margin-right: calc(var(--catalog-token-text-lg) * (6 / 14 + (8 / 17 - 6 / 14) * var(--catalog-token-size-device-touch)));
+  }
+
+  .react-aria-CascaderItem[data-size="XL"] .react-aria-Text[slot="label"] {
+    font-size: var(--catalog-token-text-lg);
+    line-height: var(--catalog-token-text-lg--line-height);
+    font-weight: 500;
+  }
+
+  .react-aria-CascaderItem[data-size="XL"] .react-aria-Text[slot="description"] {
+    font-size: var(--catalog-token-text-base);
+    line-height: var(--catalog-token-text-base--line-height);
+  }
 
 
 } /* @layer components */
