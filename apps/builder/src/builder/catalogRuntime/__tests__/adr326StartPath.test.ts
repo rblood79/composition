@@ -136,7 +136,8 @@ async function tableOf(
   shape: Shape,
   nodes: readonly Node[],
   start: string,
-  reader: "builder" | "preview",
+  reader: "builder" | "preview" | "remote",
+  value = "f-id",
 ) {
   const sources = sourcesOf(shape, nodes);
   const library = await buildCodeCatalogLibrary();
@@ -155,7 +156,19 @@ async function tableOf(
       autosaveSchedule: () => {},
       root: {
         rows: (bound, kind, _owner, _path, slices) =>
-          reader === "builder"
+          reader === "remote"
+            ? // (The Preview's levels loaded one by one — `remoteLevels`: the row's level key is the
+              //  collection's identity.)
+              catalogBoundRows(
+                bound,
+                sources as never,
+                kind,
+                Number.MAX_SAFE_INTEGER,
+                0,
+                slices,
+                true,
+              )
+            : reader === "builder"
             ? catalogBoundRows(
                 bound,
                 sources as never,
@@ -199,7 +212,7 @@ async function tableOf(
         collectionId: col("t"),
         fieldMap:
           shape === "flat"
-            ? { value: ref("f-id"), parentId: ref("f-parent") }
+            ? { value: ref(value), parentId: ref("f-parent") }
             : shape === "nested"
               ? { value: ref("f-id"), children: ref("f-sub") }
               : { value: ref("f-id") },
@@ -363,5 +376,24 @@ describe("ADR-326 G1 — the Builder's table answers the start key as the whole 
     expect(verdict(table(), "R120-1")).toMatchObject({ chain: ["R120"] });
     workspace.undo();
     expect(cascaderValueMatch(table(), "R120-1").kind).toBe("missing");
+  });
+
+  it("a row's level key reaches its item record (an item origin's instance — Preview levels by name)", async () => {
+    // (G6 live R4 「Mapped」: the value field is the name, the levels are asked by the row's id.)
+    const { table } = await tableOf(
+      "flat",
+      PARENTS_120.slice(0, 2),
+      "",
+      "remote",
+      "f-name",
+    );
+    expect(
+      table().entries.map((entry) => [entry.key, entry.levelKey]),
+    ).toEqual([
+      ["Root 1", "R1"],
+      ["Child 1", "R1-1"],
+      ["Root 2", "R2"],
+      ["Child 2", "R2-1"],
+    ]);
   });
 });

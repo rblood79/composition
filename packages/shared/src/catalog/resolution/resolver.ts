@@ -3544,6 +3544,11 @@ export function resolveCatalogNode(
               ...(ownedRowing?.rowStart ? ["id"] : []),
               // (The collection's load reaches the template root — the Table record.)
               ...(props.loadingState !== undefined ? ["loadingState"] : []),
+              // (ADR-326 — a bound Cascader item is an item origin's instance: the row's level key
+              //  — the collection's identity, not its value — reaches its CascaderItem record.)
+              ...(props.catalogCascaderLevelKey !== undefined
+                ? ["catalogCascaderLevelKey"]
+                : []),
               // (The rows a data field disables reach it too — S2 `disabledKeys`.)
               ...(disabledRows?.length ? ["disabledKeys"] : []),
               // (The dates its data names too — S2 `isDateUnavailable`.)
@@ -4485,6 +4490,8 @@ export function resolveCatalogNode(
           definition.mode === "composite" ||
           // (ADR-315 Phase 5 — the resolver's own mark, no authored prop: a group's tree cell.)
           key === CATALOG_TREE_CELL_PROP ||
+          // (ADR-326 — the resolver's own mark: a bound Cascader item's level key.)
+          key === "catalogCascaderLevelKey" ||
           // (S2 `isDateUnavailable` from data — the dates the instance's binding names.)
           key === CATALOG_UNAVAILABLE_DATA_PROP
         )
