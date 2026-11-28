@@ -140,7 +140,15 @@ const observe = (page) =>
       dialog: dialog
         ? { name: name(dialog), part: dialog.getAttribute("data-part") }
         : null,
-      list: list ? { role: list.getAttribute("role"), name: name(list) } : null,
+      list: list
+        ? {
+            role: list.getAttribute("role"),
+            name: name(list),
+            part: list.getAttribute("data-part"),
+          }
+        : null,
+      query:
+        document.querySelector('[data-part="search"] input')?.value ?? null,
       trigger: {
         expanded: trigger?.getAttribute("aria-expanded"),
         haspopup: trigger?.getAttribute("aria-haspopup"),
@@ -206,7 +214,7 @@ const SCRIPTS = {
     await press(page, "ArrowRight");
     log("→ (third level)", await observe(page));
     await press(page, "Enter");
-    log("Enter (pick 역삼동)", await observe(page));
+    log("Enter (pick 남포동)", await observe(page));
     await press(page, "Enter");
     log("reopen", await observe(page));
     await press(page, "ArrowDown");
@@ -223,6 +231,7 @@ const SCRIPTS = {
     await press(page, "Enter");
     log("↓ Enter (result)", await observe(page));
     await press(page, "Enter");
+    log("reopen after search", await observe(page));
     await page.mouse.click(400, 500);
     await settle(page);
     log("click outside", await observe(page));
@@ -258,11 +267,45 @@ const SCRIPTS = {
     await press(page, "Enter");
     log("↓ Enter (result)", await observe(page));
     await press(page, "Enter");
+    log("reopen after search", await observe(page));
     await page.mouse.click(400, 500);
     await settle(page);
     log("click outside", await observe(page));
   },
 };
+
+/**
+ * What each step must show on its own — not only 「the same as arm a」 (two arms that both fail a step
+ * would agree, and the later steps would run from a wrong state). Leaf names are from the fixture.
+ */
+const EXPECT = {
+  columns: {
+    "Enter (pick 남포동)": (s) =>
+      !s.state.open && s.state.text.endsWith("남포동"),
+    "→ then Esc": (s) => s.state.open && s.menus === 1,
+    "Esc again": (s) => !s.state.open && s.focus === "trigger",
+    // (The results Menu's name is the field's — MenuContext's `aria-labelledby` — so judge by the part.)
+    "type 명": (s) => s.query === "명" && s.list?.part === "results",
+    "↓ Enter (result)": (s) => !s.state.open && /명[^/]*$/.test(s.state.text),
+    "reopen after search": (s) =>
+      s.state.open && s.query === "" && s.list?.part === "list",
+    "click outside": (s) => !s.state.open,
+  },
+  tree: {
+    "Enter (pick 명동)": (s) => !s.state.open && s.state.text.endsWith("명동"),
+    Esc: (s) => !s.state.open && s.focus === "trigger",
+    "type 남": (s) => s.query === "남" && s.list?.part === "results",
+    "↓ Enter (result)": (s) => !s.state.open && /남[^/]*$/.test(s.state.text),
+    "reopen after search": (s) =>
+      s.state.open && s.query === "" && s.list?.role === "treegrid",
+    "click outside": (s) => !s.state.open,
+  },
+};
+const expectFailures = (mode, steps) =>
+  Object.entries(EXPECT[mode]).flatMap(([label, ok]) => {
+    const step = steps.find((at) => at.label === label);
+    return step && ok(step) ? [] : [label];
+  });
 
 /** Fields whose value names the arm itself (the trigger name, the clear button) — recorded, not compared. */
 const comparable = (step) => ({
@@ -385,7 +428,17 @@ const CHECKS = {
       arms[name] = { steps, ax, dom };
     }
     const { diffs, axSame, byArm } = compareArms(arms);
-    out.p1 = { go: diffs.length === 0 && axSame, diffs, axSame, byArm, arms };
+    const expected = Object.fromEntries(
+      ARMS.map((name) => [name, expectFailures("columns", arms[name].steps)]),
+    );
+    out.p1 = {
+      go: diffs.length === 0 && axSame && expected[byArm.chosen].length === 0,
+      diffs,
+      axSame,
+      expected,
+      byArm,
+      arms,
+    };
   },
   // P1 + P3 — tree: Popover > Dialog (`display: contents`) > Autocomplete > SearchField + Tree.
   async p3(page, out, browser) {
@@ -413,7 +466,17 @@ const CHECKS = {
       arms[name] = { steps, ax, dom };
     }
     const { diffs, axSame, byArm } = compareArms(arms);
-    out.p3 = { go: diffs.length === 0 && axSame, diffs, axSame, byArm, arms };
+    const expected = Object.fromEntries(
+      ARMS.map((name) => [name, expectFailures("tree", arms[name].steps)]),
+    );
+    out.p3 = {
+      go: diffs.length === 0 && axSame && expected[byArm.chosen].length === 0,
+      diffs,
+      axSame,
+      expected,
+      byArm,
+      arms,
+    };
   },
   // P6 — crumb slots: ref (every crumb drawn) vs slot (four slots + the real count), live widths.
   async p6(page, out) {
@@ -596,7 +659,11 @@ const summary = Object.fromEntries(
             ? "go"
             : value.error
               ? `error`
-              : `no-go (${value.diffs?.length ?? "-"} diffs)`,
+              : `no-go (${value.diffs?.length ?? "-"} diffs${
+                  value.expected
+                    ? ` · expect ${JSON.stringify(value.expected[value.byArm.chosen])}`
+                    : ""
+                })`,
         ]),
     ),
   ]),

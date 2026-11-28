@@ -70,7 +70,13 @@ function LevelMenu({ parentId, onPick, part }) {
     {
       "aria-label": parentId ? `${ROWS.get(parentId).name} 하위` : undefined,
       selectionMode: "single",
-      selectedKeys: window.__value ? [window.__value] : [],
+      // (Like the product's level Menu — `cascaderMenu.components.tsx` `selectedKeys`: only this level's
+      // own leaf. A key from another level would make RAC's default `escapeKeyBehavior: "clearSelection"`
+      // spend Esc on a selection the level does not show, and the root menu would not close.)
+      selectedKeys:
+        window.__value && ROWS.get(window.__value)?.parentId === parentId
+          ? [window.__value]
+          : [],
       onAction: (key) => {
         if (!ROWS.get(String(key)).node.children) onPick(String(key));
       },
@@ -159,6 +165,8 @@ function LevelTree({ onPick, label }) {
       "aria-label": label,
       selectionMode: "single",
       selectedKeys: window.__value ? [window.__value] : [],
+      // (The product's tree — `cascaderPanel.components.tsx` `escapeKeyBehavior="none"`.)
+      escapeKeyBehavior: "none",
       expandedKeys: expanded,
       onExpandedChange: (keys) => setExpanded(new Set([...keys].map(String))),
       onSelectionChange: (keys) => {
@@ -277,8 +285,12 @@ const ListSlot = lazy(async () => ({
       : h(LevelTree, { onPick, label });
   },
 }));
-/** arm b — 필드가 그리는 Popover 노드 (catalog renderer) · 그 children 을 감싸는 Provider 자리. */
-function ContentB({ mode, onPick, label, popoverProps }) {
+/**
+ * arm b — Popover 노드의 children 을 감싸는 Provider 자리. 검색어는 이 자리 (Popover 가 열렸을 때만 그리는
+ * children) 가 갖는다 — 필드 쪽 (늘 그려진다) 에 두면 닫았다 다시 열 때 지난 검색어 · 결과가 남는다 (arm a 는
+ * 열 때마다 lazy 몸통이 새로 그려 빈 검색창).
+ */
+function SearchScope({ mode, onPick, label }) {
   const [query, setQuery] = useState("");
   // (The SearchField node — the catalog SearchField origin: Input + clear Button; label "" → i18n name.)
   const searchNode = h(
@@ -297,12 +309,16 @@ function ContentB({ mode, onPick, label, popoverProps }) {
     { key: "list", fallback: null },
     h(ListSlot, { mode, query, onPick, label }),
   );
-  const children = h(
+  return h(
     Autocomplete,
     { inputValue: query, onInputChange: setQuery },
     searchNode,
     listNode,
   );
+}
+/** arm b — 필드가 그리는 Popover 노드 (catalog renderer) · 그 children 이 `SearchScope`. */
+function ContentB({ mode, onPick, label, popoverProps }) {
+  const children = h(SearchScope, { mode, onPick, label });
   return h(
     CatalogPopover,
     { "data-part": "popover", ...popoverProps },
