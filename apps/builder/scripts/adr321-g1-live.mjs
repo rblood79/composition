@@ -308,7 +308,17 @@ try {
   const stepIds = steps().map((row) => row.id);
   const STATES = [
     { id: "2 기본 (가로 M)" },
-    { id: "3 XL · 강조", list: { props: { size: "XL", isEmphasized: true } } },
+    // (2026-11-28: fit-content 목록 폭 = 라벨 max-content 합 · 몫보다 1/64 px 넘게 넓은 라벨은 줄바꿈 —
+    //  S 「단계 2」 30.80 / 몫 30.33, L 41.06 / 40.87. G3 `StepList@S · L`.)
+    {
+      id: "2b 가로 S · fit-content",
+      list: { props: { size: "S" }, visual: { width: "fit-content" } },
+    },
+    { id: "2c 가로 L · fit-content", list: { props: { size: "L" } } },
+    {
+      id: "3 XL · 강조",
+      list: { props: { size: "XL", isEmphasized: true }, visual: { width: null } },
+    },
     {
       id: "4 세로 L",
       list: {

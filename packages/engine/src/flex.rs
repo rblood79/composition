@@ -302,6 +302,10 @@ struct FlexItem {
     min_main_is_auto: bool,
     /// item 자신이 scroll container 인가 (슬롯 18) — ratio 종속 축 §5.2.2 자동 최소의 게이트.
     scroll_container: bool,
+    /// 주축 크기가 미결정 (intrinsic 측정) 일 때 쓰는 크기 (content-box). row 의 명시 `flex-basis`
+    /// 길이면 §9.9.1 의 기여 (width → content, grow 0 이면 basis 가 상한 · shrink 0 이면 하한), 그 밖에는
+    /// flex base size 와 같다 — Step 0 참고.
+    intrinsic_main: f32,
     // §9.7 상태
     frozen: bool,
     target_main: f32,
@@ -487,9 +491,7 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     //   main(=height) 을 거기서 전송한다. Chrome 실측 `column` 안 Button + ratio 2 (fill 없음, start)
     //   → 68×34 (종전 엔진 30 = content 높이). row 는 main 이 inline 이라 content_main 그대로.
     let cross_from_content = aspect > 0.0 && direction == DIR_COLUMN && !cross_definite;
-    let basis = if basis_explicit {
-        flex_basis
-    } else if width != AUTO {
+    let unbased = if width != AUTO {
         width
     } else if aspect > 0.0 && cross_definite {
         ((height + pad_border_cross) * aspect - pad_border_main).max(0.0)
@@ -499,6 +501,7 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
     } else {
         content_main
     };
+    let basis = if basis_explicit { flex_basis } else { unbased };
     let basis_is_content = !basis_explicit && width == AUTO && !(aspect > 0.0 && cross_definite);
     let min_main_is_auto = raw_min_main == AUTO && data[off + 18] == 0.0 && width == AUTO;
     // ratio 전송 basis 는 §4.5 floor — Chrome 은 shrink 로 전송값 아래로 내리지 않는다.
@@ -579,6 +582,19 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
         basis_is_content,
         min_main_is_auto,
         scroll_container: data[off + 18] != 0.0,
+        intrinsic_main: if basis_explicit && direction == DIR_ROW {
+            // §9.9.1 — 기여 = 내용 (width → content), 못 자라면 basis 가 상한 · 못 줄면 basis 가 하한.
+            let mut c = unbased.max(0.0);
+            if flex_grow <= 0.0 {
+                c = c.min(main_content);
+            }
+            if flex_shrink <= 0.0 {
+                c = c.max(main_content);
+            }
+            c
+        } else {
+            main_content
+        },
         frozen: false,
         target_main: main_content,
     }
@@ -689,6 +705,7 @@ fn transfer_aspect_basis_from_stretch(
         let basis = (stretched_border * it.aspect - it.pad_border_main).max(0.0);
         it.flex_basis = basis;
         it.main_content = basis;
+        it.intrinsic_main = basis;
         it.target_main = basis;
         // §4.5 automatic minimum — 전송값이 min-content 기여라 shrink 가 그 아래로 못 내린다
         // (Chrome column 240 안 900×450 이 240 으로 줄지 않는다).
@@ -713,10 +730,18 @@ fn resolve_flexible_lengths(line: &mut [FlexItem], available_main: f32, total_ga
     // 하지 않고 각 아이템의 hypothetical(flex-basis) 를 유지한다(max-content 기준).
     // available_main 음수를 grow/shrink 분배식에 넣으면 remaining 이 큰 음수가 되어
     // 아이템 main 축이 0 으로 붕괴하므로, 분배 전에 basis 로 확정하고 조기 반환한다.
+    //
+    // row 의 명시 `flex-basis` 길이는 그대로 쓰지 않는다 (`intrinsic_main`). Chrome 의 row 컨테이너
+    // min/max-content 는 item 기여의 합이고, 기여는 내용 (width → content) 을 basis 로 자를 뿐이다 —
+    // 못 자라면 (grow 0) 상한, 못 줄면 (shrink 0) 하한 (CSS Flexbox §9.9.1, Chrome 158 실측 2026-11-28:
+    // `flex: 1 1 0px` 세 단계 = 라벨 max-content 합 — ADR-321 StepList · `flex: 0 0 100px` 빈 상자 = 100 ·
+    // `0 1 100px` = 0 · `1 0 100px` = 100). basis 로 재면
+    // fit-content 목록이 min 폭 합으로 줄어 라벨 줄바꿈이 DOM 과 갈린다. 확정 폭 배치 (아래 §9.7) 는
+    // 그대로 basis 를 쓴다. column 은 이 경로가 auto 높이 배치라 basis 그대로 (Chrome 도 배치로 잰다).
     if available_main < 0.0 {
         for it in line.iter_mut() {
             it.frozen = true;
-            it.target_main = clamp_size(it.flex_basis, it.min_main.max(0.0), it.max_main);
+            it.target_main = clamp_size(it.intrinsic_main, it.min_main.max(0.0), it.max_main);
             it.main_content = it.target_main;
         }
         return;
@@ -1539,6 +1564,53 @@ mod tests {
         let out = flex_layout(&data, 300.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
         assert!((out[2] - 120.0).abs() < 0.01, "item0 clamped width={}", out[2]);
         assert!((out[6] - 180.0).abs() < 0.01, "item1 redistributed width={}", out[6]);
+    }
+
+    #[test]
+    fn row_intrinsic_ignores_explicit_basis_length() {
+        // ADR-321 StepList — `flex: 1 1 0px` + min-width 32 세 단계, content (라벨 max-content) 29 · 31 · 31
+        // + pad 8. 측정 pass (주축 미결정) 의 폭 = Chrome 처럼 기여 합 (37 · 39 · 39), basis 0 → min 32 아님.
+        let step = |content: f32| {
+            let mut f = with_flex(item(AUTO, 20.0), 1.0, 1.0);
+            f[0] = 0.0; // flex-basis 0px
+            f[7] = 8.0; // pad_border_main
+            f[9] = 24.0; // min_main (content-box — border-box 32)
+            f[13] = content;
+            f
+        };
+        let data = flatten(&[step(29.0), step(31.0), step(31.0)]);
+        let out = flex_layout(&data, -3.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
+        assert!((out[2] - 37.0).abs() < 0.01, "item0 width={}", out[2]);
+        assert!((out[6] - 39.0).abs() < 0.01, "item1 width={}", out[6]);
+        assert!((out[10] - 39.0).abs() < 0.01, "item2 width={}", out[10]);
+        // 확정 폭 (115) 배치는 basis 0 그대로 — 같은 몫 (38.33).
+        let out = flex_layout(&data, 115.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
+        for k in 0..3 {
+            assert!((out[k * 4 + 2] - 115.0 / 3.0).abs() < 0.01, "item{k} width={}", out[k * 4 + 2]);
+        }
+        // 못 자라거나 못 줄면 basis 가 상한 · 하한 — Chrome: 빈 상자 `0 0 100px` 100 · `0 1 100px` 0 ·
+        // `1 0 100px` 100 · `1 1 100px` 0, 내용 150 의 `0 1 100px` 100 (min auto 가 아니면).
+        let fixed = |grow: f32, shrink: f32, content: f32| {
+            let mut f = with_flex(item(AUTO, 20.0), grow, shrink);
+            f[0] = 100.0;
+            f[9] = 0.0; // min-width 0 (automatic minimum 제외)
+            f[13] = content;
+            f
+        };
+        for (grow, shrink, content, want) in [
+            (0.0, 0.0, 0.0, 100.0),
+            (0.0, 1.0, 0.0, 0.0),
+            (1.0, 0.0, 0.0, 100.0),
+            (1.0, 1.0, 0.0, 0.0),
+            (0.0, 1.0, 150.0, 100.0),
+            (1.0, 1.0, 150.0, 150.0),
+        ] {
+            let out = flex_layout(&flatten(&[fixed(grow, shrink, content)]), -3.0, 100.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
+            assert!((out[2] - want).abs() < 0.01, "flex {grow} {shrink} 100px content {content}: width={}", out[2]);
+        }
+        // column 의 미결정 주축 (auto 높이 배치) 은 basis 그대로 — min 이 이긴다.
+        let out = flex_layout(&data, -1.0, 100.0, DIR_COLUMN, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_STRETCH, WRAP_NOWRAP, 0.0, 0.0, false);
+        assert!((out[3] - 32.0).abs() < 0.01, "column item0 height={}", out[3]);
     }
 
     #[test]

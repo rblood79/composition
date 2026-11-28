@@ -434,6 +434,14 @@ export function catalogFontFamilies(fontFamily: string | undefined): string[] {
 }
 
 /**
+ * How much wider than its box a line may be and still fit — Blink's layout unit (1/64 px). Chrome
+ * breaks a line its box is narrower than by more (2026-11-28: StepList S 「단계 2」 30.80 px in a 30.33
+ * share wraps in the DOM; a 0.5 slack kept it one line on the Canvas). Below it the two consumers'
+ * shapers differ (≤ 0.015 measured) and f32 rects lose an ulp.
+ */
+export const CATALOG_LINE_FIT_SLACK = 1 / 64;
+
+/**
  * The text may break inside a word wider than its box (CSS `overflow-wrap: break-word | anywhere`,
  * `word-break: break-all` and the legacy `break-word`): the layout wraps it at the box width, not
  * at the longest word.

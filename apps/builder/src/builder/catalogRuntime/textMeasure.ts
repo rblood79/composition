@@ -26,7 +26,11 @@ import {
   alignTextRuns,
   sliceTextRuns,
 } from "../workspace/canvas/utils/textRunAlign";
-import { catalogFontFamilies, catalogTextBreaksWords } from "./boxModel";
+import {
+  CATALOG_LINE_FIT_SLACK,
+  catalogFontFamilies,
+  catalogTextBreaksWords,
+} from "./boxModel";
 import {
   collapsesSegmentBreaks,
   transformSegmentBreaks,
@@ -333,10 +337,11 @@ function paragraphResult(
   // CSS `white-space: normal` breaks only at break opportunities: a word wider than the box
   // overflows on its own line (the paragraph would split it), so wrap at no less than min-content
   // — unless the text may break inside a word (`overflow-wrap` / `word-break`), as the paragraph
-  // does. (+0.5: the paragraph breaks a line that fits to the sub-pixel.)
+  // does. (+ the line-fit slack: the paragraph breaks a line that fits to the sub-pixel.)
   if (maxWidth !== undefined)
     paragraph.layout(
-      (catalogTextBreaksWords(font) ? maxWidth : Math.max(maxWidth, min)) + 0.5,
+      (catalogTextBreaksWords(font) ? maxWidth : Math.max(maxWidth, min)) +
+        CATALOG_LINE_FIT_SLACK,
     );
   const lineMetrics = paragraph.getLineMetrics();
   const firstLine = lineMetrics[0];

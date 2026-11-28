@@ -13,6 +13,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas — 내용 폭 flex 목록 · 줄바꿈 판정을 Chrome 과 맞춤] - 2026-11-28
+
+### Fixed
+
+- **내용 폭 가로 flex 상자의 폭**: 폭이 내용에 맞춰지는 가로 flex 상자 (절대 위치 · Width fit) 가 Canvas 에서 Preview 보다 좁았다 — 예: StepList S 목록 96 / 115, 라벨 줄바꿈이 갈렸다. 이제 Chrome 과 같은 폭이다.
+  - **Why**: 엔진이 폭을 잴 때 항목의 `flex-basis` 길이 (StepList 단계의 `flex: 1 1 0px`) 를 그대로 썼다. Chrome 은 내용 폭을 기여로 쓰고 basis 는 `flex-grow` 0 이면 상한 · `flex-shrink` 0 이면 하한으로만 쓴다 (CSS Flexbox §9.9.1, Chrome 158 실측).
+  - 위치: `packages/engine/src/flex.rs` (`resolve_flexible_lengths` Step 0 · `parse_item`)
+- **Canvas 글자 줄바꿈 경계**: 칸보다 조금 넓은 글자가 Preview 는 두 줄, Canvas 상자는 한 줄이었다 (StepList S 「단계 2」 30.80 px / 칸 30.33 px).
+  - **Why**: Canvas 는 0.5 px 넘게 넘쳐야 줄을 바꿨고 Chrome 은 layout unit (1/64 px) 을 넘으면 바꾼다.
+  - 위치: `runtime/boxModel.ts` `CATALOG_LINE_FIT_SLACK` · `compositionRoot.ts` (줄바꿈 판정) · `textMeasure.ts` · `nodeRendererText.ts` · `textParagraphKey.ts`
+
+### Notes
+
+- G3 `adr295PaletteSymmetry` 의 `StepList@S · M · L` 새 실패 3건 (ADR-321 뒤 기준선 밖) 이 해소됐다 — 실패 105 = 기준선.
+
 ## [Cascader — Value 칸 드롭다운 · 검색 칸 늘 표시] - 2026-11-28
 
 ### Breaking Changes

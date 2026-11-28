@@ -17,6 +17,7 @@ import {
   preprocessBreakWordText,
 } from "../utils/textWrapUtils";
 import { USE_CANVAS2D_MEASURE } from "../wasm-bindings/featureFlags";
+import { CATALOG_LINE_FIT_SLACK } from "@/builder/catalogRuntime/boxModel";
 import { collapseTextWhiteSpace } from "../utils/textWhiteSpace";
 import {
   isSyntheticSmallCaps,
@@ -925,7 +926,7 @@ export function renderText(
     );
 
     // ADR-299 — the measure's wrap width (`paragraphMetrics`: no less than min-content unless the
-    // text breaks inside words, + 0.5 for a line that fits to the sub-pixel).
+    // text breaks inside words, + the line-fit slack for a line that fits to the sub-pixel).
     if (alignedRuns && !isEllipsis && layoutMaxWidth < 100000) {
       const breaksWords =
         wordBreak === "break-all" ||
@@ -934,7 +935,8 @@ export function renderText(
       effectiveLayoutWidth =
         (breaksWords
           ? layoutMaxWidth
-          : Math.max(layoutMaxWidth, paragraph.getMinIntrinsicWidth())) + 0.5;
+          : Math.max(layoutMaxWidth, paragraph.getMinIntrinsicWidth())) +
+        CATALOG_LINE_FIT_SLACK;
       paragraph.layout(effectiveLayoutWidth);
     }
 

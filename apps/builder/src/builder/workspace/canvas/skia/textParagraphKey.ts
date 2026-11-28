@@ -1,12 +1,14 @@
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { collapseTextWhiteSpace } from "../utils/textWhiteSpace";
+import { CATALOG_LINE_FIT_SLACK } from "@/builder/catalogRuntime/boxModel";
 
 /**
- * Blink's layout unit (1/64 px): a line wider than its box by less than that fits — the engine's f32
- * rect loses an ulp in `x + width − x` past the origin (2026-11-14: an ActionButton label at x 36 is
- * 39.97999572 wide for its 39.97999954 text and painted 「Acti…」, at x 12 it fitted).
+ * Blink's layout unit (`CATALOG_LINE_FIT_SLACK`, 1/64 px): a line wider than its box by less than that
+ * fits — the engine's f32 rect loses an ulp in `x + width − x` past the origin (2026-11-14: an
+ * ActionButton label at x 36 is 39.97999572 wide for its 39.97999954 text and painted 「Acti…」, at x 12
+ * it fitted).
  */
-const LAYOUT_UNIT = 1 / 64;
+const LAYOUT_UNIT = CATALOG_LINE_FIT_SLACK;
 
 /** A fitting line keeps its full glyphs, even when SkParagraph rounds its layout width down. */
 export function textNeedsEllipsis(node: Pick<SkiaNodeData, "text">): boolean {

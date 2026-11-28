@@ -242,6 +242,7 @@ import {
 } from "./valueBindings";
 import {
   catalogBoxModel,
+  CATALOG_LINE_FIT_SLACK,
   catalogTextBreaksWords,
   catalogTextTypography,
   catalogGlyphSize,
@@ -7106,7 +7107,7 @@ export class CatalogCompositionRoot {
         : Math.max(contentWidth, single.minWidth ?? 0);
       if (
         contentWidth > 0 &&
-        breakWidth + 0.5 < (single.exactWidth ?? single.width)
+        breakWidth + CATALOG_LINE_FIT_SLACK < (single.exactWidth ?? single.width)
       ) {
         const wrapped = this.textMeasure!(
           leaf.text,
