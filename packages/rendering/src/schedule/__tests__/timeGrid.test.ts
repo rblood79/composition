@@ -261,3 +261,27 @@ describe("review fixes (ADR-323 Phase 1 판독)", () => {
     expect(scheduleGridBanded(ev("k", w(3, 7, 12), w(3, 8, 12)))).toBe(true);
   });
 });
+
+describe("review fixes 2 (ADR-323 Phase 1 수리 검증)", () => {
+  it("DOM order is the real start when the moments are given — fall-back day (America/New_York 11-01)", () => {
+    const z = (h: number, mi: number) => Date.UTC(2026, 10, 1, h, mi);
+    const B = {
+      ...ev("B", w(11, 1, 1, 50), w(11, 1, 1, 55)),
+      startInstant: z(5, 50),
+      endInstant: z(5, 55),
+    };
+    const C = {
+      ...ev("C", w(11, 1, 1, 5), w(11, 1, 1, 15)),
+      startInstant: z(6, 5),
+      endInstant: z(6, 15),
+    };
+    // A piece carried over from the day before starts at the day's start — first.
+    const night = {
+      ...ev("N", w(10, 31, 23), w(11, 1, 0, 30)),
+      startInstant: z(3, 0),
+      endInstant: z(4, 30),
+    };
+    const layout = layoutScheduleTimeGrid([C, B, night], { days: [w(11, 1)] });
+    expect(layout.items.map((item) => item.key)).toEqual(["N", "B", "C"]);
+  });
+});

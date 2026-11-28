@@ -326,3 +326,80 @@ describe("review fixes (ADR-323 Phase 1 판독)", () => {
     ]);
   });
 });
+
+describe("review fixes 2 (ADR-323 Phase 1 수리 검증)", () => {
+  const nov1 = createDateAxis({
+    start: w(2026, 11, 1),
+    end: w(2026, 11, 2),
+    scale: "day",
+    unitWidth: 1440,
+  });
+
+  it("a real-length task at the window's start with no wall width stays — the doubled midnight (America/Havana 11-01)", () => {
+    // 00:00 −04:00 (04:00Z) ~ 00:00 −05:00 (05:00Z): one real hour, both wall ends 00:00.
+    const { bars } = layoutDateAxisRows(
+      nov1,
+      [
+        {
+          key: "t",
+          start: w(2026, 11, 1),
+          startInstant: Date.UTC(2026, 10, 1, 4),
+          end: w(2026, 11, 1),
+          endInstant: Date.UTC(2026, 10, 1, 5),
+        },
+        // A task ending exactly at the window's start is still outside (end exclusive).
+        { key: "before", start: w(2026, 10, 31, 20), end: w(2026, 11, 1) },
+      ],
+      { rowHeight: 20 },
+    );
+    expect(bars[0] && [bars[0].kind, bars[0].x, bars[0].width]).toEqual([
+      "task",
+      0,
+      0,
+    ]);
+    expect(bars[1]).toBeNull();
+  });
+
+  it("a summary bar does not depend on its children's order — fall-back day (America/New_York 11-01)", () => {
+    const at = (h: number, mi: number) => w(2026, 11, 1, h) + mi * 60_000;
+    const z = (h: number, mi: number) => Date.UTC(2026, 10, 1, h, mi);
+    const A = {
+      key: "A",
+      parentKey: "P",
+      start: at(1, 10),
+      startInstant: z(5, 10),
+      end: at(1, 20),
+      endInstant: z(5, 20),
+    };
+    const B = {
+      key: "B",
+      parentKey: "P",
+      start: at(1, 50),
+      startInstant: z(5, 50),
+      end: at(1, 55),
+      endInstant: z(5, 55),
+    };
+    const C = {
+      key: "C",
+      parentKey: "P",
+      start: at(1, 5),
+      startInstant: z(6, 5),
+      end: at(1, 15),
+      endInstant: z(6, 15),
+    };
+    const summary = (children: readonly object[]) => {
+      const bar = layoutDateAxisRows(
+        nov1,
+        [{ key: "P" }, ...(children as never[])],
+        {
+          rowHeight: 20,
+        },
+      ).bars[0]!;
+      return [bar.kind, bar.x, bar.width];
+    };
+    // Earliest start A (01:10 EDT, x 70) · latest end C (01:15 EST, x 75).
+    expect(summary([A, B, C])).toEqual(["summary", 70, 5]);
+    expect(summary([B, C, A])).toEqual(["summary", 70, 5]);
+    expect(summary([C, A, B])).toEqual(["summary", 70, 5]);
+  });
+});

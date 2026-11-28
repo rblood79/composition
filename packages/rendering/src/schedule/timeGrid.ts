@@ -94,6 +94,13 @@ interface Piece {
   dayIndex: number;
   /** The piece's own wall start (before the shown hours · the least height move `top`) — DOM order. */
   from: number;
+  /**
+   * The event's start moment when this piece is its first and the moments are given — DOM order on a
+   * fall-back day, where a later moment can have an earlier wall time. `undefined` otherwise.
+   */
+  at: number | undefined;
+  /** The piece is carried over from an earlier day — it starts at the day's start, before the others. */
+  carried: boolean;
   top: number;
   height: number;
   continuesBefore: boolean;
@@ -183,6 +190,8 @@ export function layoutScheduleTimeGrid(
         key: event.key,
         dayIndex,
         from,
+        at: from === event.start ? event.startInstant : undefined,
+        carried: from > event.start,
         top: Math.min(clampedTop, shown - height),
         height,
         continuesBefore: event.start < day || top < 0,
@@ -198,9 +207,18 @@ export function layoutScheduleTimeGrid(
   for (const pieces of byDay) {
     assignColumns(pieces);
     // Time order is the pieces' starts, not their drawn tops — two pieces moved up to fit the shown
-    // hours share a top.
-    pieces.sort((a, b) => a.from - b.from || a.column - b.column);
-    for (const { from: _from, ...item } of pieces) items.push(item);
+    // hours share a top. The moments decide when both pieces have them (a fall-back day repeats a wall
+    // hour); a piece carried over from an earlier day starts at the day's start.
+    pieces.sort(
+      (a, b) =>
+        Number(b.carried) - Number(a.carried) ||
+        (a.at !== undefined && b.at !== undefined
+          ? a.at - b.at
+          : a.from - b.from) ||
+        a.column - b.column,
+    );
+    for (const { from: _from, at: _at, carried: _carried, ...item } of pieces)
+      items.push(item);
   }
   return { items, banded, hidden };
 }

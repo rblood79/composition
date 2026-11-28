@@ -349,9 +349,11 @@ export function layoutDateAxisRows(
             span.end = s.end;
             span.endAt = s.endAt;
           }
-          span.end = Math.max(span.end, span.start);
         }
       }
+      // After the walk, not inside it — a clamp mid-walk would carry into the next child's compare and
+      // make the summary depend on the children's order (a fall-back day's later end at an earlier wall).
+      if (span) span.end = Math.max(span.end, span.start);
     }
     span ??= ownSpan(row);
     spans.set(key, span);
@@ -377,7 +379,9 @@ export function layoutDateAxisRows(
       };
     }
     const x2 = dateAxisX(axis, span.end);
-    if (x2 <= 0 || x1 >= axis.width) return null;
+    // Outside = ends before the window, or ends at its start having begun before it (end exclusive). A
+    // bar with real length and no wall width at the start (a doubled midnight) stays, at no width.
+    if (x2 < 0 || (x2 === 0 && x1 < 0) || x1 >= axis.width) return null;
     const left = Math.max(0, x1);
     const right = Math.min(axis.width, x2);
     const progress = summary
