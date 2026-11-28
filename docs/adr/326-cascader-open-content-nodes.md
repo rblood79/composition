@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-11-28
+Accepted — 2026-11-28 (사용자 `/execute-adr 326` · [reviews/326.md](reviews/326.md) Round 1 · 2 pending 0 — h1 · m5 를 Phase 0 시제품이 판정해 fixed, CRITICAL/HIGH 전부 fixed) · Proposed — 2026-11-28
+
+> **Phase 0 (G0) 닫힘 (2026-11-28)** — [breakdown §9](design/326-cascader-open-content-nodes-breakdown.md#9-phase-결과): F1 ~ F19 재대조 차이 0 · 시제품 아홉 go. P8 (시작 경로 보존 — 무작위 6,480 건 불일치 0) · P6 (경로 자리 넷 — Chrome · WebKit 8 입력에서 전부 그린 Breadcrumbs 와 보이는 crumb · 메뉴 key 같음, 180 px 메뉴의 `D` → `onAction("D")`) · P1 · P2 · P3 (catalog Popover 노드 + `trigger: "Cascader"` + 한 `Autocomplete` + tree 의 `Dialog` `display: contents` — 지금의 조립과 focus · 가상 focus · 이름 · 접근성 트리 같음, **조건 하나**: 공용 Popover 의 FocusScope 복원을 꺼야 바깥 클릭 뒤 focus 가 여는 Button 으로 돌아온다 → Phase 2) · P4 (owner 가 그리는 글자 · chevron — 코드 선례) · P5 (drill 의 통과 항목 두 단 — 엔진 시험 + 원복 RED) · P9 (행 ↔ record — 쓴 style 이 그 행에만 · 모양 편집은 표 입력 불변). 번들: 기준선 1,668,315 B, 상한 1,677,000 (결정 1 + ADR-323 몫 합산). 다음 Phase 1 — 사용자 결정 2 의 답이 필요하다.
+>
+> - 발견 (이 ADR 밖): Select 의 열린 목록도 바깥 클릭 뒤 focus 가 `body` 로 간다 (같은 공용 Popover 의 FocusScope — Chrome · WebKit). 사용자에게 보고.
 
 - **출처**: 사용자 요청 `/create-adr` (2026-11-28). 방향을 정한 사용자 원문 (같은 날):
   - 「category컴퍼넌트도 select컴퍼넌트처럼 프러퍼티패널 value section 에서 value 선택과 open 이 되어야 하지않나?」

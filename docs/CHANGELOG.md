@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-326 Phase 0 — Cascader 열린 목록을 노드로 착수] - 2026-11-28
+
+ADR-326 (Cascader 열린 목록을 원본 노드로 — Select 와 같은 구조 · Canvas 펼침) Accepted · Phase 0 닫힘. 사용자 기능 변경은 아직 없다 — 시제품 아홉으로 구조를 확인했다 (catalog Popover 노드로 옮겨도 키보드 · focus · 낭독 이름이 지금과 같다 · drill 경로 줄의 crumb 자리 넷이 전부 그린 Breadcrumbs 와 같은 crumb 을 보이고 접힌 메뉴의 모든 조상으로 이동한다 · 표본 창 밖의 시작 값도 Builder 와 Preview 가 같은 단계를 연다).
+
+### Notes
+
+- 발견 (이 ADR 밖, 고치지 않음): Select 의 열린 목록에서 바깥을 클릭해 닫으면 focus 가 여는 버튼이 아니라 문서 (`body`) 로 간다 — 공용 Popover 의 FocusScope 가 RAC Overlay 의 것 안에 한 겹 더 있다 (Chrome · WebKit). Cascader 는 Phase 2 에서 그 복원을 끈다.
+
 ## [ADR-323 Phase 0 — 날짜 축 컴포넌트 셋 착수 · Builder 번들 상한] - 2026-11-28
 
 ADR-323 (Timeline · Event Calendar · Gantt) Accepted · Phase 0 닫힘. 사용자 기능 변경은 아직 없다 — 시제품 넷으로 방식을 확인했다 (월 칸의 낭독 이름은 RAC 의 날짜 이름뿐이라 일정은 날짜를 고른 뒤 목록으로 읽힌다 · 주 보기 200 건 · Table 시간축 열 5,000 행 · 끌기와 Escape 취소).

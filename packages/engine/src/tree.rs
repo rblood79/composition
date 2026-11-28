@@ -15687,6 +15687,57 @@ mod tests {
         assert_eq!((outer.x, outer.y, outer.width, outer.height), (0.0, 0.0, 104.0, 30.0));
     }
 
+    /// ADR-326 Phase 0 P5 — Cascader drill 의 막 연 화면: 목록 상자 (세로 flex) 아래 항목 계층에서 지금 단계의
+    /// 조상은 상자 없이 통과 (`display: contents` — 두 단), 다른 가지는 `display: none`, 지금 단계의 항목은 자기
+    /// 줄 (padding-top 의 줄 높이 — 자식은 숨김). 그 줄들이 목록 상자의 직계 자식처럼 놓인다 (평평한 대조군과 같다).
+    #[test]
+    fn contents_two_pass_levels_place_rows_as_list_children() {
+        // (A row gap tells the rows apart from a block that holds them — the gap sits between list children only.)
+        let list = r#"{"display":"flex","flexDirection":"column","rowGap":"2px","paddingTop":"4px","paddingBottom":"4px","paddingLeft":"6px","width":"220px"}"#;
+        let row = r#"{"display":"flex","flexDirection":"column","paddingTop":"32px"}"#;
+        let none = r#"{"display":"none","paddingTop":"32px"}"#;
+        let mut flat = LayoutTree::new();
+        let fh = flat
+            .build_tree_batch(&format!(
+                r#"[
+                {{"style":{row},"children":[]}},
+                {{"style":{row},"children":[]}},
+                {{"style":{row},"children":[]}},
+                {{"style":{list},"children":[0,1,2]}}
+            ]"#
+            ))
+            .unwrap();
+        flat.compute_layout(fh[3], 220.0, 400.0);
+
+        let mut tree = LayoutTree::new();
+        let h = tree
+            .build_tree_batch(&format!(
+                r#"[
+                {{"style":{none},"children":[]}},
+                {{"style":{row},"children":[]}},
+                {{"style":{row},"children":[0]}},
+                {{"style":{row},"children":[]}},
+                {{"style":{none},"children":[]}},
+                {{"style":{{"display":"contents"}},"children":[1,2,3,4]}},
+                {{"style":{none},"children":[]}},
+                {{"style":{{"display":"contents"}},"children":[6,5]}},
+                {{"style":{none},"children":[]}},
+                {{"style":{none},"children":[]}},
+                {{"style":{list},"children":[8,7,9]}}
+            ]"#
+            ))
+            .unwrap();
+        tree.compute_layout(h[10], 220.0, 400.0);
+
+        for (t, f) in [(1, 0), (2, 1), (3, 2)] {
+            assert_eq!(abs_rect(&tree, h[t]), abs_rect(&flat, fh[f]), "row {t}");
+        }
+        assert_eq!(abs_rect(&tree, h[1]), (6.0, 4.0, 214.0, 32.0));
+        assert_eq!(abs_rect(&tree, h[3]).1, 4.0 + 64.0 + 4.0);
+        assert_eq!(tree.get_layout(h[10]).height, flat.get_layout(fh[3]).height);
+        assert_eq!(tree.get_layout(h[10]).height, 8.0 + 96.0 + 4.0);
+    }
+
     /// 증분: contents 안 자식의 style 이 바뀌면 다시 배치되고, 형제만 바뀌는 재계산은 contents
     /// 상자 · 자식 좌표를 바꾸지 않는다 (상대 좌표 이동이 누적되지 않는다).
     #[test]
