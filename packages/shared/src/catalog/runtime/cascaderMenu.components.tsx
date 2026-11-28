@@ -119,12 +119,12 @@ function itemRow(
       key={entry.pathId}
       value={(row) => (
         <MenuItem {...row.props} id={entry.pathId} textValue={entry.name}>
-          {[
+          {row.frame([
             ...(chevron
               ? row.parts
               : row.parts.filter((part) => !row.chevron.includes(part))),
             extra,
-          ]}
+          ])}
         </MenuItem>
       )}
     >

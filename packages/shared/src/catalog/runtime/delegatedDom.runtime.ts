@@ -4897,6 +4897,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       //  leaf draws none.)
       const parts: ReactElement[] = [];
       const chevron: ReactElement[] = [];
+      let marked = false;
       for (const id of input.node.children) {
         const child = get(id);
         if (!child || typeOf(child) === "CascaderItem") continue;
@@ -4904,6 +4905,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         parts.push(part);
         if (typeOf(child) === "Icon" && child.props.slot === "descriptor")
           chevron.push(part);
+        if (child.props.slot === "selection") marked = true;
       }
       return createElement(CatalogCascaderRow, {
         key,
@@ -4917,8 +4919,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ...(input.runtimeProps?.(input.node.id)?.style as
             CSSProperties | undefined),
         },
+        // (ADR-326 Phase 4 — its check mark stands in for the sheet's glyph (`Menu.css`) and reads
+        //  the RAC item's `isSelected`: the row passes its render props as the parts' state frame.)
+        ...(marked ? { "data-selection-mark": "" } : {}),
         parts,
         chevron,
+        frame: (children: readonly ReactNode[]) =>
+          catalogStateChildren(input.node.id, () => [...children]) as (
+            values: object,
+          ) => ReactElement,
       });
     },
   },

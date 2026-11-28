@@ -16,7 +16,10 @@ import type { LibraryDefinition, LibraryTemplateNode } from "./types";
 const T = "lib:template:component-cascader" as const;
 type TemplateId = `lib:template:${string}`;
 
-/** ADR-326 사용자 결정 2 — the item origin: `CascaderItem > Text {label} + Icon (chevron)`. */
+/**
+ * ADR-326 사용자 결정 2 — the item origin: `CascaderItem > Icon (check) + Text {label} + Icon
+ * (chevron)` (the check mark — Phase 4 판독 1, 사용자 답 2026-11-28).
+ */
 export const CASCADER_ITEM_ORIGIN_ID =
   "lib:definition:origin-component-cascaderitem" as const;
 const IT = "lib:template:component-cascaderitem" as const;
@@ -98,14 +101,29 @@ const crumb = (index: number): LibraryTemplateNode => ({
   ],
 });
 
-/** The item origin's template (사용자 결정 2): the name Text, then the chevron (MenuItem's). */
+/** The item origin's template (사용자 결정 2): the check mark, the name Text, the chevron (MenuItem's). */
 export const CASCADER_ITEM_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     id: IT,
     definitionId: "lib:definition:type-CascaderItem",
-    children: [`${IT}__label`, `${IT}__chevron`],
+    children: [`${IT}__check`, `${IT}__label`, `${IT}__chevron`],
     props: { label: "{label}" },
     visual: {},
+  },
+  // (ADR-326 Phase 4 판독 1 #1, 사용자 답 2026-11-28 「check Icon 부품」 — the selected row's mark
+  //  is a node, as a Menu item's (`selectionItemTemplates` `__check`): S2 Menu's checkmark column,
+  //  drawn on the picked row — the Canvas's `_selectionMarkHidden`, the DOM's RAC `isSelected`.
+  //  Its grid column and margin are the item rule's (MenuItem's `[slot="selection"]` blocks).)
+  {
+    id: `${IT}__check`,
+    definitionId: "lib:definition:type-Icon",
+    children: [],
+    props: { slot: "selection", iconName: "check", size: "S" },
+    visual: {
+      width: 16,
+      height: 16,
+      color: { kind: "token", tokenId: "lib:token:color_accent" },
+    },
   },
   {
     id: `${IT}__label`,

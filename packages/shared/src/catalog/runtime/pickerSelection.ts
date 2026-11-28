@@ -109,7 +109,11 @@ export function catalogPickerSelectionItem(
   const type = typeOf(node);
   if (type !== "Checkbox" && type !== "Icon") return undefined;
   for (let parent = get(node.parentId); parent; parent = get(parent.parentId)) {
-    if (["ListBoxItem", "MenuItem", "SelectBox"].includes(typeOf(parent)))
+    if (
+      ["ListBoxItem", "MenuItem", "SelectBox", "CascaderItem"].includes(
+        typeOf(parent),
+      )
+    )
       return parent;
     if (
       ["Checkbox", "ListBox", "GridListItem", "TreeItem", "Row"].includes(
@@ -128,6 +132,9 @@ export function catalogPickerSelectionHidden(
 ) {
   const item = catalogPickerSelectionItem(node, get, typeOf);
   if (!item) return false;
+  // (ADR-326 Phase 4: a Cascader row's check mark — its Icon, in both modes: the field's Menu checks
+  //  a picked row, the RAC item's `isSelected` shows it.)
+  if (typeOf(item) === "CascaderItem") return typeOf(node) !== "Icon";
   const picker = catalogPickerOfOption(item, get, typeOf);
   if (!picker) return true;
   if (

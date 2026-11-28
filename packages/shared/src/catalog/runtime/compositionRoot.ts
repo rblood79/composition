@@ -161,6 +161,8 @@ import {
   catalogHasExplicitVisual,
 } from "./libraryVisual";
 import { catalogPickerMenuWidth } from "./pickerMenuWidth";
+import { PICKER_POPOVER_TYPES } from "./pickerSelection";
+import { catalogCascaderItemDependents } from "./cascader";
 import {
   catalogContainerVariantPaint,
   catalogOverlayArrowPaint,
@@ -6530,7 +6532,8 @@ export class CatalogCompositionRoot {
           this.environmentLocale ?? "en-US",
         );
         const ownerType = descriptor.owner && this.typeOf(descriptor.owner);
-        if (anchor && (ownerType === "Select" || ownerType === "ComboBox")) {
+        // (ADR-326 §5 — a Cascader's too: the DOM's `catalogPickerMenuWidth` of the same owner.)
+        if (anchor && ownerType && PICKER_POPOVER_TYPES.has(ownerType)) {
           const menu = catalogPickerMenuWidth(
             ownerType,
             descriptor.owner!.props,
@@ -6546,8 +6549,13 @@ export class CatalogCompositionRoot {
             (catalogHasAuthoredVisual(this, node, "minWidth")
               ? node.visual.minWidth
               : undefined);
+          // (Another unit — `50vw` — goes to the engine as written: the DOM keeps it too.)
           placement.minWidth =
-            typeof ownMinimum === "number" ? ownMinimum : menu.minWidth;
+            typeof ownMinimum === "number" ||
+            (typeof ownMinimum === "string" &&
+              !["", "auto", "none"].includes(ownMinimum.trim()))
+              ? ownMinimum
+              : menu.minWidth;
         }
         const previous = this.overlayPlacements.get(node.id);
         if (sameOverlayPlacement(previous, placement)) continue;
@@ -8881,6 +8889,16 @@ export class CatalogCompositionRoot {
     // Presence follows scope values (Tabs selection, Tree expansion): re-derive the dependents
     // of every scope an update touches.
     const planned = new Map(updates.map((update) => [update.id, update]));
+    // (Each update's place in the list — a re-plan finds it by id, not by a scan: an owner that
+    //  hands back its rows (a Cascader's level choice) re-plans rows × list otherwise.)
+    const placeOf = new Map(updates.map((update, index) => [update.id, index]));
+    const replan = (next: (typeof updates)[number]) => {
+      const index = placeOf.get(next.id);
+      if (index === undefined) {
+        placeOf.set(next.id, updates.length);
+        updates.push(next);
+      } else updates[index] = next;
+    };
     const get = (key: string) =>
       planned.get(key)?.record ?? this.records.get(key);
     // Resetting a node's own typography changes what it inherits, even when no ancestor
@@ -8954,9 +8972,7 @@ export class CatalogCompositionRoot {
         hidden ? { ...shown, hidden: true } : shown,
         rootId,
       );
-      const index = updates.findIndex((update) => update.id === panel.id);
-      if (index >= 0) updates[index] = next;
-      else updates.push(next);
+      replan(next);
       // (The re-plans below read the shown record.)
       planned.set(panel.id, next);
       roots.add(rootId);
@@ -8979,6 +8995,14 @@ export class CatalogCompositionRoot {
           ? [get(update.record.parentId)!]
           : []),
         ...catalogDerivedPropsDependents(update.record, get, this.typeOf),
+        // (ADR-326 Phase 4: a Cascader's rows — their repeat · selection — after the field's value
+        //  or an item's key changed; once a pass.)
+        ...catalogCascaderItemDependents(
+          update.record,
+          this.records.get(update.id),
+          get,
+          this.typeOf,
+        ),
         // (2026-11-14) S2 `staticColor="auto"` — the auto records under a changed backdrop.
         ...catalogStaticAutoDependents(
           update.record,
@@ -9089,9 +9113,7 @@ export class CatalogCompositionRoot {
           rootId,
           get,
         );
-        const index = updates.findIndex((item) => item.id === thumb.id);
-        if (index >= 0) updates[index] = next;
-        else updates.push(next);
+        replan(next);
         // (The dependents after it read the re-planned record — a TreeItem's selection Checkbox
         //  reads the item's derived disabled, which its Tree's `disabledKeys` turns on and off.)
         planned.set(thumb.id, next);

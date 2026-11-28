@@ -1,6 +1,7 @@
 import type { PrimitiveBinding } from "../types";
 import { ITEM_KEY_PROP_CONTRACT } from "../document/itemLinks";
 import { ITEM_DATA_BINDING_PROP } from "./loadingStateProps";
+import { OVERLAY_OPEN_PROPS } from "./overlayOpenProps";
 
 /**
  * ADR-322 — Cascader: a field that drills into a hierarchy. S2 1.8.2 · design-data · v3 have none
@@ -40,6 +41,9 @@ export const cascaderBinding: PrimitiveBinding = {
         label: "Value",
         section: "value",
       },
+      // ADR-326 Phase 4 — S2 Picker's open state: the Value section's 「Open」 draws the just-opened
+      //   screen on the Canvas too (ADR-322 결정 11 · R6 대체), a running Preview starts open.
+      ...OVERLAY_OPEN_PROPS,
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",

@@ -233,7 +233,8 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
     h.workspace.execute(
       insertNodes({
         parent: h.workspace.itemOfRecord(electronics.id)!.target,
-        index: 2,
+        // (After the chevron: check · label · chevron — Phase 4 판독 1's check mark first.)
+        index: 3,
         entries: [
           {
             kind: "node",
@@ -264,7 +265,7 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
           ? "added"
           : part.getAttribute("slot"),
       ),
-    ).toEqual(["label", "descriptor", "added"]);
+    ).toEqual(["selection", "label", "descriptor", "added"]);
     h.view.unmount();
   });
 

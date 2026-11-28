@@ -137,13 +137,24 @@ describe("ADR-322 G1 — Cascader 등록 · 닫힌 필드", () => {
     expect(types.indexOf("Cascader")).toBe(types.indexOf("ComboBox") + 1);
   });
 
-  it("the items are the hierarchy — no item is drawn or laid out on the Canvas", async () => {
+  // (ADR-326 Phase 4 replaces R6: the open field draws its first level — `adr326CanvasOpen`.)
+  it("the items are the hierarchy — the closed field draws or lays out none of them", async () => {
     const t = await place();
     const items = t.inField("CascaderItem");
     // Electronics (Computers: Laptops · Desktops, Phones: Smartphones · Accessories),
     // Clothing (Men · Women), Books — 11 items.
     expect(items).toHaveLength(11);
-    expect(items.every((item) => item.hidden === true)).toBe(true);
+    const records = t.workspace.root.canvasInputs;
+    const drawn = (record: (typeof items)[number]) => {
+      for (
+        let cursor: (typeof items)[number] | undefined = record;
+        cursor;
+        cursor = records.get(cursor.parentId)
+      )
+        if (cursor.hidden) return false;
+      return true;
+    };
+    expect(items.some(drawn)).toBe(false);
     t.workspace.dispose();
   });
 
@@ -330,6 +341,43 @@ describe("ADR-322 G2 — columns: open · move between levels · pick (RAC Menu 
     await user.click(books);
     await waitMenus(0);
     expect(view.valueEl.textContent).toBe("Books");
+    t.workspace.dispose();
+  });
+
+  it("ADR-326 Phase 4 판독 1 #1 — the picked row's check mark (an Icon node): shown on the picked row only, in place of the sheet's ●; a pick at run time moves it", async () => {
+    const t = await place();
+    const view = await dom(t);
+    const user = userEvent.setup();
+    const rows = () =>
+      [...menus()[0]!.querySelectorAll('[role^="menuitem"]')].map((el) => {
+        const check = el.querySelector(
+          '.react-aria-Icon[slot="selection"], [slot="selection"]',
+        ) as HTMLElement | null;
+        return [
+          el.textContent,
+          el.hasAttribute("data-selection-mark"),
+          check?.style.visibility,
+        ];
+      });
+    await user.click(view.button);
+    await waitMenus(1);
+    expect(rows()).toEqual([
+      ["Electronics", true, "hidden"],
+      ["Clothing", true, "hidden"],
+      ["Books", true, "hidden"],
+    ]);
+    const books = [...menus()[0]!.querySelectorAll('[role^="menuitem"]')].find(
+      (el) => el.textContent === "Books",
+    ) as HTMLElement;
+    await user.click(books);
+    await waitMenus(0);
+    await user.click(view.button);
+    await waitMenus(1);
+    expect(rows()).toEqual([
+      ["Electronics", true, "hidden"],
+      ["Clothing", true, "hidden"],
+      ["Books", true, "visible"],
+    ]);
     t.workspace.dispose();
   });
 

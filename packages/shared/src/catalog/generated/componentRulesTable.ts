@@ -1670,7 +1670,7 @@ const CASCADER_POPOVER_STYLES = [
       },
       // (A `tree` row: its level's indent (RAC's `--tree-item-level`) — in the open box, over the
       //  size block's padding — and the expand button holding the item's chevron Icon, turned while
-      //  expanded.)
+      //  expanded, after the check mark.)
       {
         selector: ".react-aria-CascaderItem[data-level]",
         styles: {
@@ -1684,7 +1684,8 @@ const CASCADER_POPOVER_STYLES = [
           display: "inline-flex",
           "align-items": "center",
           "justify-content": "center",
-          "grid-column": "1",
+          // (Column 2 — the row's check mark holds column 1, Phase 4 판독 1.)
+          "grid-column": "2",
           padding: "0",
           border: "none",
           background: "transparent",

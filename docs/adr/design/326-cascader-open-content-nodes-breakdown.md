@@ -225,16 +225,16 @@ Phase 1 은 구조만 바꾸고 화면은 같다 — 여기서 커밋 가능 상
 
 ## 8. 파일 추정 (Phase 0 에서 확정)
 
-| 영역          | 파일                                                                                                                                                                                                                                                                                                                                                        |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 문서 · 등록   | `document/cascaderOrigins.ts` · `document/types.ts` (contract) · `bindings/Cascader.binding.ts` · `bindings/index.ts` · `componentCatalog.ts` · `domain/componentTraits.ts` · `document/collectionItems.ts` · `document/sizePropagation.ts` · `d2Provenance.ts`                                                                                             |
-| rule · CSS    | `generated/componentRulesTable.ts` · 생성 CSS (`Cascader.css` · `CascaderItem.css` · 새 `CascaderList.css`) · `rendering/__tests__/catalogCss.test.ts` (파일 수)                                                                                                                                                                                            |
-| 항목 · 데이터 | `runtime/cascader.ts` (`recordId` · `cascaderOpeningView` · `cascaderTrail`) · `runtime/dataBinding.ts` (남길 key) · `resolution/resolver.ts` · `commands/collections.ts` · `apps/builder/…/dataBindingCommand.ts` · `apps/builder/…/catalogDataRead.ts` · `apps/builder/…/itemInsert.ts`                                                                   |
-| DOM           | `runtime/delegatedDom.runtime.ts` · `runtime/delegatedDom.components.tsx` (`BreadcrumbsRun` 메뉴 `onAction` · 실제 crumb 수) · `runtime/cascader.components.tsx` · `cascaderOverlay.components.tsx` · `cascaderMenu.components.tsx` · `cascaderPanel.components.tsx` · `cascaderSearch.components.tsx` · `domBinding.runtime.ts` · `domRegistry.runtime.ts` |
-| Canvas · 열림 | `runtime/presence.ts` · `runtime/overlayState.ts` · `runtime/overlayLayout.ts` · `runtime/compositionRoot.ts` (`settleOverlays` · `settleBreadcrumbs`) · `runtime/breadcrumbsCollapse.ts` · `runtime/runtimeStateProps.ts` · `document/rulePartRules.ts` · `apps/builder/…/ruleShapes.ts`                                                                   |
-| 패널 · i18n   | (Open 은 계약에서 자동) · `apps/builder/src/i18n/messages/*` (검색 칸 접근 이름 등 문구가 늘면)                                                                                                                                                                                                                                                             |
-| 테스트 · live | `adr322*` 단위 5 · `adr322D1Static` · 새 `adr326*` (구조 · 시작 상태 · 경로 자리 · 시작 경로 보존 · 행 ↔ record · HC3 정적) · Breadcrumbs 접힘 단위 · 대칭 하니스 · `apps/builder/scripts/adr322-g*-live.mjs` 재사용 + `adr326-*-live.mjs`                                                                                                                  |
-| 문서          | 규칙 셋 · ADR-322 본문 표시 · README · CHANGELOG                                                                                                                                                                                                                                                                                                            |
+| 영역          | 파일                                                                                                                                                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 문서 · 등록   | `document/cascaderOrigins.ts` · `document/types.ts` (contract) · `bindings/Cascader.binding.ts` · `bindings/index.ts` · `componentCatalog.ts` · `domain/componentTraits.ts` · `document/collectionItems.ts` · `document/sizePropagation.ts` · `d2Provenance.ts`                                                          |
+| rule · CSS    | `generated/componentRulesTable.ts` · 생성 CSS (`Cascader.css` · `CascaderItem.css` · 새 `CascaderList.css`) · `rendering/__tests__/catalogCss.test.ts` (파일 수)                                                                                                                                                         |
+| 항목 · 데이터 | `runtime/cascader.ts` (`recordId` · `cascaderOpeningView` · `cascaderTrail`) · `runtime/dataBinding.ts` (남길 key) · `resolution/resolver.ts` · `commands/collections.ts` · `apps/builder/…/dataBindingCommand.ts` · `apps/builder/…/catalogDataRead.ts` · `apps/builder/…/itemInsert.ts`                                |
+| DOM           | `runtime/delegatedDom.runtime.ts` · `runtime/delegatedDom.components.tsx` (`BreadcrumbsRun` 메뉴 `onAction` · 실제 crumb 수) · `runtime/cascader.components.tsx` · `cascaderMenu.components.tsx` · `cascaderPanel.components.tsx` · `cascaderSearch.components.tsx` · `domBinding.runtime.ts` · `domRegistry.runtime.ts` |
+| Canvas · 열림 | `runtime/presence.ts` · `runtime/overlayState.ts` · `runtime/overlayLayout.ts` · `runtime/compositionRoot.ts` (`settleOverlays` · `settleBreadcrumbs`) · `runtime/breadcrumbsCollapse.ts` · `runtime/runtimeStateProps.ts` · `document/rulePartRules.ts` · `apps/builder/…/ruleShapes.ts`                                |
+| 패널 · i18n   | (Open 은 계약에서 자동) · `apps/builder/src/i18n/messages/*` (검색 칸 접근 이름 등 문구가 늘면)                                                                                                                                                                                                                          |
+| 테스트 · live | `adr322*` 단위 5 · `adr322D1Static` · 새 `adr326*` (구조 · 시작 상태 · 경로 자리 · 시작 경로 보존 · 행 ↔ record · HC3 정적) · Breadcrumbs 접힘 단위 · 대칭 하니스 · `apps/builder/scripts/adr322-g*-live.mjs` 재사용 + `adr326-*-live.mjs`                                                                               |
+| 문서          | 규칙 셋 · ADR-322 본문 표시 · README · CHANGELOG                                                                                                                                                                                                                                                                         |
 
 추정 shared 26 ~ 32 · builder 7 ~ 10 · rendering 1 ~ 2 파일 + 테스트.
 
@@ -426,4 +426,49 @@ Phase 1 은 구조만 바꾸고 화면은 같다 — 여기서 커밋 가능 상
 **찾은 것 (이 Phase 밖)**:
 
 - 원본 template 의 표본 항목 (예: Laptops) 아래에 항목을 넣는 명령 (`insertCollectionItem`) 이 `NESTING_NOT_ALLOWED CascaderItem>CascaderItem` 으로 거절된다 (같은 두 type 의 중첩 규칙 자체는 허용 — `resolveNestingViolation` 직접 호출로 확인, 원인은 그 자리의 조상 계산으로 보이나 미확정). 새로 넣은 항목 (project 노드) 아래는 된다. 이 Phase 가 고치지 않은 경로 — 사용자에게 보고.
-- `cascaderOverlay.components.tsx` (`withCascaderOverlay`) 는 이제 쓰는 곳이 없다 — 원본 파일 삭제는 사용자 승인 뒤.
+- `cascaderOverlay.components.tsx` (`withCascaderOverlay`) 는 이제 쓰는 곳이 없어 삭제했다 (사용자 승인 2026-11-28).
+
+### Phase 4 (G4) — Open · Canvas columns 막 연 화면 (2026-11-28, HEAD `d92b17f6c` 위)
+
+**구조**:
+
+- Open: Cascader binding 에 `OVERLAY_OPEN_PROPS` (Value 절 「Open」 · `defaultOpen` 숨김 — S2 Picker 의 이름). 실행 중 Preview 는 이미 그 값으로 열림을 제어한다 (`openState` — Phase 2). 정적 렌더의 시작 열림은 쓰는 production 길이 없어 넣지 않았다 (Library 카드는 닫힌 채 — 사용자 결정 3).
+- §5 표 대조 (한 줄씩): `OVERLAY_OPEN_OWNERS` + Cascader (Canvas 열림 판정 · 선택 표면 · 상태 의존) · `CATALOG_OPEN_PICKER_TYPES` (Phase 2) · `CONTEXT_PLACED_POPOVER_PARENTS` (Phase 2) · 배치 — Canvas 의 context 배치 목록에 Cascader (상자가 Popover 자기 `bottom` (가운데) 이 아니라 필드 context 의 `bottom start` — 상자 폭을 넓히면 가운데 정렬로 70 px 어긋나던 것을 단위가 잡음), 닻 = 기본 분기 (Button) · 폭 — Canvas 분기를 `PICKER_POPOVER_TYPES` 로 (DOM 과 같은 `catalogPickerMenuWidth`) · 충돌 여백 — Canvas 도 `PICKER_POPOVER_TYPES` (DOM `CatalogPopover` 와 같은 목록) · trigger 의 `_overlayOpen` (Cascader 의 Open — 열린 동안 Button 눌림) · `OVERLAY_OPEN_PROPS`. 빠진 줄 0.
+- 항목 표시 (`runtime/cascader.ts`): `catalogCascaderItemHidden` — columns 의 막 연 화면은 첫 단계 (목록 상자의 직계 항목 — RAC 루트 `Menu`) 만, 더 깊은 단계는 사용자가 들어갈 때 열리므로 그리지 않는다. 닫힌 필드는 Popover 가 없어 항목도 없다 (Popover 숨김을 자손이 따른다). `catalogCascaderChevronHidden` — 잎의 chevron (`descriptor` Icon) 은 그리지 않는다 (DOM 행과 같다 — 가지 = 자식 항목 또는 `catalogCascaderBranch`). ADR-322 의 「CascaderItem 은 늘 숨김」 줄을 이 둘로 바꿨다.
+- **tree · drill 의 Canvas 는 Phase 5 까지 닫힌 채** (`catalogCascaderCanvasClosed`) — 경로 자리의 파생 글자 · 펼친 가지 (§4.5 의 `pass` · `open`) 가 Phase 5 몫이라, 반쯤 그린 화면을 두지 않는다. Preview 는 세 방식 모두 연다.
+- ADR-322 단위 `adr322CascaderWiring` 「항목은 Canvas 에 그리지 않는다」 (R6) → 「닫힌 필드는 항목을 그리지 않는다」 로 고쳤다 (이 ADR 이 R6 을 대체).
+
+**검증**:
+
+- 단위 `adr326CanvasOpen.test.ts` 7 (Open 칸 · 닫힌 필드 · Open 의 상자 — Button 아래 · 폭 · 최소 폭 · 왼쪽 끝 · 첫 단계 항목 · 잎 chevron · Button 눌림 · 상자 폭을 넓혀도 왼쪽 끝 · 끄기 · Undo · 선택 표면 · tree · drill 닫힘). 원복 RED 8/8 (binding · 열림 owner · 충돌 여백 · 폭 분기 · 항목 표시 · 잎 chevron · tree/drill 닫힘 · context 배치 — 원복 스크립트 · 바이트 복원 확인).
+- live G4 (`apps/builder/scripts/adr326-g4-live.mjs`, 새 dev 서버 5176) Chrome · WebKit 6/6: Design 패널 「Open」 → Canvas 상자 (260 × 152, Button 아래 · 폭 = Button) · 항목 Electronics · Clothing · Books (Books chevron 없음) · 선택 테두리 = 상자 · 선택을 비운 뒤 상자 클릭 → Cascader · 「Open」 끔 → 닫힘 · Undo → 같은 상자 · Preview 가 누르지 않아도 열림 (menu 하나 · 첫 단계 행 · 폭 260). 스크린샷 대조 — Canvas 와 Preview 의 상자 자리 (y 68) · 행 자리 (Electronics 중심 132) 같음.
+- 번들 (판독 전): Builder initial 1,678,255 B (Phase 3 1,677,938 → +317).
+
+**판독 1 (codex) — HIGH 2 · MEDIUM 3, 모두 재현 · 수리**:
+
+- (1) Canvas 에 고른 항목 표시가 없다 — 시트의 ● 는 `::before` 라 Canvas 가 그릴 수 없다. 사용자 결정 「check Icon 부품 추가」: 항목 원본에 `Icon[slot=selection]` check (Select · Menu 의 선택 표시와 같은 부품 — `catalogPickerSelectionItem` 에 CascaderItem). Canvas 는 고르지 않은 항목의 check 를 자리는 두고 숨기고 (`catalogCascaderItemSelected` — 시작 경로의 끝 잎, `allowsBranchSelection` 이면 가지도), DOM 은 행의 RAC 상태 (`catalogStateChildren` 로 넘긴 render props) 로 `visibility` 를 정한다. 행에 `data-selection-mark` 를 달아 시트의 ● 를 끈다 (`Menu.css`). tree 의 chevron 버튼을 격자 2번째 칸으로 (check 가 1번째 — CSS 재생성).
+- (2) 첫 단계 항목의 작성 `showWhen` 이 무시됐다 — 항목 숨김 판정이 결과를 바로 돌려줬다 → 숨길 때만 끝낸다.
+- (3) 같은 id 가 둘인 첫 단계 항목 (DOM 은 뒤 것을 disabled) 이 Canvas 에서 둘 다 활성 → 같은 표 (`cascaderTableOf` 의 `duplicate`) 로 Canvas disabled.
+- (4) 필드 최소 폭이 `50vw` 같은 글자면 Canvas 상자 폭이 메뉴 기본 폭으로 → 글자 최소 폭은 `min(값, 최대폭)` 으로 넘긴다 (`overlayLayout`).
+- (5) Canvas 의 검색 칸이 필드 값 글자를 그렸다 (DOM 은 열 때 빈 칸) → 빈 칸.
+- 원복 RED 10/10 (원복 스크립트 · 바이트 복원 확인). live: check 표시 Canvas 와 Preview 같음 (check x 12 · 라벨 38, Books 만 · 시트 ● 꺼짐) — Chrome · WebKit, tree · drill Preview 도. G4 하니스는 chevron 을 `slot="descriptor"` 로 찾게 고쳐 Chrome · WebKit 6/6.
+
+**Stop 판독 (작업 중 hook 이 띄운 지적) — 모두 성능, 재현 · 수리**:
+
+- 행마다 계층 표를 다시 만들어 행 수 N 에 N² — 표를 한 계산 pass 당 Cascader 하나에 한 번 (`get` 을 key 로 한 WeakMap) · 고른 key 가 아닌 행은 표를 열지 않는다. 2,000 행 RED 4,018,002 → 4만 번 아래 조회.
+- 기존 문서의 행 자식 사본에 check 부품이 없다 → LOW deferred (마이그레이션 코드 0 원칙).
+- 가지 선택 설정을 바꾸면 갱신 계획이 다시 계산할 행을 `updates.findIndex` 로 찾아 행 수의 제곱 (공용 `compositionRoot` 의 계획 루프 — 모든 컴포넌트) → id 로 자리를 찾는 표. 400 행 RED 1,317,877 → 2만 번 아래 비교.
+
+**수리 검증 (codex) — HIGH 1 · MEDIUM 3**:
+
+- (HIGH) 행 의존 목록이 행마다 모든 행을 돌려 100 행에 2.37 s → 바뀐 prop (`value` · `defaultValue` · `allowsBranchSelection` · `selectionMode` · 항목 `id`) 일 때만, Cascader 당 pass 에 한 번 (`catalogCascaderItemDependents` — 계획 쪽으로 옮김). RED 2. 다중 선택의 값 목록 읽기 제곱도 같이 수리 (RED — 값 목록 읽기 수).
+- (MEDIUM #4) Canvas 검색 칸에 지우기 버튼이 그려졌다 (칸은 비었는데) → Cascader 검색 칸은 숨김. RED.
+- (MEDIUM #2) 표본 창 밖의 같은 id 는 Canvas 에서 잡지 않는다 → LOW deferred (Builder 데이터 행 = 디자인 표본, 표본 행만 정확).
+- (MEDIUM #3) 행 자식을 복사해 둔 옛 문서에는 check 부품이 없다 → LOW deferred (마이그레이션 코드 0).
+- 판독 상한 (1 + 1) 도달. 수리 검증의 HIGH 는 RED 로 확정했다 — 사용자 결정 「phase4 닫아」 (2026-11-29).
+
+**G4 판정 (2026-11-29)**: type-check 통과 · shared 3,131 · builder (catalogRuntime + preview, 파일 순서대로) 6,005 통과 (실패 0) · live G4 Chrome · WebKit 6/6 · check 표시 Canvas = Preview. 번들: Builder initial **1,679,021 B** (Phase 3 1,677,938 → +1,083 · 상한 1,682,000 — 여유 2,979). **닫힘.** 다음 Phase 5 (Canvas tree · drill 막 연 화면 · 대칭 하니스).
+
+**찾은 것 (이 Phase 밖)**:
+
+- WebKit 에서 Builder 의 `ProgressCircle` (`components/ProgressCircle.tsx` — SVG `r="calc(50% - 1px)"`) 이 console error 2 건을 낸다 — Cascader 없이 새 프로젝트만 열어도 같다 (기존 결함, 앞 하니스들은 Builder 쪽 console 을 재지 않아 드러나지 않았다). G4 하니스는 이 오류를 「known」 으로 따로 적고 판정에서 뺀다.

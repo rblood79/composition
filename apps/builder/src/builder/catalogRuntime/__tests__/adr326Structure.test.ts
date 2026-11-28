@@ -157,14 +157,17 @@ describe("ADR-326 G1 — the open content is nodes (breakdown §4.1)", () => {
     expect(catalogCascaderList(field(), get, typeOf)?.id).toBe(
       get(items[0]!.parentId!)!.id,
     );
-    // (사용자 결정 2 — the name Text binds the item's `label`; the next level follows.)
+    // (사용자 결정 2 — the name Text binds the item's `label`; the next level follows. Phase 4
+    //  판독 1 (사용자 답 2026-11-28) — the check mark Icon first, S2 Menu's checkmark column.)
     expect(childTypes(items[0])).toEqual([
+      "Icon",
       "Text",
       "Icon",
       "CascaderItem",
       "CascaderItem",
     ]);
-    const [text, icon] = items[0]!.children.map((id) => get(id)!);
+    const [check, text, icon] = items[0]!.children.map((id) => get(id)!);
+    expect(check!.props).toMatchObject({ slot: "selection", iconName: "check" });
     expect(text!.props.children).toBe("Electronics");
     expect(icon!.props.iconName).toBe("chevron-right");
   });

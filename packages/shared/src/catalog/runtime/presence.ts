@@ -17,6 +17,12 @@ import {
   cascaderNotice,
   cascaderTableOf,
   cascaderValueText,
+  catalogCascaderCanvasClosed,
+  catalogCascaderChevronHidden,
+  catalogCascaderItemSelected,
+  catalogCascaderItemDuplicate,
+  catalogCascaderItemHidden,
+  catalogCascaderSearchField,
   catalogCascaderOfTriggerPart,
   catalogCascaderTrailCrumbText,
 } from "./cascader";
@@ -658,6 +664,9 @@ function catalogCollectionItemSelected(
       (pair) => pair.tab.id === node.id && pair.key === selectedKey,
     );
   }
+  // (ADR-326 Phase 4: a Cascader item — its field's value, as the DOM's Menu selects its rows.)
+  const cascaderItem = catalogCascaderItemSelected(node, get, typeOf);
+  if (cascaderItem !== undefined) return cascaderItem;
   // ADR-308: every other item is selected by its group's keys (a collection's, a picker's, a toggle
   // group's, a SegmentedControl's — `catalogItemSelected`).
   return catalogItemSelected(node, get, typeOf);
@@ -1531,8 +1540,15 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogSelectBoxDescriptionHidden(node, get, typeOf)) return true;
-  // (ADR-322: a Cascader's items are its hierarchy — the closed field draws none of them.)
-  if (typeOf(node) === CASCADER_ITEM_TYPE) return true;
+  // (ADR-326 Phase 4 — a Cascader's items: its open `columns` screen draws the first level, and a
+  //  leaf's row no chevron.)
+  //  (A drawn item still takes the shared checks below — its `showWhen` among them.)
+  if (
+    typeOf(node) === CASCADER_ITEM_TYPE &&
+    catalogCascaderItemHidden(node, get, typeOf)
+  )
+    return true;
+  if (catalogCascaderChevronHidden(node, get, typeOf)) return true;
   // (ADR-322 Phase 4 — a Cascader's Description carries its repeated-key notice, description or not.)
   if (typeOf(node) === "Description") {
     const field = catalogPartParent(node, get, typeOf);
@@ -1617,6 +1633,12 @@ export function catalogHiddenAtRest(
     (type === "Dialog" && parentType === "DialogTrigger")
   ) {
     const owner = catalogOverlayOwner(node, get, typeOf);
+    if (
+      owner &&
+      typeOf(owner) === CASCADER_TYPE &&
+      catalogCascaderCanvasClosed(owner)
+    )
+      return true;
     const originOpen =
       owner &&
       OPEN_BODY_TRIGGERS.has(typeOf(owner)) &&
@@ -1633,7 +1655,12 @@ export function catalogHiddenAtRest(
     hintField && catalogFieldHintShown(type, hintField, typeOf(hintField));
   if (hint !== undefined) return !hint;
   const field = catalogSearchFieldOfClear(node, get, typeOf);
-  if (field) return !field.props.value || field.props.isReadOnly === true;
+  if (field)
+    return (
+      !field.props.value ||
+      field.props.isReadOnly === true ||
+      catalogCascaderSearchField(field, get, typeOf)
+    );
   // ADR-300: a closed item's child items · a collapsed panel's row text · chevrons · headers.
   if (catalogSideNavHidden(node, get, typeOf)) return true;
   if (type === "TreeItem" && parentType === "TreeItem")
@@ -3396,7 +3423,9 @@ function derivedPropsBeforeSkeleton(
     // (A disabled FileUpload's DropZone and FileTrigger Button — ADR-201 D2 `isDisabled`, 2026-11-23.)
     (FILE_UPLOAD_INPUT_TYPES.has(typeOf(node)) &&
       catalogFileUploadOf(node, get, typeOf)?.props.isDisabled === true) ||
-    catalogItemKeyDisabled(node, get, typeOf);
+    catalogItemKeyDisabled(node, get, typeOf) ||
+    // (ADR-326 Phase 4: a Cascader row whose key repeats — the DOM Menu's `disabledKeys`.)
+    catalogCascaderItemDuplicate(node, get, typeOf);
   // (A select-all checkbox while some rows — not all — are selected: RAC's indeterminate dash.)
   const selectAll =
     checkboxItem && typeOf(checkboxItem) === "Column"
@@ -4651,6 +4680,8 @@ function ownDerivedPropsBase(
     let text = String(
       valueField.props.value ?? valueField.props.defaultValue ?? "",
     );
+    // (ADR-326 Phase 4: a Cascader's search opens empty — `catalogCascaderSearchField`.)
+    if (catalogCascaderSearchField(valueField, get, typeOf)) text = "";
     if (fieldType === "NumberField")
       text = catalogNumberFieldText(valueField, locale);
     if (fieldType === "ColorField" && text) {

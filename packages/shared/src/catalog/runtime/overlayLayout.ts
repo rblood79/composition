@@ -6,7 +6,7 @@ import {
   type OverlayLookup,
   type OverlayTypeOf,
 } from "./overlayState";
-import { LISTBOX_PICKER_TYPES } from "./pickerSelection";
+import { PICKER_POPOVER_TYPES } from "./pickerSelection";
 
 type Box = { x: number; y: number; width: number; height: number };
 
@@ -29,7 +29,11 @@ export type OverlayPlacement = {
   maxHeight: number;
   maxWidth?: number;
   width?: number;
-  minWidth?: number;
+  /**
+   * The box's least width: px, or the author's CSS length in another unit (`50vw`) — the engine
+   * takes it under the room as `min()`, as the DOM's `CatalogPopover` does.
+   */
+  minWidth?: number | string;
   arrow?: { x: number; y: number; size: number };
   placement: string;
 };
@@ -176,6 +180,8 @@ export function catalogOverlayPlacement(
       "MenuTrigger",
       "DatePicker",
       "DateRangePicker",
+      // (ADR-326 §5 — the field's `PopoverContext` places it: `bottom start`, the DOM's.)
+      "Cascader",
     ].includes(ownerType) ||
       CATALOG_SUBMENU_TRIGGER_TYPES.has(ownerType)) &&
     p.placement === "bottom";
@@ -196,7 +202,8 @@ export function catalogOverlayPlacement(
   let [side, align = "center"] = placement.split(" ");
   const target = anchor ?? { x: 0, y: 0, width: 0, height: 0 };
   const requestedPad = Number(p.containerPadding ?? 12);
-  const pad = LISTBOX_PICKER_TYPES.has(ownerType)
+  // (A picker's collision budget — the DOM's `CatalogPopover` reads the same list.)
+  const pad = PICKER_POPOVER_TYPES.has(ownerType)
     ? catalogPickerOverlayPadding(
         requestedPad,
         target.width,
@@ -319,8 +326,12 @@ export function catalogOverlayLayout(
             ? Number.parseFloat(ownMax)
             : Infinity,
         );
-  const capped = (value: number) =>
-    `${Math.min(value, maxWidth ?? Infinity)}px`;
+  const capped = (value: number | string) =>
+    typeof value === "number"
+      ? `${Math.min(value, maxWidth ?? Infinity)}px`
+      : maxWidth === undefined
+        ? value
+        : `min(${value}, ${maxWidth}px)`;
   const minWidth = placement?.minWidth ?? placement?.width;
   return {
     position: "fixed",

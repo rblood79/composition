@@ -503,6 +503,243 @@ export function cascaderOpeningView(
   return { expanded, level: picked[0]?.parentPathId ?? null };
 }
 
+/**
+ * ADR-326 Phase 4 (§4.5) — whether a Cascader item record is not drawn on the Canvas. A `columns`
+ * Cascader's just-opened screen draws its first level (the list box's own items — RAC's root
+ * `Menu`); a deeper level opens only as the user goes (a submenu), so its items are not drawn. A
+ * closed field draws none: its Popover is not there (`catalogHiddenAtRest` overlay branch).
+ */
+export function catalogCascaderItemHidden(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): boolean {
+  const list = get(node.parentId);
+  return !list || typeOf(list) !== CASCADER_LIST_TYPE;
+}
+
+/**
+ * An item's chevron (its `descriptor` Icon) while the item is a leaf: the DOM row draws a branch's
+ * chevron only (`cascaderitem` renderer · the table's `hasChildren`) — a branch has child items or
+ * the Builder's mark of a level not loaded (`catalogCascaderBranch`, §4.7 (4)).
+ */
+export function catalogCascaderChevronHidden(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): boolean {
+  if (typeOf(node) !== "Icon" || node.props.slot !== "descriptor") return false;
+  const item = get(node.parentId);
+  if (!item || typeOf(item) !== CASCADER_ITEM_TYPE) return false;
+  if (item.props.catalogCascaderBranch === true) return false;
+  return !item.children.some((id) => {
+    const child = get(id);
+    return !!child && typeOf(child) === CASCADER_ITEM_TYPE;
+  });
+}
+
+/**
+ * One table (and start-key set) per Cascader for one derive pass — the pass's lookup is its key (each step's planning
+ * makes its own): every item record of a Canvas pass asks, so building it per item was records ×
+ * rows. Props are settled before a pass derives (its re-plans keep them), so a pass reads one table.
+ */
+interface CascaderPass {
+  /** The start value's keys (a multiple field's can be as many as its rows). */
+  readonly keys: ReadonlySet<string>;
+  table?: CascaderTable;
+  byRecord?: ReadonlyMap<string, CascaderEntry>;
+  /** The record ids of the start value's items — built once. */
+  selected?: ReadonlySet<string>;
+}
+const PASSES = new WeakMap<Lookup, Map<string, CascaderPass>>();
+function cascaderPass(cascader: CatalogConsumerNode, get: Lookup): CascaderPass {
+  let passes = PASSES.get(get);
+  if (!passes) PASSES.set(get, (passes = new Map()));
+  let pass = passes.get(cascader.id);
+  if (!pass) {
+    pass = { keys: new Set(cascaderStartKeys(cascader.props)) };
+    passes.set(cascader.id, pass);
+  }
+  return pass;
+}
+function cascaderPassTable(
+  cascader: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): Required<CascaderPass> {
+  const pass = cascaderPass(cascader, get);
+  if (!pass.table) {
+    const table = cascaderTableOf(cascader, get, typeOf);
+    pass.table = table;
+    pass.byRecord = new Map(
+      table.entries.flatMap((entry) =>
+        entry.recordId ? [[entry.recordId, entry] as const] : [],
+      ),
+    );
+    pass.selected = new Set(
+      [...pass.keys].flatMap((key) => {
+        const match = cascaderValueMatch(table, key);
+        return match.kind === "item" &&
+          !match.entry.hasChildren &&
+          match.entry.recordId
+          ? [match.entry.recordId]
+          : [];
+      }),
+    );
+  }
+  return pass as Required<CascaderPass>;
+}
+
+/** The Cascader a first-level item record (`Cascader > Popover > CascaderList > item`) belongs to. */
+function cascaderOfFirstLevelItem(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== CASCADER_ITEM_TYPE) return undefined;
+  const list = get(node.parentId);
+  if (!list || typeOf(list) !== CASCADER_LIST_TYPE) return undefined;
+  const popover = get(list.parentId);
+  const cascader = popover && get(popover.parentId);
+  return cascader && typeOf(cascader) === CASCADER_TYPE ? cascader : undefined;
+}
+
+/**
+ * ADR-326 Phase 4 (판독 1 #3) — a drawn first-level item whose key another pickable item carries
+ * too: the DOM's root Menu names it in `disabledKeys` (RAC's disabled row), so the Canvas paints it
+ * disabled as well.
+ */
+export function catalogCascaderItemDuplicate(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): boolean {
+  const cascader = cascaderOfFirstLevelItem(node, get, typeOf);
+  if (!cascader) return false;
+  return (
+    cascaderPassTable(cascader, get, typeOf).byRecord.get(node.id)
+      ?.duplicate === true
+  );
+}
+
+/**
+ * ADR-326 Phase 4 (판독 1 #1, 사용자 답 2026-11-28 「check Icon 부품」) — whether a Cascader item is
+ * selected: the field's start value names it and it is a leaf (the DOM's `columns` Menu selects the
+ * picked leaves of each level — a picked branch is its submenu's own item). Undefined outside a
+ * Cascader.
+ */
+export function catalogCascaderItemSelected(
+  node: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): boolean | undefined {
+  if (typeOf(node) !== CASCADER_ITEM_TYPE) return undefined;
+  let cascader: CatalogConsumerNode | undefined;
+  for (let at = get(node.parentId); at; at = get(at.parentId))
+    if (typeOf(at) === CASCADER_TYPE) {
+      cascader = at;
+      break;
+    }
+  if (!cascader) return undefined;
+  // (Most rows: their key is not a start key — no table.)
+  const own = node.props.id;
+  if (
+    !cascaderPass(cascader, get).keys.has(
+      own === undefined || own === null ? node.id : String(own),
+    )
+  )
+    return false;
+  return cascaderPassTable(cascader, get, typeOf).selected.has(node.id);
+}
+
+/**
+ * ADR-326 Phase 4 (판독 1 #5 · 수리 검증 #4) — a Cascader's search field (`Cascader > Popover >
+ * SearchField`): the DOM's query starts at "" each time the list opens, whatever the SearchField
+ * stores — so its input draws empty and its clear button not at all.
+ */
+export function catalogCascaderSearchField(
+  field: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+): boolean {
+  if (typeOf(field) !== "SearchField") return false;
+  const popover = get(field.parentId);
+  const owner = popover && get(popover.parentId);
+  return (
+    !!popover &&
+    typeOf(popover) === "Popover" &&
+    !!owner &&
+    typeOf(owner) === CASCADER_TYPE
+  );
+}
+
+/** The field props its rows' derived state reads (selection · which items are values). */
+const ROW_STATE_FIELD_PROPS = [
+  "value",
+  "defaultValue",
+  "allowsBranchSelection",
+  "selectionMode",
+] as const;
+/** The Cascaders whose rows a pass already gave as dependents (keyed by the pass's lookup). */
+const ROWS_GIVEN = new WeakMap<Lookup, Set<string>>();
+
+/**
+ * The first-level items (and their parts — the check mark) to derive again after `owner` changed
+ * from `before`: only when what their state reads changed — the field's value or level choice, an
+ * item's key (which rows repeat a key) — and once per Cascader in a pass (a bound refresh changes
+ * every row: each giving every row was rows × rows — 수리 검증 판독 HIGH, 100 rows 2.37 s).
+ */
+export function catalogCascaderItemDependents(
+  owner: CatalogConsumerNode,
+  before: CatalogConsumerNode | undefined,
+  get: Lookup,
+  typeOf: TypeOf,
+): CatalogConsumerNode[] {
+  const type = typeOf(owner);
+  let cascader: CatalogConsumerNode | undefined;
+  if (type === CASCADER_TYPE) {
+    if (
+      before &&
+      ROW_STATE_FIELD_PROPS.every(
+        (key) =>
+          JSON.stringify(before.props[key]) === JSON.stringify(owner.props[key]),
+      )
+    )
+      return [];
+    cascader = owner;
+  } else if (type === CASCADER_ITEM_TYPE) {
+    if (before && before.props.id === owner.props.id) return [];
+    for (let at = get(owner.parentId); at; at = get(at.parentId))
+      if (typeOf(at) === CASCADER_TYPE) {
+        cascader = at;
+        break;
+      }
+  }
+  if (!cascader) return [];
+  let given = ROWS_GIVEN.get(get);
+  if (!given) ROWS_GIVEN.set(get, (given = new Set()));
+  if (given.has(cascader.id)) return [];
+  given.add(cascader.id);
+  return catalogCascaderItems(cascader, get, typeOf).flatMap((item) => [
+    ...(item.id === owner.id ? [] : [item]),
+    ...item.children.flatMap((id) => {
+      const part = get(id);
+      return part && typeOf(part) !== CASCADER_ITEM_TYPE ? [part] : [];
+    }),
+  ]);
+}
+
+/**
+ * ADR-326 Phase 4 — a `tree` · `drill` Cascader's Popover stays closed on the Canvas until Phase 5
+ * draws their just-opened screen (the trail's derived crumbs · the expanded branches). A running
+ * Preview opens all three.
+ */
+export function catalogCascaderCanvasClosed(
+  owner: CatalogConsumerNode,
+): boolean {
+  return owner.props.mode === "tree" || owner.props.mode === "drill";
+}
+
 /** The Breadcrumb origin's label position — a trail crumb's derived words (ADR-326 §4.4). */
 const CASCADER_CRUMB_LABEL =
   "lib:template:component-breadcrumb-item-default__label";

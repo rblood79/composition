@@ -127,6 +127,13 @@ export interface CascaderRowInput {
   /** The record's parts in the document's order; `chevron` names those a leaf does not draw. */
   readonly parts: readonly ReactNode[];
   readonly chevron: readonly ReactNode[];
+  /**
+   * The RAC item's `children` function over its parts: the item's render props as their state frame
+   * (the check mark's `isSelected` — `catalogStateChildren`).
+   */
+  readonly frame: <V extends object>(
+    children: readonly ReactNode[],
+  ) => (values: V) => ReactElement;
 }
 /** The open list's RAC item for one row (the lazy body gives it around each row it shows). */
 export type CascaderRowDraw = (row: CascaderRowInput) => ReactElement;
@@ -136,10 +143,11 @@ const CascaderRowContext = createContext<CascaderRowDraw | null>(null);
 export function CatalogCascaderRow({
   parts,
   chevron,
+  frame,
   ...props
 }: Record<string, unknown> & Omit<CascaderRowInput, "props">) {
   const draw = useContext(CascaderRowContext);
-  return draw ? draw({ props, parts, chevron }) : null;
+  return draw ? draw({ props, parts, chevron, frame }) : null;
 }
 
 // (The list box body is the same chunk as the search scope. It takes the field's values as props

@@ -15,7 +15,6 @@ const FILES = [
   "../runtime/cascaderPanel.components.tsx",
   "../runtime/cascaderSearch.components.tsx",
   "../runtime/cascaderOpen.ts",
-  "../runtime/cascaderOverlay.components.tsx",
   "../runtime/cascaderForm.components.tsx",
   "../runtime/cascaderLevels.ts",
 ];

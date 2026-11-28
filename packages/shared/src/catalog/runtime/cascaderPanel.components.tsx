@@ -210,12 +210,14 @@ export function CascaderTreeBody(props: BodyProps): ReactElement | null {
               hasChildItems={entry.hasChildren}
             >
               <TreeItemContent>
-                {entry.hasChildren ? (
-                  <Button key="chevron" slot="chevron">
-                    {row.chevron}
-                  </Button>
-                ) : null}
-                {row.parts.filter((part) => !row.chevron.includes(part))}
+                {row.frame([
+                  entry.hasChildren ? (
+                    <Button key="chevron" slot="chevron">
+                      {row.chevron}
+                    </Button>
+                  ) : null,
+                  ...row.parts.filter((part) => !row.chevron.includes(part)),
+                ])}
               </TreeItemContent>
               {nested(entry)}
             </TreeItem>
@@ -354,9 +356,13 @@ export function CascaderDrillBody(props: BodyProps): ReactElement | null {
                     id={entry.pathId}
                     textValue={entry.name}
                   >
-                    {entry.hasChildren
-                      ? row.parts
-                      : row.parts.filter((part) => !row.chevron.includes(part))}
+                    {row.frame(
+                      entry.hasChildren
+                        ? row.parts
+                        : row.parts.filter(
+                            (part) => !row.chevron.includes(part),
+                          ),
+                    )}
                   </GridListItem>
                 )}
               >
