@@ -107,6 +107,8 @@ describe("ADR-310 — the collection type table", () => {
         "Tab",
         "TabPanel",
         "Tag",
+        // (ADR-323 Phase 2: a bound Timeline repeats its item per row.)
+        "TimelineItem",
         "TreeItem",
       ].sort(),
     );
@@ -156,6 +158,8 @@ describe("ADR-310 — the collection type table", () => {
       "Breadcrumbs",
       // (ADR-321: a StepList's Steps — authored nodes, the Design "+" adds one.)
       "StepList",
+      // (ADR-323 Phase 2: a Timeline's items — authored nodes or one per data row.)
+      "Timeline",
       "Tree",
       // (ADR-322: a Cascader's nested items — authored nodes, the Design "+" adds one.)
       "Cascader",

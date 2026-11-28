@@ -192,6 +192,9 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
         // ADR-310 Phase 2 (contract 67): a Tabs' TabPanel holds its content as a Text — an empty
         // panel has none.
         expect(template.definitionId).toBe("lib:definition:text");
+      else if (template.id === "lib:template:component-timelineitem__date")
+        // ADR-323 Phase 2: a TimelineItem's date Text — an item without a date has none.
+        expect(template.props.slot).toBe("date");
       else if (template.definitionId === "lib:definition:text")
         // ADR-256 Phase 5c: a ListBox · GridList · Menu item's description (`Text slot="description"`).
         expect(template.props.slot).toBe("description");

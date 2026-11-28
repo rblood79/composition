@@ -519,6 +519,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "tag group",
     icon: "Tag",
   },
+  // ADR-323 Phase 2: Timeline (its items are placed inside it only).
+  {
+    type: "Timeline",
+    category: "collections",
+    label: "timeline",
+    icon: "GitCommitVertical",
+  },
   {
     type: "chart-area",
     category: "charts",

@@ -1,0 +1,120 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog TimelineItem — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-TimelineItem {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
+  /* Default variant */
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  --icon-size: 12px;
+  --icon-gap: 12px;
+}
+
+.react-aria-TimelineItem[data-size="S"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-xs);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-xs--line-height);
+  --icon-size: 8px;
+  --icon-gap: 8px;
+}
+
+.react-aria-TimelineItem[data-size="M"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-sm);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
+  --icon-size: 12px;
+  --icon-gap: 12px;
+}
+
+.react-aria-TimelineItem[data-size="L"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--catalog-token-text-base);
+  border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-base--line-height);
+  --icon-size: 16px;
+  --icon-gap: 12px;
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-TimelineItem {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-TimelineItem[data-size="S"] .react-aria-Text[slot="date"] {
+    font-size: 11px;
+  }
+
+  .react-aria-TimelineItem[data-size="S"] .react-aria-Text[slot="description"] {
+    font-size: 11px;
+  }
+
+  .react-aria-TimelineItem[data-size="M"] .react-aria-Text[slot="date"] {
+    font-size: 12px;
+  }
+
+  .react-aria-TimelineItem[data-size="M"] .react-aria-Text[slot="description"] {
+    font-size: 12px;
+  }
+
+  .react-aria-TimelineItem[data-size="L"] .react-aria-Text[slot="date"] {
+    font-size: 14px;
+  }
+
+  .react-aria-TimelineItem[data-size="L"] .react-aria-Text[slot="description"] {
+    font-size: 14px;
+  }
+
+
+  .react-aria-TimelineItem {
+    position: relative;
+    list-style: none;
+    margin: 0;
+  }
+
+  .react-aria-TimelineItem > .timeline-marker {
+    position: absolute;
+    box-sizing: border-box;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .react-aria-TimelineItem > .timeline-connector {
+    position: absolute;
+    pointer-events: none;
+  }
+
+
+} /* @layer components */

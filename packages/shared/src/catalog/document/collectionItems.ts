@@ -109,6 +109,16 @@ export const COLLECTION_TYPE_TABLE: readonly CollectionTypeRow[] = [
     selects: false,
     codeItems: false,
   },
+  // ADR-323 Phase 2: a Timeline's items — authored nodes, or one repeated per data row (its date ·
+  //   title · status from the binding's date-axis roles — resolver `keyRowItem`); no selection.
+  {
+    owner: "Timeline",
+    item: "TimelineItem",
+    insert: true,
+    repeat: true,
+    selects: false,
+    codeItems: false,
+  },
   {
     owner: "Tree",
     item: "TreeItem",

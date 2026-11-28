@@ -114,6 +114,9 @@
 @import "./generated/ResizablePanelGroup.css";
 @import "./generated/ResizablePanel.css";
 @import "./generated/ResizableHandle.css";
+/* ADR-323 Phase 2 — Timeline · TimelineItem. */
+@import "./generated/Timeline.css";
+@import "./generated/TimelineItem.css";
 /* ADR-321 — StepList · Step. */
 @import "./generated/StepList.css";
 @import "./generated/Step.css";

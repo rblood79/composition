@@ -311,3 +311,42 @@ codex 수리 검증 (`review-verify-1.json`) HIGH 3 — 셋 다 서머타임 경
 | 3   | 주 · 일 DOM 순서를 현지 시각으로 — 가을 전환 날 늦게 시작한 일정이 먼저 Tab   | fixed — 두 조각 모두 순간이 있으면 시작 순간으로 정렬, 앞 날에서 넘어온 조각은 그 날의 시작이라 맨 앞 (`timeGrid.ts`)                                            |
 
 검사: 회귀 테스트 3 (rendering `dateAxis.test.ts` 2 · `timeGrid.test.ts` 1 — 정답은 판독 재현의 값을 하드코딩). 원복 RED 3 / 3 (수리 하나씩 되돌림 · 바이트 복원 확인). `pnpm type-check` 통과 · rendering 1,837 · shared ADR-323 테스트 21 · G3 ratchet 실패 105 = 기준선. live: 두 기하 모듈은 아직 소비자가 없다 (Phase 2 부터 연결) — 브라우저로 exercise 할 화면이 없어 생략.
+
+### Phase 2 (G2) — 2026-11-28 닫힘
+
+HEAD `7dee8374c` 위 (worktree `autorun/adr-323`). 사용자 결정 1 = 「항목마다 상태」 (2026-11-28). contract 87 → **88**.
+
+**만든 것**:
+
+| 파일                                     | 내용                                                                                                                                                                                                                                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S/catalog/bindings/Timeline.binding.ts` | `Timeline` (`orientation` · `position` · `size` · `dataBinding`) · `TimelineItem` (`id` · `label` · `date` · `description` · `status` · `size`) — D2 는 composition 확장 (`d2Provenance.ts` 의 composition 타입)                                                                           |
+| `S/catalog/rule/timeline.ts`             | rule 둘 · 크기 S · M · L (표식 8 · 12 · 16, 간격 8 · 12 · 12, 끝 여백 12 · 16 · 20, 날짜 · 설명 글자 11 · 12 · 14) · 여백 · 표식 · 선의 자리 (anchor) · 상태 색 — 두 consumer 가 같이 읽는 함수                                                                                            |
+| `S/catalog/runtime/timeline.ts`          | 파생 값 (`_timeline*`) · 배치 (가로 줄 · 항목 몫 · 번갈아 절반 폭) · DOM inline · 표식 · 선의 DOM 값 · `time` 값                                                                                                                                                                           |
+| `S/catalog/document/timelineOrigins.ts`  | 원본 `component-timelineitem` (제목 `{label}` · 날짜 `{date}` · 설명 `{description}` — 날짜 · 설명은 비면 없음) · 팔레트 `component-timeline` (항목 셋 = 상태 셋)                                                                                                                          |
+| 등록                                     | `bindings/index.ts` · `componentRulesTable.ts` · `componentCatalog.ts` (collections · 팔레트 원본 · 중첩 원본) · `reusableOriginLibrary.ts` · `collectionItems.ts` (owner Timeline · repeat) · `componentTraits.ts` · `sizePropagation.ts` · 생성 CSS 둘                                   |
+| 연결                                     | `presence.ts` (파생 · 의존 · 날짜 Text 의 `_timeDateTime` · 글자 색) · `boxModel.ts` (여백) · `compositionRoot.ts` (배치 · 글자 색) · `domBinding.runtime.ts` (inline · `time` · 글자 색) · `delegatedDom.runtime.ts` (`ol` · `li` · `span` 둘) · builder `ruleShapes.ts` (표식 · 선 도형) |
+| 행 반복                                  | `dataBinding.ts` (바인딩의 날짜 축 역할 값을 행마다 `dateAxis` 로) · `resolver.ts` `keyRowItem` (TimelineItem — 역할이 날짜 · 제목 · 상태를 준다) · `collection.types.ts` (fieldMap 에 역할 8) · 패널 `CollectionBinding.tsx` (Date · Title · Status 칸)                                   |
+
+**내린 판단** (고른 것과 이유):
+
+- **표식 · 연결선은 노드가 아니다** — StepList 의 방식 (항목이 자기 여백에 그림). DOM 은 `li` 안 `span` 둘 (글자 없음 · `pointer-events: none`), Canvas 는 `ruleShapes.ts` 도형. 둘 다 `rule/timeline.ts` 의 anchor 하나를 읽는다. role · `aria-*` 를 쓰지 않는다 (D1 예외 0 — 배선 테스트가 DOM 에 role · aria 0 을 확인).
+- **배치 prop 이름 = `position`** (MUI Timeline) — `placement` 는 Popover · ContextualHelp · TooltipTrigger 의 Overlay 구획 키라 구획 일관성 게이트 (`propSectionConsistency`) 가 막았다. 값 `end` (선 뒤 — 기본) · `start` (선 앞, 글자 끝 맞춤) · `alternate`.
+- **번갈아는 세로만** — 세로 `alternate` 는 항목이 목록 폭의 절반 (`width: 50%` · 번갈아 `align-self`) 이고 표식 · 선이 상자 가장자리 (= 목록 가운데) 에 걸친다. **가로 `alternate` 는 `end` 로 그린다** — 가로는 항목 높이가 내용마다 달라 위 · 아래로 번갈아 둘 때 선의 높이를 맞출 수 없다 (grid 1fr 행 · 반높이 모두 내용 높이에 묶인다). G2 실패 시 대안 「번갈아 배치를 빼고 보고」 를 가로에만 적용 — 사용자 보고 항목.
+- **`start` 배치의 글자 맞춤** — 항목 `align-items: flex-end` 로 끝에 붙인다. 여러 줄로 감기는 제목의 줄 안 맞춤 (`text-align`) 은 넣지 않았다 — Canvas 의 글자 맞춤은 조상의 작성 visual 만 상속하고 파생 값 통로가 없다. 짧은 제목은 끝에 붙고, 감긴 긴 제목은 줄마다 앞에서 시작한다.
+- **글자 값** — 제목은 문서 글자를 그대로 받는다 (굵기 없음 — `text-font.md`: S2 owner 값이 없는 글자 값은 만들지 않는다). 날짜 · 설명만 한 단계 작은 크기 (Step 설명과 같은 11 · 12 · 14) 와 subdued 색. 날짜 · 설명의 행간은 항목의 상대 행간 (18 / 14) 을 따른다 — 12 px 날짜 줄 = 15.43.
+- **날짜 글자 = 저장된 값 그대로** — Table 칸이 날짜를 보이는 방식 (`classifyTableCellDisplay` — 원래 글자) 과 같다. ISO 값이면 `time` 요소 + `datetime` (날짜와 시각 사이 공백은 `T`). 지역 형식으로 바꾸는 표시 (`locale` · `timeZone`) 는 이 Phase 에 넣지 않았다 — Timeline 은 보기 · 시간대 계산이 없고 (정렬 = 데이터 보기의 순서), EventCalendar 의 머리 · 목록 형식이 정해지는 Phase 3 에서 같은 formatter 를 공유하는 쪽이 낫다. live 에서 가로 · 좁은 항목에 긴 ISO 시각 (`2026-08-13T10:52:51.942Z`) 이 옆 항목과 겹치는 것을 봤다 — 글자 요소가 끊을 곳이 없다. Phase 3 형식 작업에서 같이 본다.
+- **행 반복** — 바인딩의 `fieldMap` 날짜 축 역할 (`start` · `title` · `color`) 을 `catalogBoundRows` 가 행마다 원값으로 싣고 (`CatalogBoundRow.dateAxis` — 역할이 없으면 싣지 않아 다른 목록은 그대로), resolver `keyRowItem` 이 TimelineItem 의 `id` · `label` · `date` · `status` 로 옮긴다. 역할이 있으면 template 의 표본 날짜 · 상태를 이긴다. 제목 역할이 없으면 작성자의 `{field}` 글자, 그것도 없으면 행의 label 휴리스틱. 상태 값은 대소문자 · 앞뒤 공백을 보지 않고, 세 값 밖은 완료.
+- **글자 사이 2 px** — 처음에 항목 파생 layout 의 `gap` 으로 두었더니 Canvas 가 그 값을 읽지 않아 parity 가 모든 fixture 에서 2 px 어긋났다 (Text · 항목 · 선 높이). rule `containerStyles.gap` 으로 옮겨 두 consumer 가 같이 읽는다.
+- **lazy 모듈** — Timeline 은 기하 모듈 (`schedule/timeGrid` · `dateAxis`) 을 쓰지 않는다 (상호작용 · 시간 계산 없음). import 게이트의 `LAZY_READERS` 는 그대로 비어 있다 — 첫 소비자는 Phase 3 의 EventCalendar.
+
+**검사**:
+
+- G2 parity (`apps/builder/tests/adr248-g3/adr323TimelineParity.browser.test.ts` — 실제 Chrome, 20 fixture: 방향 둘 × 배치 셋 · 크기 S · L · 항목 2 · 6 · 긴 제목 · 설명 섞임 · 목록에 작성한 상자 값 · 증분 셋 (배치 · 방향 + 크기 · 항목 상태)): **20 / 20**, rect 359 개 최대 차이 0.062 px, 글자 크기 · 굵기 · 색 · 태그 · 표식 칠 · 테두리 · 선 칠 같음, 증분 장면 = 새 bind. Chrome 단독 손 정답 (`EXPECTED`, 6 fixture — 항목 · 표식 · 선 rect) 0.5 px 안.
+- 배선 (`adr323TimelineWiring.test.tsx` 6 — 팔레트 · 원본 셋 · Canvas 도형 · DOM `ol > li` · `time` · role · aria 0 · 편집 · undo · 연결한 행 반복) · 정답표 (`adr323Timeline.test.ts` 7 — 기하 손 px · 상태 · `time` 값 · 행의 역할 값).
+- 원복 RED 7 / 7 (`.agent/runs/adr323-p2/red.py` + 바이트 복원 `sha256` 확인): `keyRowItem` 분기 · 행의 역할 값 · DOM inline 배치 · `time` 요소 · 상태 대소문자 · 세로 `start` 여백 → 단위 RED, Canvas 도형 호출 제거 → 단위는 GREEN (함수를 직접 부른다) 이고 parity 20 / 20 RED.
+- 인벤토리 게이트 갱신 (등재만): 컬렉션 표 · componentTraits · 생성 CSS 인벤토리 (149 · 131) · rule 리터럴 분류 (`TimelineItem.iconSize`) · palette oracle · census 206 · presentWhen 목록 · Code 보기 items host 제외 (Timeline 은 RAC 컬렉션이 아니다).
+- 번들 (`pnpm turbo run build --filter=@composition/builder` → `adr209-bundle-closure.mjs`, 배포와 같은 빌드): Builder initial gzip **1,671,818 B** (상한 1,677,000 — 여유 5,182) · Preview 172,337 B. Phase 0 기준선 (1,668,315 · `90b35a386`) 대비 +3,503 / +2 — 그 사이 다른 커밋 (ADR-326 Phase 0 · text 측정 수리 등) 이 포함된 상한값이라 이 Phase 의 몫은 그 이하 (결정 9 몫 +5,000 · +3,000 안). HEAD 단독 before 빌드는 작업 트리를 되돌리는 방식이 막혀 재지 못했다.
+- 회귀: `pnpm type-check` 통과 · shared 3,089 · rendering 1,838 (생성 CSS 수 게이트 141 → 143 등재) · builder unit 10,194 통과 · G3 ratchet 실행 569 · 실패 105 = 기준선 · 새 실패 0. preflight — guard · typecheck · registration · css-boundary · chart-contract · agent-catalog · skills gate 통과, format 은 이 Phase 파일 중 HEAD 에서 이미 서식이 어긋난 둘 (`ko-KR.ts` · `compositionRoot.ts` — 이 Phase 의 hunk 는 서식 맞음) 이 걸리고, rule-size 는 Phase 1 과 같은 HEAD 그대로 파일 둘.
+- HEAD 그대로의 실패: `labelKeyCatalog.static.test.ts` 의 command 키 수 72 ≠ 71 (이 Phase 의 i18n 변경을 되돌려도 같다).
+- live (chrome-autorun, dev `5174`, 새 프로젝트): 팔레트 「timeline」 → Canvas 에 항목 셋 (한국어 제목 · 높이 51.43 · 51.43 · 34 = 정답표 · 회색 · accent · 고리 표식) · Publish (Preview 버튼) DOM 같은 높이 · 표식 자리 · `time` · role 0 · Design 패널 Placement → Alternate (항목 960 폭 번갈아) · Orientation → Horizontal (Canvas 640 × 3 · Publish 400 × 3 — 선 = 항목 폭 − 20) · Data 패널 Preset 「Audit Logs」 표 → Timeline Data source 연결 → 역할 칸 Date = timestamp · Title = action → 행 20 개마다 항목 (Canvas · Publish 둘 다, 마지막만 선 없음, 날짜 = `time`). 콘솔 오류 0.

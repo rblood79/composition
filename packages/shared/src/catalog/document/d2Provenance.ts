@@ -49,6 +49,10 @@ export const CATALOG_D2_COMPOSITION_TYPES: ReadonlySet<string> = new Set([
   "Illustration",
   "Nav",
   "Pagination",
+  // (ADR-323: S2 · design-data · v3 3.47.7 have no timeline — Phase 0 「v3 확인」; the names are
+  //  ReUI · MUI · Ant Design's — `orientation` · `position` · an item's `status`.)
+  "Timeline",
+  "TimelineItem",
   // (ADR-320: S2 · design-data · v3 have no filter bar — Phase 0 「D2 확인」.)
   "FilterBar",
   "FilterChip",

@@ -4,6 +4,8 @@ import type { CatalogFilterBarAccess } from "./filterBarAccess";
 import type { CatalogCascaderLevels } from "./cascaderLevels";
 import { catalogResizableLayout } from "./resizablePanels";
 import { catalogStepDomStyle } from "./stepList";
+import { catalogTimelineDomStyle } from "./timeline";
+import { TIMELINE_COLORS } from "../rule/timeline";
 import { CatalogTokenFieldError } from "./tokenField.components";
 import { catalogSkeletonText } from "./skeletonAnimation";
 import { catalogActionBadgeNodeLayout } from "../rule/actionBadge";
@@ -1498,8 +1500,15 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                 : {}),
               style,
             };
-            // (The author's HTML tag — RAC `Text` `elementType`, `textElementType.ts`.)
-            const element = catalogTextElementType(node.props);
+            // (The author's HTML tag — RAC `Text` `elementType`, `textElementType.ts`. ADR-323: a
+            //  TimelineItem's ISO date is a `time` with its `dateTime` — `presence.ts`.)
+            const dateTime = node.derivedProps?._timeDateTime;
+            const element =
+              typeof dateTime === "string"
+                ? "time"
+                : catalogTextElementType(node.props);
+            if (typeof dateTime === "string")
+              (props as Record<string, unknown>).dateTime = dateTime;
             const text =
               catalogTextRunsContent(
                 node.textRuns,
@@ -4944,6 +4953,9 @@ function authoredStyle(
   const style: CSSProperties = {
     ...(catalogResizableLayout(node.derivedProps) as CSSProperties),
     ...(catalogStepDomStyle(node.derivedProps) as CSSProperties),
+    // (ADR-323 Phase 2: a Timeline's row · an item's share, alignment and room for its marker ·
+    //  connector — the Canvas's same values, `styleOf` · `catalogBoxModel`.)
+    ...(catalogTimelineDomStyle(node.derivedProps) as CSSProperties),
   };
   // A rule without `structure` has no generated sheet: its catalog values reach the DOM only
   // inline (the whole resolved box and layout, not just the authored layer).
@@ -6480,6 +6492,17 @@ export function renderNode(
     !glyphColorWritten(node)
   )
     bound.color = "inherit";
+  // ADR-323 Phase 2 — a TimelineItem's date · description: the subdued color as the theme's variable
+  //   (the Canvas Text reads the same TokenRef — `catalogTimelineTextColor`).
+  if (
+    bound &&
+    node.bindingId === "text" &&
+    (node.props.slot === "date" || node.props.slot === "description") &&
+    typeof root.domInputs.get(node.parentId)?.derivedProps
+      ?._timelineItemStatus === "string" &&
+    !catalogHasAuthoredColor(root, node)
+  )
+    bound.color = tokenToCSSVar(TIMELINE_COLORS.secondaryText);
   // ADR-321 — a Step's label · description take their color from the step's element
   //   (`stepList.components.tsx` writes the pair from the list's state as it stands): a press in a
   //   running Preview moves the current step, and a resting color inline would stay (the

@@ -22,6 +22,13 @@ import {
 } from "../../../../../packages/shared/src/catalog/rule/stepList";
 import { catalogStepLineHeight } from "../../../../../packages/shared/src/catalog/runtime/stepList";
 import {
+  catalogTimelineChromeColors,
+  catalogTimelineChromeRects,
+  TIMELINE_ITEM_TYPE,
+  TIMELINE_MARKER_BORDER,
+} from "../../../../../packages/shared/src/catalog/rule/timeline";
+import { catalogTimelineGeometryOf } from "../../../../../packages/shared/src/catalog/runtime/timeline";
+import {
   catalogRatingBox,
   catalogRatingScaledStarPaths,
   catalogRatingSize,
@@ -272,6 +279,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     ...catalogSheetHandleShapes(input),
     ...catalogResizableHandleShapes(input),
     ...catalogStepChromeShapes(input),
+    ...catalogTimelineChromeShapes(input),
     ...catalogRatingStarShapes(input),
     ...pickerChromeShapes(input, base),
     ...fieldErrorIconShapes(input),
@@ -678,6 +686,52 @@ export function catalogRatingStarShapes(
       return shapes;
     },
   );
+}
+
+/**
+ * ADR-323 Phase 2 — a TimelineItem's marker (a filled circle — completed · in progress, a ring —
+ * upcoming) and its connector to the next item, in the room the item keeps for them
+ * (`rule/timeline.ts` — the DOM's `span.timeline-marker` · `span.timeline-connector` at the same
+ * places and colors). A vertical `alternate` item's chrome straddles its box edge.
+ */
+export function catalogTimelineChromeShapes(
+  input: Pick<CatalogRuleShapeInput, "type" | "node" | "rect" | "theme">,
+): Shape[] {
+  if (input.type !== TIMELINE_ITEM_TYPE) return [];
+  const derived = input.node.derivedProps;
+  if (typeof derived?._timelineItemStatus !== "string") return [];
+  const theme = input.theme ?? "light";
+  const geometry = catalogTimelineGeometryOf(derived);
+  const { marker, connector } = catalogTimelineChromeRects({
+    ...geometry,
+    width: input.rect.width,
+    height: input.rect.height,
+  });
+  const colors = catalogTimelineChromeColors(geometry.status);
+  const color = (ref: string) => resolveToken(ref as TokenRef, theme) as string;
+  const shapes: Shape[] = [];
+  if (connector && connector.width > 0 && connector.height > 0)
+    shapes.push({
+      type: "rect",
+      ...connector,
+      fill: color(colors.connector),
+    } as Shape);
+  const border = colors.markerBorder
+    ? Number(resolveToken(TIMELINE_MARKER_BORDER as TokenRef, theme)) || 2
+    : 0;
+  // (A circle is a rounded box whose stroke is a border inside it — the DOM's `border-box` ring.)
+  const radius = marker.width / 2;
+  shapes.push({
+    type: "circle",
+    x: marker.x + radius,
+    y: marker.y + radius,
+    radius,
+    ...(colors.markerFill ? { fill: color(colors.markerFill) } : {}),
+    ...(colors.markerBorder
+      ? { stroke: color(colors.markerBorder), strokeWidth: border }
+      : {}),
+  } as Shape);
+  return shapes;
 }
 
 /**

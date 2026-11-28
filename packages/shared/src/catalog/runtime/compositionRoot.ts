@@ -3,6 +3,7 @@ import { FILTER_BAR_ORIGIN_ID } from "../document/filterBarOrigins";
 import { catalogFilterBarCollection } from "./filterBar";
 import { catalogResizableLayout } from "./resizablePanels";
 import { catalogStepListLayout } from "./stepList";
+import { catalogTimelineLayout } from "./timeline";
 import { catalogToggleItemHelpLayout } from "../rule/toggleLayout";
 import {
   catalogStaticAuto,
@@ -282,6 +283,7 @@ import {
   catalogFieldLabelPart,
   catalogFieldLabelRowColor,
   catalogStepTextColor,
+  catalogTimelineTextColor,
   catalogListBoxDescriptionColor,
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
@@ -1979,6 +1981,9 @@ function styleOf(
     // (ADR-321: a vertical StepList's direction · a Step's equal share and main-axis minimum — the
     //  DOM's are the rules' selectors. An authored item layout wins.)
     ...catalogStepListLayout(node.derivedProps),
+    // (ADR-323 Phase 2: a horizontal Timeline's row · an item's share, alignment and alternate half —
+    //  the DOM's same inline values, `catalogTimelineDomStyle`. An authored item layout wins.)
+    ...catalogTimelineLayout(node.derivedProps),
     ...itemLayout(node),
     // (S2 `selectBoxStyles`' `:has` blocks — a SelectBox's grid by the parts it shows, the DOM's sheet.)
     ...catalogSelectBoxContentStyle(node),
@@ -5163,6 +5168,16 @@ export class CatalogCompositionRoot {
       return {
         ...derived,
         color: String(resolveToken(stepColor as TokenRef, this.colorMode)),
+      };
+    // ADR-323 Phase 2: a TimelineItem's date · description Text are subdued, unless authored.
+    const timelineColor = catalogTimelineTextColor(record, get, this.typeOf);
+    if (
+      timelineColor &&
+      catalogAuthoredVisual(this, record).color === undefined
+    )
+      return {
+        ...derived,
+        color: String(resolveToken(timelineColor as TokenRef, this.colorMode)),
       };
     // (A Tag's remove glyph takes the item color too — ADR-256 Phase 5d; so does a TreeItem's
     // chevron glyph — `Tree.css` `all: unset` on its button, the row's color — Phase 5h.)

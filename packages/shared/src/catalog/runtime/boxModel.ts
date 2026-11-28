@@ -308,8 +308,11 @@ export function catalogBoxModel(
     length(node.visual[key]) ?? axis;
   // (ADR-321: a Step keeps room for its visual · track — `catalogStepDerived`'s pads, under an
   //  authored side; the DOM reads the Step rule's same formulas.)
+  // (ADR-323 Phase 2: a TimelineItem keeps room for its marker · connector the same way —
+  //  `catalogTimelineItemDerived`'s pads.)
   const stepPad = (edge: "Top" | "Right" | "Bottom" | "Left") =>
-    length(node.derivedProps?.[`_stepPad${edge}`]);
+    length(node.derivedProps?.[`_stepPad${edge}`]) ??
+    length(node.derivedProps?.[`_timelinePad${edge}`]);
   const padding = {
     // (S2 Card's Content · Footer: their spacing in the card — `catalogCardSection`'s `_cardPadTop` ·
     //  `_cardPadBottom`; an authored padding wins.)

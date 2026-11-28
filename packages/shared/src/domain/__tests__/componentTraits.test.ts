@@ -246,6 +246,8 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "SelectBox",
         // ADR-321: a StepList's Step — its `id` is the key the list's `selectedKey` names.
         "Step",
+        // ADR-323 Phase 2: a Timeline's item — its `id` is its data row's key when bound.
+        "TimelineItem",
       ]),
     );
   });
@@ -325,6 +327,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "ResizablePanelGroup",
         // ADR-321: a StepList's direct children are its Steps only.
         "StepList",
+        // ADR-323 Phase 2: a Timeline's direct children are its items only.
+        "Timeline",
       ]),
     );
   });
@@ -374,6 +378,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SideNavItem: ["SideNavItem", "SideNavItemContent"],
       ResizablePanelGroup: ["ResizablePanel", "ResizableHandle"],
       StepList: ["Step"],
+      Timeline: ["TimelineItem"],
     });
     for (const type of Object.keys(componentContractMap("children")))
       expect(containerTypeSet("collection").has(type), type).toBe(true);
@@ -517,6 +522,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       ResizablePanel: ["ResizablePanelGroup"],
       ResizableHandle: ["ResizablePanelGroup"],
       Step: ["StepList"],
+      TimelineItem: ["Timeline"],
       StepPanel: ["Stepper"],
     });
   });

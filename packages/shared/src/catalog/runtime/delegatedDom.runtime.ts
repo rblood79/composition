@@ -49,6 +49,7 @@ import {
   STEP_LIST_TYPE,
 } from "../rule/stepList";
 import { CatalogStep, CatalogStepListGroup } from "./stepList.components";
+import { catalogTimelineChromeDom } from "./timeline";
 import { CatalogCascaderField } from "./cascader.components";
 import {
   CASCADER_ITEM_TYPE,
@@ -4579,6 +4580,61 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             : {}),
         },
         ...renderAll(input),
+      );
+    },
+  },
+  // ADR-323 Phase 2 — a Timeline: an ordered list (`ol > li`, no RAC part — no interaction, no D1
+  //  exception). Each item's marker and connector are its own `span`s, placed and painted inline in
+  //  the item's padding (`catalogTimelineChromeDom` — the anchors · TokenRefs the Canvas draws its
+  //  shapes from). They carry no text and take no press (`pointer-events: none`).
+  timeline: {
+    render: (input) => {
+      const { key, ...markerProps } = marker(input);
+      const derived = input.node.derivedProps;
+      return createElement(
+        "ol",
+        {
+          key,
+          ...markerProps,
+          ...chrome(input, "Timeline"),
+          "data-orientation": str(derived?._timelineOrientation ?? "vertical"),
+          style: input.style,
+        },
+        ...renderAll(input),
+      );
+    },
+  },
+  timelineitem: {
+    render: (input) => {
+      const { key, ...markerProps } = marker(input);
+      const derived = input.node.derivedProps;
+      const drawn = catalogTimelineChromeDom(derived);
+      return createElement(
+        "li",
+        {
+          key,
+          ...markerProps,
+          ...chrome(input, "TimelineItem"),
+          ...(drawn
+            ? { "data-status": str(derived?._timelineItemStatus) }
+            : {}),
+          style: input.style,
+        },
+        ...renderAll(input),
+        drawn
+          ? createElement("span", {
+              key: "timeline-marker",
+              className: "timeline-marker",
+              style: drawn.marker,
+            })
+          : null,
+        drawn?.connector
+          ? createElement("span", {
+              key: "timeline-connector",
+              className: "timeline-connector",
+              style: drawn.connector,
+            })
+          : null,
       );
     },
   },

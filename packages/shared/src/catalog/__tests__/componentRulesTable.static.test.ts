@@ -81,6 +81,14 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     { M: 6, L: 6, XL: 6 },
     "S2 에 StepList 가 없다 — design-data `base-gap-medium · large · extra-large` (글자와 표식 간격 6 — S 의 4 는 spacing 단 위). 글자 상대 형 `text-to-visual` (6/14 em) 은 M 에서만 같은 값이라 쓰지 않는다",
   ),
+  // ADR-323 Phase 2 — S2 · design-data · v3 에 Timeline 이 없다 (Phase 0). 표식 지름은 Step 표식과
+  //   같은 단 (8 · 12 · 16 — Step 의 S 8 · M 16 사이에 M 12, 글자 행간 안에 든다).
+  sizes(
+    "TimelineItem",
+    "iconSize",
+    { S: 8, M: 12, L: 16 },
+    "S2 · design-data 에 Timeline 이 없다 — 표식 지름은 글자 행간 (text-xs · sm · base 의 18 · 21 · 24) 안에 드는 Step 표식 단 (ADR-323 breakdown §9 Phase 2)",
+  ),
   // ADR-321 Phase 4 — S2 설치본에 Rating 이 없다. 값은 design-data `rating` (`adr321Rating.test.ts` 가 대조).
   sizes(
     "Rating",

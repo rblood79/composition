@@ -101,6 +101,7 @@ import {
 import { ROW_TEMPLATE_BINDABLE_PROP_KEYS } from "../../collections/rowTemplateBindableProps";
 import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import { classifyTableCellDisplay } from "../../collections/cellValue";
+import type { DateAxisRole } from "../../collections/dateAxisRoles";
 import { catalogNearestSkeletonOwner } from "./skeletonOwner";
 import {
   catalogPageWindow,
@@ -236,6 +237,12 @@ export interface ResolvedCatalogNode {
 export interface CatalogBoundRow {
   /** Stable row key: the item's collection key and the record identity's row segment. */
   key: string;
+  /**
+   * ADR-323 — the row's values in its binding's date-axis roles (`fieldMap.start` · `title` · `color`
+   * … — `collections/dateAxisRoles.ts`), raw; absent when the binding names none. A Timeline's item
+   * takes its date · title · status from them (`keyRowItem`).
+   */
+  dateAxis?: Readonly<Partial<Record<DateAxisRole, unknown>>>;
   /** What the row template's `{field}` placeholders read (row fields + label/description/icon/value). */
   values: Readonly<Record<string, unknown>>;
   /**
@@ -1029,6 +1036,23 @@ function keyRowItem(
   props: Record<string, unknown>,
   row: CatalogBoundRow,
 ): void {
+  // ADR-323 Phase 2 — a Timeline's item: keyed by its row; a date-axis role the binding names
+  //   (`start` · `title` · `color` — 사용자 결정 1, the status field) gives its date · title · status
+  //   over the template's values (its sample date · status are not the row's). Without a title role
+  //   the title is the author's `{field}` text, else the row's label.
+  if (type === "TimelineItem") {
+    props.id = row.key;
+    const axis = row.dateAxis;
+    const text = (value: unknown) =>
+      value === undefined || value === null ? "" : String(value);
+    if (axis && "title" in axis) props.label = text(axis.title);
+    else props.label ??= text(row.values.label);
+    if (axis && "start" in axis) props.date = text(axis.start);
+    if (props.description === undefined && row.values.description)
+      props.description = text(row.values.description);
+    if (axis && "color" in axis) props.status = text(axis.color);
+    return;
+  }
   // ADR-320 — a filter chip's texts are its row's (a switched-off condition's chip is dimmed).
   if (type === "FilterChip") {
     for (const key of ["field", "comparison", "value", "label"])

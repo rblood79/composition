@@ -395,6 +395,19 @@ export interface PropertyDataBinding {
      */
     unavailable?: string;
     unavailableEnd?: string;
+    /**
+     * ADR-323 — the date-axis roles (`collections/dateAxisRoles.ts` — one table for Timeline ·
+     * EventCalendar · Gantt): the start · end (exclusive) · all-day · title · color / status ·
+     * resource · progress · predecessors fields.
+     */
+    start?: string;
+    end?: string;
+    allDay?: string;
+    title?: string;
+    color?: string;
+    resource?: string;
+    progress?: string;
+    predecessors?: string;
   };
   /**
    * 데이터 경로 — **read 호환 전용 (오소링 UI 제거됨, 2026-07-24)**.

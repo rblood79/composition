@@ -20,6 +20,7 @@ import { useParams } from "react-router";
 import { useI18n } from "@/i18n";
 import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
+import { dateAxisRolesOf } from "../../../../../../packages/shared/src/collections/dateAxisRoles";
 import { DatabasePlus, ListTree, X } from "lucide-react";
 import React, { Suspense, lazy, memo, useCallback, useState } from "react";
 import { Radio, RadioGroup } from "react-aria-components/RadioGroup";
@@ -102,8 +103,19 @@ type FieldMapRole =
   | "hasChildren"
   | "disabled"
   | "unavailable"
-  | "unavailableEnd";
+  | "unavailableEnd"
+  | "start"
+  | "title"
+  | "color";
 const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value"];
+/**
+ * ADR-323 Phase 2 — a Timeline's binding names its date-axis roles (`collections/dateAxisRoles.ts`):
+ * each item's date, title and status (사용자 결정 1) are its row's fields in them.
+ */
+const TIMELINE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
+  "value",
+  ...(dateAxisRolesOf("Timeline") as readonly FieldMapRole[]),
+];
 /**
  * A Tree's binding also names its items' children (`useTreeData.getChildren`) — a Table's too
  * (its rows' child rows — ADR-315 Phase 5 증분 5d).
@@ -140,6 +152,9 @@ const FIELD_MAP_ROLE_LABEL: Record<
   | "fieldMapDisabled"
   | "fieldMapUnavailable"
   | "fieldMapUnavailableEnd"
+  | "fieldMapStart"
+  | "fieldMapTitle"
+  | "fieldMapStatus"
 > = {
   value: "fieldMapValue",
   children: "fieldMapChildren",
@@ -149,6 +164,9 @@ const FIELD_MAP_ROLE_LABEL: Record<
   disabled: "fieldMapDisabled",
   unavailable: "fieldMapUnavailable",
   unavailableEnd: "fieldMapUnavailableEnd",
+  start: "fieldMapStart",
+  title: "fieldMapTitle",
+  color: "fieldMapStatus",
 };
 
 /** 역할 1개 = Select 1행 — 옵션은 "자동" + schema 필드 (키 = fieldId, 표시 = key). */
@@ -198,7 +216,9 @@ function FieldMapSelect({
           label={
             role === "disabled" ||
             role === "unavailable" ||
-            role === "unavailableEnd"
+            role === "unavailableEnd" ||
+            role === "start" ||
+            role === "color"
               ? t("propertiesPanel.fieldMapNone")
               : t("propertiesPanel.fieldMapAuto")
           }
@@ -309,23 +329,25 @@ export const CollectionBinding = memo(function CollectionBinding({
   const namesDates = !!ruleId && CATALOG_UNAVAILABLE_DATE_TYPES.has(ruleId);
   const fieldMapRoles: readonly FieldMapRole[] = namesDates
     ? UNAVAILABLE_FIELD_MAP_ROLES
-    : [
-        ...(isTree
-          ? TREE_FIELD_MAP_ROLES
-          : isLevel
-            ? LEVEL_FIELD_MAP_ROLES
-            : isSection
-              ? SECTION_FIELD_MAP_ROLES
-              : FIELD_MAP_ROLES),
-        // S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a boolean field whose `true`
-        // disables the row's item.
-        ...(ruleId && CATALOG_DATA_DISABLED_TYPES.has(ruleId)
-          ? (["disabled"] as const)
-          : []),
-        // ADR-322 Phase 6 (사용자 결정 4) — a Cascader whose levels load one by one: the boolean
-        // field saying a row has items under it (none = any row not opened may have).
-        ...(ruleId === "Cascader" ? (["hasChildren"] as const) : []),
-      ];
+    : ruleId === "Timeline"
+      ? TIMELINE_FIELD_MAP_ROLES
+      : [
+          ...(isTree
+            ? TREE_FIELD_MAP_ROLES
+            : isLevel
+              ? LEVEL_FIELD_MAP_ROLES
+              : isSection
+                ? SECTION_FIELD_MAP_ROLES
+                : FIELD_MAP_ROLES),
+          // S2 `disabledKeys` by a data field (부록 D.3 2단계, 2026-11-23): a boolean field whose `true`
+          // disables the row's item.
+          ...(ruleId && CATALOG_DATA_DISABLED_TYPES.has(ruleId)
+            ? (["disabled"] as const)
+            : []),
+          // ADR-322 Phase 6 (사용자 결정 4) — a Cascader whose levels load one by one: the boolean
+          // field saying a row has items under it (none = any row not opened may have).
+          ...(ruleId === "Cascader" ? (["hasChildren"] as const) : []),
+        ];
   const [rowTemplateMode, setRowTemplateMode] = useState<"template" | "keep">(
     "template",
   );
@@ -503,12 +525,18 @@ export const CollectionBinding = memo(function CollectionBinding({
                       )
                     : role === "disabled"
                       ? fieldOptions.filter((field) => field.type === "boolean")
-                      : role === "unavailable" || role === "unavailableEnd"
+                      : role === "unavailable" ||
+                          role === "unavailableEnd" ||
+                          role === "start"
                         ? fieldOptions.filter(
                             (field) =>
                               field.type === "date" || field.type === "string",
                           )
-                        : fieldOptions
+                        : role === "title" || role === "color"
+                          ? fieldOptions.filter(
+                              (field) => field.type === "string",
+                            )
+                          : fieldOptions
               }
               selectedFieldId={
                 resolveField(fieldOptions, value?.fieldMap?.[role])?.id ?? null

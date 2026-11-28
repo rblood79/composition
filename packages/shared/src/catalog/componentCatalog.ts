@@ -1120,6 +1120,18 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "breadcrumb",
     icon: "ChevronRight",
   }),
+  // ADR-323 Phase 2: Timeline — the list is placed (a collection — authored items or one per data
+  //   row); its items live in it only (instances of the TimelineItem origin — `timelineOrigins.ts`).
+  primitiveEntry("Timeline", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "timeline",
+    icon: "GitCommitVertical",
+  }),
+  primitiveEntry("TimelineItem", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "timeline item",
+    icon: "CircleDot",
+  }),
   // ADR-321: Spectrum StepList — the list is placed (layout, beside Tabs · Breadcrumbs); its Steps
   //   live in it only (instances of the Step origin — `stepListOrigins.ts`).
   primitiveEntry("StepList", "collections", FAMILY_4_CUTOVER, {
@@ -1767,6 +1779,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "GridList",
   "Tree",
   "TagGroup",
+  // ADR-323 Phase 2: Timeline — three items, one per status (`timelineOrigins.ts`).
+  "Timeline",
   // charts
   "Chart",
   // dateTime
@@ -1848,6 +1862,9 @@ export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   // ADR-326 사용자 결정 2 — a Cascader's item origin (`component-cascaderitem`: its name Text ·
   //   chevron Icon).
   "CascaderItem",
+  // ADR-323 Phase 2 — a Timeline's item origin (`component-timelineitem`: its title · date ·
+  //   description Texts).
+  "TimelineItem",
 ];
 
 const NESTED_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(

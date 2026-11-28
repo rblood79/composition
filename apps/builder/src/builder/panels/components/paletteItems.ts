@@ -72,6 +72,7 @@ import {
   CircleDashed,
   CircleHelp,
   CircleDot,
+  GitCommitVertical,
   CircleUser,
   Disc3,
   FileUp,
@@ -224,6 +225,7 @@ export const ICON_MAP: Record<
   CircleDashed,
   CircleHelp,
   CircleDot,
+  GitCommitVertical,
   CircleUser,
   Disc3,
   FileUp,
@@ -411,6 +413,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "GridList", source: "catalog" },
   { type: "Tree", source: "catalog" },
   { type: "TagGroup", source: "catalog" },
+  // ADR-323 Phase 2: Timeline — an ordered history strip (its items are placed inside it only).
+  { type: "Timeline", source: "catalog" },
   // ADR-194 (2026-09-08): 차트. catalog 등록 컴포넌트라 source="catalog".
   // (ADR-277, 2026-10-21: 「table view」 overlay 항목은 「table」 로 통합 — 표는 하나.)
   { type: "Chart", source: "catalog" },

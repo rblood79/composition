@@ -42,6 +42,11 @@ import { formulaRuntimeSync } from "../../collections/formula/engine";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
 import { viewSortOrder } from "../../collections/view/sortOrder";
 import {
+  resolveDateAxisRoles,
+  type DateAxisFieldKeys,
+  type DateAxisRole,
+} from "../../collections/dateAxisRoles";
+import {
   viewRowsPassing,
   viewRowsPassingGroup,
   type ViewRowTest,
@@ -405,6 +410,16 @@ export function catalogBoundRows(
         ),
       },
     ];
+  // (ADR-323 — the binding's date-axis roles: each row carries their raw values — a Timeline's
+  //  item reads its date · title · status there, resolver `keyRowItem`.)
+  const dateAxisKeys =
+    shown && kind === "items"
+      ? resolveDateAxisRoles(
+          dataBinding.fieldMap as Record<string, unknown> | undefined,
+          table.schema as readonly { id?: string; key: string }[] | undefined,
+        )
+      : undefined;
+  if (shown && dateAxisKeys) shown = withDateAxisValues(shown, dateAxisKeys);
   // (S2 `disabledKeys` by a data field — 부록 D.3 2단계, 2026-11-23: the rows it marks, over every
   //  row the binding reads, not only the window.)
   const disabledKeys =
@@ -425,6 +440,29 @@ export function catalogBoundRows(
       : undefined;
   if (shown && levelParent) Object.assign(shown, { levelParent });
   return shown && view ? Object.assign(shown, { view }) : shown;
+}
+
+/**
+ * ADR-323 — rows with their date-axis role values (`CatalogBoundRow.dateAxis`): new row objects (the
+ * delivered ones are not changed), the list's own values (`total` · `loadingState` · `view` …) kept.
+ */
+function withDateAxisValues(
+  rows: CatalogBoundRows,
+  keys: DateAxisFieldKeys,
+): CatalogBoundRows {
+  const roles = Object.entries(keys) as [DateAxisRole, string][];
+  const out = rows.map((row) => ({
+    ...row,
+    dateAxis: Object.fromEntries(
+      roles.map(([role, key]) => [role, row.values[key]]),
+    ),
+  }));
+  for (const name of Object.keys(rows))
+    if (!/^\d+$/.test(name))
+      (out as unknown as Record<string, unknown>)[name] = (
+        rows as unknown as Record<string, unknown>
+      )[name];
+  return out as unknown as CatalogBoundRows;
 }
 
 /**

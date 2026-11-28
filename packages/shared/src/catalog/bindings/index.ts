@@ -205,6 +205,7 @@ import {
   stepListBinding,
   stepperBinding,
 } from "./StepList.binding";
+import { timelineBinding, timelineItemBinding } from "./Timeline.binding";
 import { ratingBinding } from "./Rating.binding";
 import {
   cascaderBinding,
@@ -349,6 +350,7 @@ export * from "./SideNav.binding";
 export * from "./Resizable.binding";
 export * from "./FilterBar.binding";
 export * from "./StepList.binding";
+export * from "./Timeline.binding";
 export * from "./Rating.binding";
 export * from "./Cascader.binding";
 export * from "./TimeField.binding";
@@ -623,6 +625,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-320: FilterBar · FilterChip (`FilterBar.binding.ts`).
   FilterBar: filterBarBinding,
   FilterChip: filterChipBinding,
+  // ADR-323 Phase 2: Timeline · TimelineItem (`Timeline.binding.ts`).
+  Timeline: timelineBinding,
+  TimelineItem: timelineItemBinding,
   // ADR-321: StepList · Step (`StepList.binding.ts`).
   StepList: stepListBinding,
   Stepper: stepperBinding,

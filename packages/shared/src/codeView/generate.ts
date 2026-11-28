@@ -401,13 +401,15 @@ interface RowFrame {
 export const CODE_VIEW_ITEMS_HOSTS: ReadonlySet<string> = new Set(
   // (Only a list a binding repeats writes `items` — a StepList's Steps are authored nodes, ADR-321;
   //  a FilterBar's chips are its tree's — no RAC `items` prop, ADR-320; a Cascader's items are its
-  //  hierarchy's table — no RAC component, ADR-322.)
+  //  hierarchy's table — no RAC component, ADR-322; a Timeline is an `ol` — no RAC component,
+  //  ADR-323.)
   COLLECTION_TYPE_TABLE.filter(
     (row) =>
       row.repeat &&
       row.owner !== "SelectBoxGroup" &&
       row.owner !== "FilterBar" &&
-      row.owner !== "Cascader",
+      row.owner !== "Cascader" &&
+      row.owner !== "Timeline",
   ).map((row) => row.list ?? row.owner),
 );
 /** The prop that keys a repeated item: a group's Radio · Checkbox `value`, a TabPanel's `itemId`. */

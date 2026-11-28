@@ -25,6 +25,7 @@ import {
   STEP_RULE,
   STEPPER_RULE,
 } from "../rule/stepList";
+import { TIMELINE_ITEM_RULE, TIMELINE_RULE } from "../rule/timeline";
 import { RATING_RULE } from "../rule/rating";
 /**
  * SSOT (직접 편집 정본) — theme rule base D3 시각 SSOT (ADR-912 ②-6-A).
@@ -3767,6 +3768,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ResizablePanelGroup: RESIZABLE_PANEL_GROUP_RULE,
   ResizablePanel: RESIZABLE_PANEL_RULE,
   ResizableHandle: RESIZABLE_HANDLE_RULE,
+  // ADR-323 Phase 2: Timeline · TimelineItem (`rule/timeline.ts`).
+  Timeline: TIMELINE_RULE,
+  TimelineItem: TIMELINE_ITEM_RULE,
   // ADR-321: StepList · Step (`rule/stepList.ts`).
   StepList: STEP_LIST_RULE,
   Step: STEP_RULE,

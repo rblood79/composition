@@ -78,17 +78,20 @@ export type DateAxisFieldKeys = Partial<Record<DateAxisRole, string>>;
 
 /**
  * A binding's date-axis roles as row keys (`fieldMap` id → the schema field's key; a value no field
- * has stays as is — a v1 key). Only `component`'s roles; undefined when none is set.
+ * has stays as is — a v1 key). Only `component`'s roles (every role without one — the row reader,
+ * which does not know its owner); undefined when none is set.
  */
 export function resolveDateAxisRoles(
   fieldMap: Readonly<Record<string, unknown>> | undefined,
   schema: readonly { id?: string; key: string }[] | undefined,
-  component: DateAxisComponent,
+  component?: DateAxisComponent,
 ): DateAxisFieldKeys | undefined {
   if (!fieldMap) return undefined;
   const keys: DateAxisFieldKeys = {};
   let any = false;
-  for (const role of dateAxisRolesOf(component)) {
+  for (const role of component
+    ? dateAxisRolesOf(component)
+    : DATE_AXIS_ROLE_KEYS) {
     const ref = fieldMap[role];
     if (typeof ref !== "string" || ref.length === 0) continue;
     keys[role] = schema ? (resolveField(schema, ref)?.key ?? ref) : ref;

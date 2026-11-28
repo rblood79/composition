@@ -1,5 +1,15 @@
 import { catalogSkeletonState } from "./skeletonContext";
 import {
+  catalogTimelineDateTime,
+  catalogTimelineDerived,
+  catalogTimelineItemDerived,
+} from "./timeline";
+import {
+  TIMELINE_COLORS,
+  TIMELINE_ITEM_TYPE,
+  TIMELINE_TYPE,
+} from "../rule/timeline";
+import {
   CASCADER_ITEM_TYPE,
   CASCADER_TYPE,
   cascaderDescriptionText,
@@ -4247,6 +4257,59 @@ export function catalogStepPanelWaiting(
   );
 }
 
+/** ADR-323 Phase 2: the TimelineItems a Timeline draws, in order (hidden ones are not items). */
+function timelineItemsOf(
+  list: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return childrenOf(list, get).filter(
+    (child) => !child.hidden && typeOf(child) === TIMELINE_ITEM_TYPE,
+  );
+}
+
+/**
+ * ADR-323 Phase 2: a TimelineItem's derived values in its Timeline (`runtime/timeline.ts`) — its
+ * status (사용자 결정 1, the item's own `status` — a bound row's status field, resolver), its place
+ * and its side. Undefined outside a Timeline (the origin's own card draws a box of its Texts).
+ */
+function timelineItemDerivedOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, string | number | boolean> | undefined {
+  const list = get(node.parentId);
+  if (!list || typeOf(list) !== TIMELINE_TYPE) return undefined;
+  const items = timelineItemsOf(list, get, typeOf);
+  const index = items.findIndex((item) => item.id === node.id);
+  if (index < 0) return undefined;
+  return catalogTimelineItemDerived({
+    index,
+    count: items.length,
+    list: list.props,
+    status: node.props.status,
+    size: node.props.size ?? list.props.size,
+  });
+}
+
+/**
+ * ADR-323 Phase 2: the color a TimelineItem's date · description Text takes (subdued — the title
+ * keeps the document's). Both consumers read it as the Text's derived `color`; an authored color
+ * wins. Undefined for any other node.
+ */
+export function catalogTimelineTextColor(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  if (node.bindingId !== "text") return undefined;
+  if (node.props.slot !== "date" && node.props.slot !== "description")
+    return undefined;
+  const item = get(node.parentId);
+  if (!item || typeOf(item) !== TIMELINE_ITEM_TYPE) return undefined;
+  return TIMELINE_COLORS.secondaryText;
+}
+
 /**
  * ADR-321: a Step's derived values in its StepList (`runtime/stepList.ts` — the start state the
  * Canvas draws).
@@ -4366,6 +4429,10 @@ function ownDerivedPropsBase(
       ),
     };
   }
+  // ADR-323 Phase 2: a Timeline's direction · placement; an item's status · place · side · room.
+  if (typeOf(node) === TIMELINE_TYPE) return catalogTimelineDerived(node.props);
+  if (typeOf(node) === TIMELINE_ITEM_TYPE)
+    return timelineItemDerivedOf(node, get, typeOf);
   // ADR-321: a StepList's direction; a Step's state · place in its list and its visual's room.
   if (typeOf(node) === STEP_LIST_TYPE)
     return catalogStepListDerived(node.props);
@@ -4427,6 +4494,16 @@ function ownDerivedPropsBase(
   if (node.bindingId === "overlayarrow") {
     const overlay = catalogPartParent(node, get, typeOf);
     return { _arrowSize: overlay && typeOf(overlay) === "Tooltip" ? 8 : 12 };
+  }
+  // ADR-323 Phase 2: a TimelineItem's date Text is a `time` element when its text is an ISO date
+  //   (`catalogTimelineDateTime` — the DOM's `dateTime`; another text stays a `span`).
+  if (node.bindingId === "text" && node.props.slot === "date") {
+    const item = get(node.parentId);
+    const dateTime =
+      item && typeOf(item) === TIMELINE_ITEM_TYPE
+        ? catalogTimelineDateTime(node.props.children)
+        : undefined;
+    if (dateTime) return { _timeDateTime: dateTime };
   }
   // The Text between a DateRangePicker's two DateInputs is the reference's decorative dash
   // (`<span aria-hidden="true">–</span>`): the DOM keeps it out of the accessible name.
@@ -5034,6 +5111,17 @@ export function catalogDerivedPropsDependents(
         ? childrenOf(get(owner.parentId)!, get).filter(
             (child) =>
               child.id !== owner.id && typeOf(child) === RESIZABLE_PANEL_TYPE,
+          )
+        : []),
+    // (ADR-323 Phase 2: a Timeline's orientation · placement · size reach its items; an item's
+    //  place (one more · one fewer · hidden) moves its siblings' index · last · side.)
+    ...(typeOf(owner) === TIMELINE_TYPE
+      ? timelineItemsOf(owner, get, typeOf)
+      : typeOf(owner) === TIMELINE_ITEM_TYPE &&
+          get(owner.parentId) &&
+          typeOf(get(owner.parentId)!) === TIMELINE_TYPE
+        ? timelineItemsOf(get(owner.parentId)!, get, typeOf).filter(
+            (item) => item.id !== owner.id,
           )
         : []),
     // (ADR-321: a StepList's keys · orientation · emphasis reach its Steps and their Texts' color;

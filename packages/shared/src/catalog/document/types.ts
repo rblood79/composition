@@ -222,9 +222,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  *      「Back」 (drill) + CascaderList > CascaderItem…` (Select 의 `Popover > ListBox` 자리), 원본의
  *      `accepts.mode` · `bindingMaps`, 항목 원본 (`component-cascaderitem` — 이름 Text · chevron Icon,
  *      사용자 결정 2). 옛 87 문서는 열리지 않는다 (변환 없음).
+ * 89 — ADR-323 Phase 2: `Timeline` · `TimelineItem` (항목마다 상태 `status` — 사용자 결정 1) 과 그 원본
+ *      (`component-timeline` · `component-timelineitem` — 항목의 제목 · 날짜 · 설명 Text 가 `label` ·
+ *      `date` · `description` 에 묶인다). 옛 88 문서는 열리지 않는다 (변환 없음).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 88 as const;
+export const LIBRARY_CONTRACT_VERSION = 89 as const;
 
 export type EntryKind =
   | "project"

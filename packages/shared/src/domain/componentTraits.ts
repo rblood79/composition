@@ -490,6 +490,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   },
   Tag: { families: ["textHost", "staticCollectionItem"], owners: ["TagList"] },
   Breadcrumbs: { container: "collection", children: ["Breadcrumb"] },
+  // ADR-323 Phase 2: a Timeline's direct children are its items only; an item holds free content.
+  Timeline: { container: "collection", children: ["TimelineItem"] },
+  TimelineItem: { families: ["staticCollectionItem"], owners: ["Timeline"] },
   // ADR-321: a StepList's direct children are its Steps only.
   StepList: { container: "collection", children: ["Step"] },
   Step: { families: ["staticCollectionItem"], owners: ["StepList"] },

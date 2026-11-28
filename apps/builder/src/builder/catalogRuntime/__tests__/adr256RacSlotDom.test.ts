@@ -96,7 +96,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 88,
+    libraryContractVersion: 89,
     revision: 0,
     projectId,
     rootId: projectId,

@@ -906,6 +906,9 @@ export interface TranslationKeys {
     fieldMapDisabled: string;
     fieldMapUnavailable: string;
     fieldMapUnavailableEnd: string;
+    fieldMapStart: string;
+    fieldMapTitle: string;
+    fieldMapStatus: string;
     fieldMapNone: string;
     rowTemplateItems: string;
     rowTemplateFirst: string;

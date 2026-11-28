@@ -13,6 +13,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-323 Phase 2 — Timeline] - 2026-11-28
+
+ADR-323 Phase 2 닫힘. 날짜 축 컴포넌트 셋 중 첫째인 Timeline 을 쓸 수 있다.
+
+### Added
+
+- **Timeline** (팔레트 Collections) — 처리 이력을 날짜 순서의 띠로 보인다. 항목 = 제목 · 날짜 · 설명 (날짜 · 설명은 비면 없음) 과 그 밖의 자유 내용, 항목 옆에 표식과 다음 항목으로 가는 선.
+  - 항목마다 상태 (사용자 결정 1): 완료 (회색 점) · 진행 중 (accent 점) · 예정 (고리). 선은 그 항목에서 다음으로 가는 길의 색.
+  - 방향 (세로 · 가로) · 배치 (선 뒤 · 선 앞 · 번갈아 — 번갈아는 세로에서만, 가로는 선 뒤로 그린다) · 크기 S · M · L.
+  - 데이터 연결: 행마다 항목이 반복되고, 연결 칸의 Date · Title · Status 필드가 항목의 날짜 · 제목 · 상태가 된다 (Status 값 `completed` · `current` · `upcoming`, 대소문자 무시).
+  - DOM 은 `ol > li` (날짜는 ISO 값이면 `time`), 상호작용 없음 · RAC 부품 · D1 예외 없음. Canvas 와 Preview 가 같은 자리 함수를 읽는다 (실제 Chrome 대조 ±0.1 px).
+  - 위치: `packages/shared/src/catalog/{bindings/Timeline.binding.ts,rule/timeline.ts,runtime/timeline.ts,document/timelineOrigins.ts}` · 행 역할 `catalog/runtime/dataBinding.ts` · `resolution/resolver.ts` · 패널 `apps/builder/src/builder/components/property/CollectionBinding.tsx`
+- 문서 contract 87 → 88 (옛 87 문서는 열리지 않는다 — 변환 없음).
+
+### Notes
+
+- 날짜 글자는 저장된 값 그대로 보인다 (Table 칸과 같다) — 지역 형식은 EventCalendar (Phase 3) 와 같이 정한다. 가로 배치의 좁은 항목에서 긴 ISO 시각은 옆 항목과 겹칠 수 있다.
+
 ## [ADR-323 Phase 1 — 날짜 축 역할 · 기하 모듈] - 2026-11-28
 
 ADR-323 (Timeline · Event Calendar · Gantt) Phase 1 닫힘. 사용자 기능 변경은 아직 없다 — 세 컴포넌트가 같이 읽을 바탕을 만들었다.

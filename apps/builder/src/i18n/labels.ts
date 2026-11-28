@@ -523,6 +523,13 @@ export const semanticLabelKeys: Record<string, string> = {
   "Current step": "properties.currentStep",
   "Last completed step": "properties.lastCompletedStep",
   "Free navigation": "properties.freeNavigation",
+  // ADR-323 Phase 2 — a Timeline's placement · an item's status (사용자 결정 1).
+  "After line": "properties.timelineAfterLine",
+  "Before line": "properties.timelineBeforeLine",
+  Alternate: "properties.timelineAlternate",
+  Completed: "properties.timelineCompleted",
+  "In progress": "properties.timelineInProgress",
+  Upcoming: "properties.timelineUpcoming",
   // ADR-315 Phase 2 — the Table's · a Column's sort options.
   "Multi-column sort": "properties.multiColumnSort",
   "Max sort columns": "properties.maxSortColumns",
