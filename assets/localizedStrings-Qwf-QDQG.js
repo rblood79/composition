@@ -1,1 +1,0 @@
-import{fi as e}from"./aria-runtime-B5cDK5pn.js";function t(e,t){return e[t.split(`-`)[0]??`en`]??e.en}function n(n){return t(n,e().locale)}export{n,t};

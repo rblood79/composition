@@ -1,1 +1,0 @@
-import{t as e}from"./createLucideIcon-BXRnBFF3.js";var t={name:`circle-dot`,size:24,node:[[`circle`,{cx:`12`,cy:`12`,r:`1`,key:`41hilf`}],[`circle`,{cx:`12`,cy:`12`,r:`10`,key:`1mglay`}]]};t.node;var n=e(t),r={name:`square`,size:24,node:[[`rect`,{width:`18`,height:`18`,x:`3`,y:`3`,rx:`2`,key:`afitv7`}]]};r.node;var i=e(r);export{n,i as t};

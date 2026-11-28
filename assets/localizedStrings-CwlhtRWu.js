@@ -1,0 +1,1 @@
+import{fi as e}from"./aria-runtime-DHDnKB_1.js";function t(e,t){return e[t.split(`-`)[0]??`en`]??e.en}function n(n){return t(n,e().locale)}export{n,t};
