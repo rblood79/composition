@@ -394,6 +394,16 @@ HEAD `51ecc053d` 위 (worktree `autorun/adr-323`). 사용자 결정 4 = 「행 �
 - 버린 접근: 조건 만들기가 창을 순간으로 받기 — 조건은 날짜 글자라 순간 → 날 변환이 조건 쪽에 필요 없고, 순간은 정밀 거르기만 쓴다 (`scheduleWindowInstants`).
 - 검사 (`catalog/runtime/__tests__/adr323ScheduleWindow.test.ts` 13): 조건 모양 (손으로 쓴 값) · 요청 판정 7 · G3 정답표 — Seoul 창 11-23 ~ 11-30 의 경계 행 15 (가로지르는 11-21 ~ 12-02 포함 · 11-30 시작 둘 제외 · 끝 없는 23:50 포함 · 자정에 끝남 제외 · 날만 있는 끝 exclusive 제외 · UTC 글자의 날이 하루 앞 포함 · 뒤집힘 · 시작 없음은 거절 수) · `Pacific/Kiritimati` 표시 + 저장 −12:00 의 11-23 00:05 ~ 00:15 포함 (그 앞 23:55 제외) · `Etc/GMT+12` 표시 + 저장 +14:00 의 창 마지막 날 23:45 포함 (다음 날 00:05 제외), 셋 다 로컬 = body (조건 전부 실림 · 경고 0) = suffix (`OR_GROUP` → 전량 → 정밀). 시작만 구성의 suffix 는 `start_gte` · `start_lte` 로 실려 글자 날 서버와 결과가 같다. 상위집합 sweep — 표시 시간대 5 × 저장 오프셋 10 (−12:00 ~ +14:00, +05:45 포함) × 20 분 간격 13 일 × (50 분 · 끝 없음) + 날만 있는 값: 정밀이 남긴 것을 상위집합이 하나도 빠뜨리지 않음. 원복 RED 5 / 5 (여유 1 · 끝 없는 시작의 기본 길이 빼기 · 「끝 after」 가지 빼기 · 정밀 = 시작만 · suffix + 끝을 send).
 
+**단위 2 — 월 · 일정 목록 모델 (`0d14d6057`)**: `S/catalog/runtime/eventCalendar.ts` — 아직 소비자 없음. 순수 함수라 Canvas (작성 시작 값) 와 DOM (실행 기준 날짜) 이 같이 읽는다.
+
+- 기준 날짜 = `defaultDate` (ISO 날), 비면 컴포넌트 시간대의 오늘 (`now` 주입 — R8). 「이전 · 다음」 = 앞뒤 달의 1 일 (1-31 → 2-01 — 달 끝 날짜를 끌고 가지 않는다), 「오늘」 = 오늘.
+- 월 보기 = 기준 달을 덮는 온 주 (`getWeeksInMonth` · `startOfWeek` — RAC `CalendarGrid` 의 행), 칸마다 날짜 (그레고리력 ISO · 달력 체계의 일 · wall ms · 달 밖 · 오늘). 날짜 고르기용 Calendar 는 달 밖 칸을 숨기지만 일정표는 그 칸의 일정도 그린다 (흐리게) — Google · ReUI 와 같다. 창 = 첫 칸 ~ 끝 칸 다음 날. 요일 이름 `short`. 제목 = RAC `CalendarHeading` 글자 (`catalogCalendarHeading` 재사용 — 달력 체계의 해).
+- 일정 목록 창 = 기준 달 (1 일 ~ 다음 달 1 일). 날짜별 일정 (`catalogEventCalendarDayEvents`) = 그 날을 덮는 일정 (여러 날 일정은 날마다 · 길이 0 은 그 순간의 날) — 종일 먼저 · 시작 순간 · 긴 것 먼저 · 받은 순서. 일정 목록 구획과 고른 날의 목록이 같이 쓴다.
+- 보기 key: `agenda` 밖은 월 (주 · 일 = Phase 4).
+- 검사 (`catalog/runtime/__tests__/adr323EventCalendarModel.test.ts` 9 — 2026-11 손 달력: 11-01 일요일): en-US 5 주 11-01 ~ 12-05 · 월요일 시작 6 주 10-26 ~ 12-06 · ko-KR 제목 · 요일 · buddhist 해 2569 · Etc/GMT+12 의 오늘 11-27 · 날짜별 순서 (전날 밤에 시작한 일정보다 종일 먼저). 원복 RED 5 / 5 (주 수 6 고정 · 오늘을 UTC 로 · 이전 / 다음이 날짜 유지 · 종일 먼저 빼기 · 창 끝을 마지막 칸으로).
+
+**이 세션을 여기서 닫은 이유 (2026-11-28)**: 다음 단위 (노드 등록 + contract 90 + 그리기) 는 한 커밋으로 서야 한다 — contract 를 올리면 test fixture 40 여 곳이 같이 바뀌고, 등록만 하고 그리지 않는 type 은 문서에서 빈 상자가 된다. 남은 컨텍스트로 그 단위를 끝까지 닫지 못하면 type-check 가 통과하지 않는 중간 상태가 남아, 끝난 두 단위까지 커밋하고 넘긴다.
+
 **다음 단위의 설계 (통상 구현 판단 — 다음 세션이 이대로 진행)**:
 
 - **노드 트리** — `EventCalendar > frame (머리 — 가로 줄) [Button slot=previous (Icon) · Button slot=next (Icon) · Button slot=today ("Today") · Heading slot=title · ToggleButtonGroup slot=view > ToggleButton id=month · id=agenda] + EventCalendarView + EventCalendarEvent*`. 주 · 일 ToggleButton 은 Phase 4 에서 더한다.
