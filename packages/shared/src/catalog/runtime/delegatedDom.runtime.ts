@@ -53,6 +53,7 @@ import { catalogTimelineChromeDom } from "./timeline";
 import {
   CatalogCascaderField,
   CatalogCascaderListHost,
+  CatalogCascaderRow,
 } from "./cascader.components";
 import {
   CASCADER_ITEM_TYPE,
@@ -478,13 +479,6 @@ export interface DelegatedDomInput {
    * the record also carries rule values the sheet draws: `wroteStyleKey`).
    */
   readonly writtenStyleOf?: (recordId: string) => CSSProperties;
-  /** A record's state values for an element this binding draws itself (`catalogStateStyleProps`). */
-  readonly stateStyleOf?: (recordId: string) =>
-    | {
-        readonly attributes: Record<string, unknown>;
-        readonly variables: Record<string, string>;
-      }
-    | undefined;
 }
 
 /**
@@ -4899,16 +4893,48 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // ADR-326 (§4.3 개정 시제품): an item's row — drawn only where the open list asks for it (the rows
+  //  of the levels shown). This element carries what every node's does (its catalog id, what the
+  //  document wrote, and what the DOM pass adds — the state marks); the list's chunk makes it the RAC
+  //  item of its mode (`CatalogCascaderRow`).
   cascaderitem: {
-    render: (input) => createElement(Fragment, { key: input.node.id }),
+    render: (input) => {
+      const { key, slot: _slot, ...base } = marker(input);
+      const { get, typeOf } = domLookup(input);
+      // (Its parts in the document's order, but its next level's items; the chevron is named — a
+      //  leaf draws none.)
+      const parts: ReactElement[] = [];
+      const chevron: ReactElement[] = [];
+      for (const id of input.node.children) {
+        const child = get(id);
+        if (!child || typeOf(child) === "CascaderItem") continue;
+        const part = input.renderChild(id);
+        parts.push(part);
+        if (typeOf(child) === "Icon" && child.props.slot === "descriptor")
+          chevron.push(part);
+      }
+      return createElement(CatalogCascaderRow, {
+        key,
+        ...base,
+        className: "react-aria-CascaderItem",
+        "data-size": input.node.props.size,
+        // (Only what the document wrote — the record also carries rule values the sheet draws —
+        //  under a running rule's style: a Hide action's `display: none`.)
+        style: {
+          ...input.writtenStyleOf?.(input.node.id),
+          ...(input.runtimeProps?.(input.node.id)?.style as
+            CSSProperties | undefined),
+        },
+        parts,
+        chevron,
+      });
+    },
   },
   // ADR-326 Phase 2 (§4.3): the level list box — while its `columns` Cascader is open, RAC `Menu`
   //  (the node's element) of the field's table (`CascaderOpenContext`). A row takes its item record's
   //  DOM input (`row`) and draws the record's own parts (`parts` — the label Text, a branch's chevron
   //  Icon) with the catalog renderer.
   cascaderlist: {
-    // (A row redraws with its item record — a look edit · Undo: the field watches every item, and its
-    //  open values reach the host anew; the table stays, ADR-326 §4.3.)
     render: (input) => {
       const { key, slot: _slot, ...base } = marker(input);
       return createElement(CatalogCascaderListHost, {
@@ -4916,12 +4942,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         base: {
           ...base,
           className: "react-aria-CascaderList",
-          // (The field's size — the list's carried default is M.)
           "data-size": input.node.props.size,
           style: input.style,
         },
-        // (The renderer's lookups — `CascaderRowRecords`.)
-        records: { ...input, ...domLookup(input) },
+        // (A shown row = its item record drawn by the catalog renderer — `cascaderitem`.)
+        renderRow: input.renderChild,
       });
     },
   },

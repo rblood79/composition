@@ -115,11 +115,8 @@ function field(
                   className: "react-aria-CascaderList",
                   "data-size": "M",
                 },
-                records: {
-                  get: () => undefined,
-                  typeOf: () => "",
-                  renderChild: () => createElement(Fragment),
-                },
+                // (These items carry no record — a row is its name.)
+                renderRow: () => createElement(Fragment),
               }),
             ),
           })

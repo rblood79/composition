@@ -3,9 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
+  insertNodes,
   setFields,
   setLibraryDefault,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -194,6 +196,75 @@ describe("ADR-326 G2 — columns 의 열린 내용 = 원본 노드 (Preview)", (
         row.style.getPropertyValue("--catalog-hover-background-color"),
       ).toBe("#abcdef");
     }
+    h.view.unmount();
+  });
+
+  // (Stop 판독 2026-11-28 — the row is its item record drawn by the catalog renderer, §4.3 개정.)
+  it("실행 중 숨김 (Hide 동작의 style) 이 그 행에 간다", async () => {
+    const h = await place();
+    const books = [...h.workspace.root.domInputs.values()].find(
+      (record) =>
+        h.workspace.root.typeOf(record) === "CascaderItem" &&
+        record.props.id === "books",
+    )!;
+    await act(async () =>
+      h.runtime.setRuntimeProps!(books.id, { style: { display: "none" } }),
+    );
+    await h.openIt();
+    expect(h.rows().map((row) => [row.textContent, row.style.display])).toEqual(
+      [
+        ["Electronics", ""],
+        ["Clothing", ""],
+        ["Books", "none"],
+      ],
+    );
+    h.view.unmount();
+  });
+
+  it("행의 부품은 문서 순서 그대로 — chevron 뒤에 넣은 아이콘은 chevron 뒤에", async () => {
+    const h = await place();
+    const root = h.workspace.root;
+    const electronics = [...root.domInputs.values()].find(
+      (record) =>
+        root.typeOf(record) === "CascaderItem" &&
+        record.props.id === "electronics",
+    )!;
+    const added = "project:node:added-icon" as NodeId;
+    h.workspace.execute(
+      insertNodes({
+        parent: h.workspace.itemOfRecord(electronics.id)!.target,
+        index: 2,
+        entries: [
+          {
+            kind: "node",
+            id: added,
+            definitionId: catalogPaletteDefinitionId(
+              h.workspace.runtime.graph.library,
+              "Icon",
+            ),
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        ],
+        rootIds: [added],
+        newId: h.workspace.newId,
+      } as never),
+    );
+    h.flush();
+    await h.openIt();
+    const row = h
+      .rows()
+      .find((item) => item.textContent!.startsWith("Electronics"))!;
+    expect(
+      [...row.children].map((part) =>
+        part.getAttribute("data-catalog-id")?.endsWith(`::${added}`)
+          ? "added"
+          : part.getAttribute("slot"),
+      ),
+    ).toEqual(["label", "descriptor", "added"]);
     h.view.unmount();
   });
 

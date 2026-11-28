@@ -13,6 +13,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-326 §4.3 개정 — Cascader 행을 항목 노드의 일반 렌더 경로로] - 2026-11-28
+
+ADR-326 §4.3 개정 (사용자 결정 「시제품 후 개정」). 「columns」 열린 목록의 각 행을 그 항목 노드의 catalog 렌더 경로로 그린다 — 보이는 행만 만드는 구조는 그대로다. 행이 상태 값 · size · 작성 style · 실행 중 style 을 다른 노드와 같은 길로 받는다.
+
+### Fixed
+
+- 실행 중 숨김 (Hide 동작) 이 Cascader 열린 목록의 항목 행에 적용되지 않던 문제.
+- 항목 안 chevron 뒤에 넣은 부품이 행에서 chevron 앞으로 옮겨 그려지던 문제.
+
+### Changed
+
+- Builder 첫 화면 번들 절대 상한 1,677,000 → **1,682,000 B** (사용자 재승인 2026-11-28 — 이 개정 몫 + ADR-326 Phase 3 ~ 6 몫). 지금 1,677,148 B. Preview 327,000 · 만료 2026-12-25 그대로.
+
 ## [ADR-326 Phase 2 — Cascader columns 열린 목록을 원본 노드로] - 2026-11-28
 
 ADR-326 Phase 2 닫힘. 「columns」 방식 Cascader 의 열린 목록을 원본의 노드 (Popover · 검색 칸 · 목록 · 항목) 로 그린다 — Select 의 열린 목록과 같은 구조. 「tree」 · 「drill」 방식은 Phase 3 까지 그대로다.

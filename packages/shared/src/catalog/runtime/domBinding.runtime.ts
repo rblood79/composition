@@ -370,7 +370,7 @@ import {
   type CatalogDomStateCondition,
 } from "./stateFrames";
 
-import { catalogStateStyleProps, type CatalogStateStyles } from "./stateStyles";
+import { type CatalogStateStyles } from "./stateStyles";
 
 import {
   catalogColumnChildren,
@@ -6206,10 +6206,6 @@ export function renderNode(
             layout: written(record.layout),
           });
         },
-        stateStyleOf: (recordId: string) =>
-          catalogStateStyleProps(
-            catalogDomStateStyles(root.domInputs.get(recordId)),
-          ),
         ...(context.runtime?.setRuntimeProps
           ? {
               setRuntimeProps: (
@@ -6901,9 +6897,9 @@ function withoutOwnerPartValues(
 
 /** Explicit state keys survive even when equal to rest (the rule sheet can change rest paint). */
 export function catalogDomStateStyles(
-  node: CatalogConsumerNode | undefined,
+  node: CatalogConsumerNode,
 ): CatalogStateStyles | undefined {
-  if (!node?.stateVisual) return undefined;
+  if (!node.stateVisual) return undefined;
   const out: CatalogStateStyles = {};
   for (const [state, values] of Object.entries(node.stateVisual)) {
     const merged = catalogVisualWithBackground({

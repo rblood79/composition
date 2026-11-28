@@ -3,7 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
-  type CSSProperties,
+  type ComponentType,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -19,8 +19,7 @@ import { SearchFieldContext } from "react-aria-components/SearchField";
 import { Text, TextContext } from "react-aria-components/Text";
 import { Icon } from "../../components/Icon";
 import type { CascaderEntry } from "./cascader";
-import type { CascaderOpenValue } from "./cascader.components";
-import type { CatalogConsumerNode } from "./compositionRoot";
+import type { CascaderOpenValue, CascaderRowDraw } from "./cascader.components";
 import {
   cascaderSearch,
   CASCADER_SEARCH_LIMIT,
@@ -60,88 +59,69 @@ import { catalogLocalized } from "./localizedStrings";
  * Esc on clearing a selection the menu holds: a picked first-level leaf kept the menu open).
  */
 
-/** A row's DOM input, by its item record (none for the rows the field adds — 「전체」 · status). */
-export type CascaderRowProps = (
-  recordId: string | undefined,
-) => Record<string, unknown>;
-
-/** An item record's own parts (its label Text · chevron Icon), drawn by the catalog renderer. */
-export type CascaderRowParts = (
-  recordId: string,
-  options: { readonly chevron: boolean },
-) => ReactNode[];
-
-/** The records a row reads (the catalog renderer's lookups — `delegatedDom.runtime.ts`). */
-export interface CascaderRowRecords {
-  readonly get: (id: string) => CatalogConsumerNode | undefined;
-  readonly typeOf: (node: CatalogConsumerNode) => string;
-  /** A record drawn by the catalog renderer (an item's own parts). */
-  readonly renderChild: (id: string) => ReactElement;
-  /** What the document wrote on a record (the row is RAC's — the DOM pass never sees it). */
-  readonly writtenStyleOf?: (id: string) => CSSProperties;
-  /** A record's state values (hover · pressed …) — the row is RAC's, the DOM pass never marks it. */
-  readonly stateStyleOf?: (id: string) =>
-    | {
-        readonly attributes: Record<string, unknown>;
-        readonly variables: Record<string, string>;
-      }
-    | undefined;
-}
-
 export interface CascaderListBodyProps {
   /** The field's open values (`cascader.components.tsx` — given as a prop, see its note). */
   readonly open: CascaderOpenValue;
   /** The list box node's element props (its catalog id · class · `data-size` · style). */
   readonly base: Record<string, unknown>;
-  readonly records: CascaderRowRecords;
+  /** An item record drawn by the catalog renderer (`cascaderitem` — a `CatalogCascaderRow`). */
+  readonly renderRow: (recordId: string) => ReactElement;
+  /** The scope a row reads its RAC item from (the first screen's context — given as a prop too). */
+  readonly Row: ComponentType<{
+    readonly value: CascaderRowDraw;
+    readonly children: ReactNode;
+  }>;
 }
 
-/** A row's DOM input and its record's parts (built here — the first screen carries none of it). */
-function rowInputs(
-  base: Record<string, unknown>,
-  {
-    get,
-    typeOf,
-    renderChild: render,
-    writtenStyleOf,
-    stateStyleOf,
-  }: CascaderRowRecords,
-): { readonly row: CascaderRowProps; readonly parts: CascaderRowParts } {
-  const size = base["data-size"];
-  const rowOf = (recordId: string) => {
-    const state = stateStyleOf?.(recordId);
-    return {
-      ...state?.attributes,
-      "data-catalog-id": recordId,
-      style: { ...writtenStyleOf?.(recordId), ...state?.variables },
-    };
-  };
-  return {
-    row: (recordId) => ({
-      className: "react-aria-CascaderItem",
-      "data-size": size,
-      ...(recordId && rowOf(recordId)),
-    }),
-    // (Its parts but its next level's items; a leaf's chevron is not drawn.)
-    parts: (recordId, { chevron }) =>
-      (get(recordId)?.children ?? []).flatMap((id) => {
-        const child = get(id);
-        if (!child || typeOf(child) === "CascaderItem") return [];
-        if (
-          !chevron &&
-          typeOf(child) === "Icon" &&
-          child.props.slot === "descriptor"
-        )
-          return [];
-        return [render(id)];
-      }),
-  };
-}
+type LevelProps = CascaderListBodyProps;
 
-type LevelProps = Omit<CascaderListBodyProps, "records"> & {
-  readonly row: CascaderRowProps;
-  readonly parts: CascaderRowParts;
-};
+/** A row without a record (「전체」 · a status · an item no node draws): the item's class and size. */
+const plainRow = (base: Record<string, unknown>) => ({
+  className: "react-aria-CascaderItem",
+  "data-size": base["data-size"],
+});
+
+/**
+ * An item's row. With a record: the record drawn by the catalog renderer — its props (catalog id ·
+ * written style · state marks · size) and parts — as this list's RAC item. Without: its name.
+ */
+function itemRow(
+  { Row, renderRow, base }: Pick<LevelProps, "Row" | "renderRow" | "base">,
+  entry: CascaderEntry,
+  chevron: boolean,
+  extra?: ReactElement,
+): ReactElement {
+  if (!entry.recordId)
+    return (
+      <MenuItem
+        {...plainRow(base)}
+        key={entry.pathId}
+        id={entry.pathId}
+        textValue={entry.name}
+      >
+        <Text slot="label">{entry.name}</Text>
+        {chevron ? <Icon iconName="chevron-right" slot="descriptor" /> : null}
+        {extra}
+      </MenuItem>
+    );
+  return (
+    <Row
+      key={entry.pathId}
+      value={(row) => (
+        <MenuItem {...row.props} id={entry.pathId} textValue={entry.name}>
+          {[
+            ...(chevron
+              ? row.parts
+              : row.parts.filter((part) => !row.chevron.includes(part))),
+            extra,
+          ]}
+        </MenuItem>
+      )}
+    >
+      {renderRow(entry.recordId)}
+    </Row>
+  );
+}
 
 /** The search query of an open field (its search scope's — both parts are this chunk's). */
 const CascaderQueryContext = createContext("");
@@ -195,34 +175,20 @@ function Deferred({
 
 /** A row the field adds (「<branch> 전체」 · a level's status): the item's class, no record. */
 function addedRow(
-  row: CascaderRowProps,
+  base: Record<string, unknown>,
   id: string,
   text: string,
   extra: Record<string, unknown> = {},
 ): ReactElement {
   return (
-    <MenuItem {...row(undefined)} {...extra} key={id} id={id} textValue={text}>
+    <MenuItem {...plainRow(base)} {...extra} key={id} id={id} textValue={text}>
       <Text slot="label">{text}</Text>
     </MenuItem>
   );
 }
 
-/** An item's row: its record's parts, else (no record) its name and a branch's chevron. */
-function itemContent(
-  entry: CascaderEntry,
-  parts: CascaderRowParts,
-  chevron: boolean,
-): ReactNode {
-  if (entry.recordId) return parts(entry.recordId, { chevron });
-  return (
-    <>
-      <Text slot="label">{entry.name}</Text>
-      {chevron ? <Icon iconName="chevron-right" slot="descriptor" /> : null}
-    </>
-  );
-}
-
-function Levels({ open, base, row, parts }: LevelProps) {
+function Levels(props: LevelProps) {
+  const { open, base } = props;
   const { table, keys, multiple, label, onPick, levels } = open;
   const picked = cascaderPicked(table, keys);
   const levelName = useCascaderLevelName();
@@ -284,12 +250,12 @@ function Levels({ open, base, row, parts }: LevelProps) {
       >
         {[
           ...(own && parent
-            ? [addedRow(row, own, levelName(parent.name))]
+            ? [addedRow(base, own, levelName(parent.name))]
             : []),
           ...(parent && waits(parent)
             ? [
                 addedRow(
-                  row,
+                  base,
                   statusId,
                   failed ? status.retry : status.loading,
                   // (「Retry」 asks again in place — the menu stays open.)
@@ -300,13 +266,7 @@ function Levels({ open, base, row, parts }: LevelProps) {
           ...childrenOf(here).map((entry) =>
             entry.hasChildren ? (
               <SubmenuTrigger key={entry.pathId}>
-                <MenuItem
-                  {...row(entry.recordId)}
-                  id={entry.pathId}
-                  textValue={entry.name}
-                >
-                  {itemContent(entry, parts, true)}
-                </MenuItem>
+                {itemRow(props, entry, true)}
                 {/* (The Menu sheet's SubmenuTrigger block takes a sized Popover — one edge, its
                     width the level's.) */}
                 <Popover
@@ -324,14 +284,7 @@ function Levels({ open, base, row, parts }: LevelProps) {
                 </Popover>
               </SubmenuTrigger>
             ) : (
-              <MenuItem
-                {...row(entry.recordId)}
-                key={entry.pathId}
-                id={entry.pathId}
-                textValue={entry.name}
-              >
-                {itemContent(entry, parts, false)}
-              </MenuItem>
+              itemRow(props, entry, false)
             ),
           ),
         ]}
@@ -342,13 +295,8 @@ function Levels({ open, base, row, parts }: LevelProps) {
 }
 
 /** With a query: the pickable items whose name holds it, each with its path (ADR-322 Phase 5). */
-function Results({
-  open,
-  query,
-  base,
-  row,
-  parts,
-}: LevelProps & { readonly query: string }) {
+function Results({ query, ...props }: LevelProps & { readonly query: string }) {
+  const { open, base } = props;
   const { table, keys, multiple, onPick, separator, levels } = open;
   const { locale } = useLocale();
   const strings = catalogLocalized(CASCADER_SEARCH_STRINGS, locale);
@@ -372,21 +320,16 @@ function Results({
           if (entry) onPick(entry.key);
         }}
       >
-        {shown.map((entry) => (
-          <MenuItem
-            {...row(entry.recordId)}
-            key={entry.pathId}
-            id={entry.pathId}
-            textValue={entry.name}
-          >
-            {entry.recordId ? (
-              parts(entry.recordId, { chevron: false })
-            ) : (
-              <Text slot="label">{entry.name}</Text>
-            )}
-            <Text slot="description">{entry.names.join(separator)}</Text>
-          </MenuItem>
-        ))}
+        {shown.map((entry) =>
+          itemRow(
+            props,
+            entry,
+            false,
+            <Text key="path" slot="description">
+              {entry.names.join(separator)}
+            </Text>,
+          ),
+        )}
       </Menu>
       {levels ? (
         <Text slot="description" className="cascader-search-more">
@@ -403,11 +346,7 @@ function Results({
 }
 
 /** The `CascaderList` node's content while its Cascader is open (see the file note). */
-export function CascaderListBody({
-  records,
-  ...props
-}: CascaderListBodyProps): ReactElement {
+export function CascaderListBody(props: CascaderListBodyProps): ReactElement {
   const query = useContext(CascaderQueryContext);
-  const level = { ...props, ...rowInputs(props.base, records) };
-  return query ? <Results {...level} query={query} /> : <Levels {...level} />;
+  return query ? <Results {...props} query={query} /> : <Levels {...props} />;
 }

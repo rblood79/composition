@@ -8,6 +8,7 @@ import {
   useId,
   useRef,
   useState,
+  type ReactElement,
   type ReactNode,
   type Ref,
 } from "react";
@@ -79,6 +80,28 @@ export interface CascaderOpenValue {
 
 const CascaderOpenContext = createContext<CascaderOpenValue | null>(null);
 
+/** One shown row as the catalog renderer drew its item record (`cascaderitem`). */
+export interface CascaderRowInput {
+  /** The row element's props — the node's own and what the DOM pass added (state marks …). */
+  readonly props: Record<string, unknown>;
+  /** The record's parts in the document's order; `chevron` names those a leaf does not draw. */
+  readonly parts: readonly ReactNode[];
+  readonly chevron: readonly ReactNode[];
+}
+/** The open list's RAC item for one row (the lazy body gives it around each row it shows). */
+export type CascaderRowDraw = (row: CascaderRowInput) => ReactElement;
+const CascaderRowContext = createContext<CascaderRowDraw | null>(null);
+
+/** ADR-326 — a `CascaderItem` node's DOM: the RAC item the open list makes of it (none while closed). */
+export function CatalogCascaderRow({
+  parts,
+  chevron,
+  ...props
+}: Record<string, unknown> & Omit<CascaderRowInput, "props">) {
+  const draw = useContext(CascaderRowContext);
+  return draw ? draw({ props, parts, chevron }) : null;
+}
+
 // (The list box body is the same chunk as the search scope. It takes the field's values as props
 //  — a lazy chunk importing a value of this first-screen module makes rollup split this module and
 //  its imports into chunks of their own: the first screen grew by 4 KB, Phase 2 A/B.)
@@ -93,13 +116,17 @@ const CascaderListBody = lazy(() =>
  * renderer's — `delegatedDom.runtime.ts` `cascaderlist`): the field's open values, then the lazy body.
  */
 export function CatalogCascaderListHost(
-  props: Omit<CascaderListBodyProps, "open">,
+  props: Omit<CascaderListBodyProps, "open" | "Row">,
 ) {
   const open = useContext(CascaderOpenContext);
   if (!open) return null;
   return (
     <Suspense fallback={null}>
-      <CascaderListBody {...props} open={open} />
+      <CascaderListBody
+        {...props}
+        open={open}
+        Row={CascaderRowContext.Provider}
+      />
     </Suspense>
   );
 }

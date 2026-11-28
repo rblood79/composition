@@ -109,43 +109,6 @@ export function catalogStateStylesheet(): string {
 
 export type CatalogStateStyles = Partial<Record<StateName, CSSProperties>>;
 
-/**
- * A node's state values as the element's marks (`data-catalog-<state>`) and the variables the state
- * sheet reads — for an element a binding builds itself (a Cascader's RAC rows — ADR-326).
- */
-export function catalogStateStyleProps(states: CatalogStateStyles): {
-  readonly attributes: Record<string, unknown>;
-  readonly variables: Record<string, string>;
-};
-export function catalogStateStyleProps(states: CatalogStateStyles | undefined):
-  | {
-      readonly attributes: Record<string, unknown>;
-      readonly variables: Record<string, string>;
-    }
-  | undefined;
-export function catalogStateStyleProps(states: CatalogStateStyles | undefined) {
-  if (!states) return undefined;
-  const variables: Record<string, string> = {};
-  const attributes: Record<string, unknown> = {};
-  for (const [stateName, styles] of Object.entries(states)) {
-    const state = cssName(stateName);
-    const keys: string[] = [];
-    for (const [key, value] of Object.entries(styles)) {
-      if (value === undefined || value === null) continue;
-      if (!SUPPORTED.has(key))
-        throw new Error(`CATALOG_STATE_CSS_UNSUPPORTED:${key}`);
-      const property = cssName(key);
-      keys.push(property);
-      variables[`--catalog-${state}-${property}`] =
-        typeof value === "number" && !UNITLESS.has(key)
-          ? `${value}px`
-          : String(value);
-    }
-    if (keys.length) attributes[`data-catalog-${state}`] = keys.join(" ");
-  }
-  return { attributes, variables };
-}
-
 /** No wrapper and no per-node event listener; native leaves and RAC parts share this channel. */
 export function withCatalogStateStyles(
   element: ReactElement | null,
@@ -170,7 +133,24 @@ export function withCatalogStateStyles(
       }),
     );
   }
-  const { attributes, variables } = catalogStateStyleProps(states);
+  const variables: Record<string, string> = {};
+  const attributes: Record<string, unknown> = {};
+  for (const [stateName, styles] of Object.entries(states)) {
+    const state = cssName(stateName);
+    const keys: string[] = [];
+    for (const [key, value] of Object.entries(styles)) {
+      if (value === undefined || value === null) continue;
+      if (!SUPPORTED.has(key))
+        throw new Error(`CATALOG_STATE_CSS_UNSUPPORTED:${key}`);
+      const property = cssName(key);
+      keys.push(property);
+      variables[`--catalog-${state}-${property}`] =
+        typeof value === "number" && !UNITLESS.has(key)
+          ? `${value}px`
+          : String(value);
+    }
+    if (keys.length) attributes[`data-catalog-${state}`] = keys.join(" ");
+  }
   const own = (
     element.props as {
       style?: CSSProperties | ((values: never) => CSSProperties);

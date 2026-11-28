@@ -90,7 +90,7 @@ jobs:
       # 필요해 여기서 돌리지 않는다).
       - name: Initial bundle ceiling (ADR-201)
         env:
-          BUILDER_CEILING: "1677000" # 2026-11-28 사용자 승인 합산 (ADR-326 결정 1 의 1672000 + ADR-323 결정 9 몫 5000 — adr201-bundle-gate.mjs 와 같은 값). 1672000 대체
+          BUILDER_CEILING: "1682000" # 2026-11-28 사용자 재승인 (ADR-326 행 그리기 시제품 뒤 「+5,000」 — adr201-bundle-gate.mjs 와 같은 값). 1677000 대체
           PREVIEW_CEILING: "327000" # 2026-11-08 사용자 재승인 (ADR-303 결정 6 b) — adr201-bundle-gate.mjs 와 같은 값
         run: |
           node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry index.html --label builder --out /tmp/bundle-builder.json
