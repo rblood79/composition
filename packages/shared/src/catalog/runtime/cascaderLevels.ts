@@ -1,3 +1,6 @@
+import { endpointReadsTemplate } from "../../collections/executeCollectionEndpoint";
+import type { CollectionDataSource } from "../../collections/resolveCollectionItems";
+import type { ApiEndpointDefinition } from "../../types/collection.types";
 import { cascaderValueMatch, type CascaderTable } from "./cascader";
 
 /**
@@ -43,4 +46,84 @@ export function correctCascaderSelection(
     kept,
     warning: `[Cascader] 서버 계약 위반 — 겹친 선택을 비운다: ${JSON.stringify(removed)}`,
   };
+}
+
+/**
+ * ADR-326 §4.7 (4) — whether a collection's levels load one by one: its query endpoint (not mock)
+ * reads `{{ parentKey }}` and declares keys unique across the hierarchy. The Preview session and
+ * the Builder's row read ask the same question.
+ */
+export function cascaderLoadsLevels(
+  collection: Pick<CollectionDataSource, "useMockData"> | undefined,
+  endpoint: ApiEndpointDefinition | undefined,
+): boolean {
+  return (
+    !!collection &&
+    !collection.useMockData &&
+    !!endpoint &&
+    endpointReadsTemplate(endpoint, "parentKey") &&
+    endpoint.responseMapping?.keysUnique === true
+  );
+}
+
+/** A collection field named by the binding (`data:field:<schema id>`) as the row's key. */
+export function cascaderFieldKey(
+  collection: Pick<CollectionDataSource, "schema"> | undefined,
+  ref: string | undefined,
+): string | undefined {
+  if (!ref) return undefined;
+  const id = ref.startsWith("data:field:")
+    ? ref.slice("data:field:".length)
+    : ref;
+  return collection?.schema?.find((field) => field.id === id)?.key ?? id;
+}
+
+/** A row's key fields after the collection's key field (ADR-325 Decision 7). */
+export const ROW_KEY_FIELDS = ["id", "key", "value"] as const;
+/**
+ * ADR-325 Decision 7 — a row's own key: the collection's key field, else `id` · `key` · `value`
+ * (the binding's value field is a component's item key, never the store's).
+ */
+export function collectionRowKeyOf(
+  collection: Pick<CollectionDataSource, "schema" | "keyField"> | undefined,
+): (row: Readonly<Record<string, unknown>>) => string | number | undefined {
+  const keyField = collection?.keyField
+    ? collection.schema?.find((field) => field.id === collection.keyField)?.key
+    : undefined;
+  const fields = keyField ? [keyField, ...ROW_KEY_FIELDS] : ROW_KEY_FIELDS;
+  return (row) => {
+    for (const field of fields) {
+      const value = row[field];
+      if ((typeof value === "string" && value) || typeof value === "number")
+        return value;
+    }
+    return undefined;
+  };
+}
+
+/**
+ * ADR-326 §4.7 (4) — the keys of rows that may have items under them, their level not here yet
+ * (`CatalogCascaderLevels.branchKeys`): a row whose level is not loaded, flagged by the binding's
+ * 「has children」 field (none = every row may). The session reads it with the levels it loaded;
+ * the Builder with none loaded — the state a Preview is in when it first opens.
+ */
+export function cascaderBranchKeys(
+  rows: readonly unknown[],
+  dataKey: (
+    row: Readonly<Record<string, unknown>>,
+  ) => string | number | undefined,
+  flagField: string | undefined,
+  stateOf: (parentKey: string) => CatalogCascaderLevelState | undefined = () =>
+    undefined,
+): Set<string> {
+  const keys = new Set<string>();
+  for (const row of rows as readonly Record<string, unknown>[]) {
+    if (row === null || typeof row !== "object") continue;
+    const key = dataKey(row);
+    if (key === undefined) continue;
+    if (stateOf(String(key)) === "loaded") continue;
+    if (flagField === undefined || row[flagField] === true)
+      keys.add(String(key));
+  }
+  return keys;
 }

@@ -902,6 +902,8 @@ function collapsedChildren(
   ];
 }
 /** Every graph source a record reads: its own and those of its collapsed layers. */
+/** ADR-326 HC4 — queued records under one record from which they resolve together. */
+const BULK_PRUNED_MIN = 16;
 function recordSources(record: CatalogConsumerNode): readonly string[] {
   return record.collapsedSourceIds
     ? [record.sourceId, ...record.collapsedSourceIds]
@@ -8263,7 +8265,19 @@ export class CatalogCompositionRoot {
       resolverVisits: 0,
       includeChecks: 0,
     },
-  ): { top: ResolvedCatalogNode; resolved: ResolvedCatalogNode } {
+    /**
+     * ADR-326 HC4 — the record's whole subtree too (every record under it on the path, each owned
+     * child scanned): `within` gives a record under it as its own pruned resolution would.
+     */
+    subtree = false,
+  ): {
+    top: ResolvedCatalogNode;
+    resolved: ResolvedCatalogNode;
+    within?: (
+      id: string,
+    ) =>
+      { top: ResolvedCatalogNode; resolved: ResolvedCatalogNode } | undefined;
+  } {
     const before = this.records.get(id)!;
     const rootId = this.recordRoots.get(id)!;
     const allowed = new Set<string>();
@@ -8291,6 +8305,21 @@ export class CatalogCompositionRoot {
         else if (hop) ownedNext.set(position(parent.id), hop);
       }
       cursor = parent;
+    }
+    if (subtree) {
+      // (Every record under it is on the path, and each owned child list under it is read whole.)
+      scanAll.add(position(before.id));
+      const stack = [...before.children];
+      while (stack.length) {
+        const record = this.records.get(stack.pop()!);
+        if (!record) continue;
+        allowed.add(position(record.id));
+        for (const layerId of record.collapsedIds ?? [])
+          allowed.add(position(layerId));
+        scanAll.add(position(record.id));
+        chain.push(record);
+        stack.push(...record.children);
+      }
     }
     // A replacement on the path is reached through the template position it replaces: the
     // resolver tests `include` with that template id, so its identity joins the path.
@@ -8348,7 +8377,87 @@ export class CatalogCompositionRoot {
     const valueId = before.collapsedIds?.at(-1);
     const resolved = valueId ? find(top, valueId) : top;
     if (!resolved) throw new Error(`RESOLVED_INSTANCE_MISSING:${valueId}`);
-    return { top, resolved };
+    if (!subtree) return { top, resolved };
+    const byIdentity = new Map<string, ResolvedCatalogNode>();
+    const index = (node: ResolvedCatalogNode) => {
+      byIdentity.set(identity(node), node);
+      node.children.forEach(index);
+    };
+    index(top);
+    const within = (inner: string) => {
+      const record = this.records.get(inner);
+      const innerTop = byIdentity.get(inner);
+      if (!record || !innerTop) return undefined;
+      const innerValue = record.collapsedIds?.at(-1);
+      const innerResolved = innerValue ? find(innerTop, innerValue) : innerTop;
+      return innerResolved
+        ? { top: innerTop, resolved: innerResolved }
+        : undefined;
+    };
+    return { top, resolved, within };
+  }
+
+  /**
+   * ADR-326 HC4 — the queued records under one queued record (a bound composite's records when a
+   * prop its template binds changed — `bindingDependents`): resolved with it in one pruned
+   * resolution instead of one each. Each record's own path projects the bound rows' whole
+   * hierarchy, so one each was records × rows (a bound Cascader's label: 536,602 resolver visits
+   * for 806 records). Returns the lookup for the records under such an anchor (resolved on first
+   * ask); others resolve on their own.
+   */
+  private bulkPruned(
+    queue: readonly string[],
+    breakpoint: BreakpointName,
+    counts: { resolverVisits: number; includeChecks: number },
+  ): (
+    id: string,
+  ) => { top: ResolvedCatalogNode; resolved: ResolvedCatalogNode } | undefined {
+    const queued = new Set(queue);
+    const under = new Map<string, number>();
+    const anchorOf = new Map<string, string>();
+    for (const id of queue)
+      for (
+        let parent = this.records.get(this.records.get(id)?.parentId ?? "");
+        parent;
+        parent = this.records.get(parent.parentId)
+      )
+        if (queued.has(parent.id))
+          under.set(parent.id, (under.get(parent.id) ?? 0) + 1);
+    const anchors = new Set(
+      [...under].flatMap(([id, count]) =>
+        count >= BULK_PRUNED_MIN ? [id] : [],
+      ),
+    );
+    if (!anchors.size) return () => undefined;
+    for (const id of queue) {
+      // (The outermost anchor at or above the record.)
+      let anchor: string | undefined;
+      for (
+        let record = this.records.get(id);
+        record;
+        record = this.records.get(record.parentId)
+      )
+        if (anchors.has(record.id)) anchor = record.id;
+      if (anchor) anchorOf.set(id, anchor);
+    }
+    const resolved = new Map<string, ReturnType<typeof this.resolvePruned>>();
+    return (id) => {
+      const anchor = anchorOf.get(id);
+      if (!anchor) return undefined;
+      let bulk = resolved.get(anchor);
+      if (!bulk)
+        resolved.set(
+          anchor,
+          (bulk = this.resolvePruned(
+            this.runtime.graph,
+            anchor,
+            breakpoint,
+            counts,
+            true,
+          )),
+        );
+      return bulk.within?.(id);
+    };
   }
 
   /**
@@ -8410,16 +8519,14 @@ export class CatalogCompositionRoot {
       queue.push(...(this.sourceInstances.get(sourceId) ?? []));
     for (const id of extraRecords) if (!queue.includes(id)) queue.push(id);
     const queued = new Set(queue);
+    const bulk = this.bulkPruned(queue, this.breakpoint, counts);
     for (let index = 0; index < queue.length; index++) {
       const id = queue[index];
       const before = this.records.get(id)!;
       const rootId = this.recordRoots.get(id)!;
-      const { top, resolved } = this.resolvePruned(
-        this.runtime.graph,
-        id,
-        this.breakpoint,
-        counts,
-      );
+      const { top, resolved } =
+        bulk(id) ??
+        this.resolvePruned(this.runtime.graph, id, this.breakpoint, counts);
       // The authored optional fields follow the new resolution (an undo can drop them).
       const {
         fills: _fills,

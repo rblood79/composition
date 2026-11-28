@@ -253,6 +253,12 @@ export interface CatalogBoundRow {
   /** A remote Cascader requests children by collection identity, independently of its value. */
   levelKey?: string;
   /**
+   * ADR-326 §4.7 (4) — the Builder's read of a Cascader whose levels load one by one: the row may
+   * have items under it, its level not loaded (`cascaderBranchKeys` with no level loaded — the
+   * Preview session's `branchKeys` when it opens). The table keeps it a branch.
+   */
+  levelBranch?: true;
+  /**
    * The item's child rows (`useTreeData.getChildren` — the binding's `fieldMap.children`): a bound
    * Tree shows them inside the row, the same item template again.
    */
@@ -1030,6 +1036,15 @@ const GROUP_ROW_ITEM: Readonly<Record<string, { key: string; text: string }>> =
     // stays repeated, the field refuses it), its name the row's label.
     CascaderItem: { key: "id", text: "label" },
   };
+/**
+ * ADR-326 — the marks a bound Cascader item's record carries from its row (no authored prop): its
+ * level key (the collection's identity) and, in the Builder, that its level is not loaded yet
+ * (`CatalogBoundRow.levelBranch` — the table keeps it a branch). They reach the item origin's root.
+ */
+const CASCADER_ROW_MARKS: readonly string[] = [
+  "catalogCascaderLevelKey",
+  "catalogCascaderBranch",
+];
 /** The row is the item: its key prop takes the row's key (a group item shows the row's label). */
 function keyRowItem(
   type: string,
@@ -1072,6 +1087,8 @@ function keyRowItem(
     type === "CascaderItem" ? (row.itemKey ?? row.key) : row.key;
   if (type === "CascaderItem" && row.levelKey !== undefined)
     props.catalogCascaderLevelKey = row.levelKey;
+  if (type === "CascaderItem" && row.levelBranch)
+    props.catalogCascaderBranch = true;
   if (group && props[group.text] === undefined)
     props[group.text] = String(row.values.label ?? row.key);
 }
@@ -3632,9 +3649,7 @@ export function resolveCatalogNode(
               ...(props.loadingState !== undefined ? ["loadingState"] : []),
               // (ADR-326 — a bound Cascader item is an item origin's instance: the row's level key
               //  — the collection's identity, not its value — reaches its CascaderItem record.)
-              ...(props.catalogCascaderLevelKey !== undefined
-                ? ["catalogCascaderLevelKey"]
-                : []),
+              ...CASCADER_ROW_MARKS.filter((key) => props[key] !== undefined),
               // (The rows a data field disables reach it too — S2 `disabledKeys`.)
               ...(disabledRows?.length ? ["disabledKeys"] : []),
               // (The dates its data names too — S2 `isDateUnavailable`.)
@@ -4582,8 +4597,8 @@ export function resolveCatalogNode(
           definition.mode === "composite" ||
           // (ADR-315 Phase 5 — the resolver's own mark, no authored prop: a group's tree cell.)
           key === CATALOG_TREE_CELL_PROP ||
-          // (ADR-326 — the resolver's own mark: a bound Cascader item's level key.)
-          key === "catalogCascaderLevelKey" ||
+          // (ADR-326 — the resolver's own marks: a bound Cascader item's level key · unread branch.)
+          CASCADER_ROW_MARKS.includes(key) ||
           // (S2 `isDateUnavailable` from data — the dates the instance's binding names.)
           key === CATALOG_UNAVAILABLE_DATA_PROP
         )
@@ -5024,9 +5039,9 @@ export function resolveCatalogNode(
                   ...(rowing?.rowStart ? ["id"] : []),
                   // (ADR-326 판독 h2 — a bound Cascader item in a project component: the row's level
                   //  key reaches its CascaderItem record, as an owned item's does.)
-                  ...(props.catalogCascaderLevelKey !== undefined
-                    ? ["catalogCascaderLevelKey"]
-                    : []),
+                  ...CASCADER_ROW_MARKS.filter(
+                    (key) => props[key] !== undefined,
+                  ),
                 ]),
                 props,
                 [

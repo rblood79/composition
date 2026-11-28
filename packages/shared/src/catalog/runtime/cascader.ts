@@ -345,7 +345,10 @@ export function cascaderStaticItems(
           name: typeof name === "string" ? name : String(name ?? ""),
           isDisabled: child.props.isDisabled === true,
           children,
-          ...(!children.length && branchKeys?.has(levelKey)
+          // (ADR-326 §4.7 (4) — the Builder's mark of a branch not loaded: its row read.)
+          ...(!children.length &&
+          (branchKeys?.has(levelKey) ||
+            child.props.catalogCascaderBranch === true)
             ? { hasChildItems: true }
             : {}),
         },

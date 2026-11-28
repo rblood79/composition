@@ -9,6 +9,7 @@ import type {
   CatalogReader,
   CollectionEntry,
   DataEntry,
+  NodeEntry,
   ProjectEntry,
   ProjectVariableEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -17,10 +18,22 @@ import {
   type NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type {
+  CatalogBoundRow,
   CatalogBoundRows,
   CatalogRowBinding,
 } from "../../../../../packages/shared/src/catalog/resolution/resolver";
-import { catalogBoundRows } from "../../../../../packages/shared/src/catalog/runtime/dataBinding";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import {
+  cascaderBranchKeys,
+  cascaderFieldKey,
+  cascaderLoadsLevels,
+  collectionRowKeyOf,
+} from "../../../../../packages/shared/src/catalog/runtime/cascaderLevels";
+import {
+  catalogBoundRows,
+  catalogRowListMeta,
+} from "../../../../../packages/shared/src/catalog/runtime/dataBinding";
+import type { ApiEndpointDefinition } from "../../../../../packages/shared/src/types/collection.types";
 import type { CatalogRowSlices } from "../../../../../packages/shared/src/catalog/runtime/tableRowSlices";
 import type { DataField, DataTable } from "../../types/builder/data.types";
 import { useDataStore } from "../stores/data";
@@ -117,7 +130,7 @@ export function catalogCollectionTables(
  * grouped (the resolver asks — `tableRowSlices`); the Canvas has no Table state, so nothing else.
  */
 export function catalogBuilderBoundRows(
-  reader: Reader,
+  reader: CatalogReader,
   binding: CatalogRowBinding,
   kind?: "items" | "records",
   ownerId?: NodeId,
@@ -126,8 +139,32 @@ export function catalogBuilderBoundRows(
   const tables = catalogCollectionTables(reader);
   const owner = ownerId ? reader.getEntry(ownerId) : undefined;
   const display = owner?.kind === "node" ? owner.rowDisplay : undefined;
+  const levels =
+    owner?.kind === "node" && kind !== "records"
+      ? cascaderLevelsRead(reader, owner, binding, tables)
+      : undefined;
+  if (levels)
+    return withLevelBranches(
+      catalogBoundRows(
+        binding,
+        tables,
+        kind,
+        undefined,
+        undefined,
+        slices,
+        true,
+      ),
+      levels,
+    );
   if (display?.mode !== "pages" || kind === "records")
-    return catalogBoundRows(binding, tables, kind, undefined, undefined, slices);
+    return catalogBoundRows(
+      binding,
+      tables,
+      kind,
+      undefined,
+      undefined,
+      slices,
+    );
   const page = catalogBoundRows(
     binding,
     tables,
@@ -137,6 +174,55 @@ export function catalogBuilderBoundRows(
     slices,
   );
   return page ? Object.assign(page, { total: page.length }) : page;
+}
+
+/**
+ * ADR-326 §4.7 (4) — a Cascader (or a level item with its own table) whose levels load one by one
+ * (`cascaderLoadsLevels` — the Preview session's question): the rows are read as the Preview reads
+ * them (`remoteLevels` — each row's level key is the collection's), and the branches whose level is
+ * not loaded are the session's answer with no level loaded (`cascaderBranchKeys`) — a Preview that
+ * just opened. Undefined for any other owner · collection.
+ */
+function cascaderLevelsRead(
+  reader: CatalogReader,
+  owner: NodeEntry,
+  binding: CatalogRowBinding,
+  tables: readonly DataTable[],
+): ReadonlySet<string> | undefined {
+  const collectionId = rawId(binding.collectionId, COLLECTION);
+  const table = tables.find((item) => item.id === collectionId);
+  const endpoint = entriesOf(reader, "endpoint").find(
+    (entry) => entry.targetCollectionId === binding.collectionId,
+  );
+  if (
+    !cascaderLoadsLevels(
+      table,
+      endpoint as unknown as ApiEndpointDefinition | undefined,
+    )
+  )
+    return undefined;
+  const type = definitionTypeName(reader, owner.definitionId);
+  if (type !== "Cascader" && type !== "CascaderItem") return undefined;
+  return cascaderBranchKeys(
+    table!.runtimeData ?? table!.mockData ?? [],
+    collectionRowKeyOf(table),
+    cascaderFieldKey(table, binding.fieldMap.hasChildren),
+  );
+}
+
+/** A row without child rows whose level key is a branch not loaded: marked (`levelBranch`). */
+function withLevelBranches(
+  rows: CatalogBoundRows | undefined,
+  branches: ReadonlySet<string>,
+): CatalogBoundRows | undefined {
+  if (!rows || !branches.size) return rows;
+  const mark = (row: CatalogBoundRow): CatalogBoundRow =>
+    row.children?.length
+      ? { ...row, children: row.children.map(mark) }
+      : branches.has(row.levelKey ?? row.key)
+        ? { ...row, levelBranch: true }
+        : row;
+  return Object.assign(rows.map(mark), catalogRowListMeta(rows));
 }
 
 /** The project variables as `VariableDef` (the `{{ }}` env — Canvas defaults, ADR-214). */

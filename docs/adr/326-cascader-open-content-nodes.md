@@ -8,6 +8,8 @@ Accepted — 2026-11-28 (사용자 `/execute-adr 326` · [reviews/326.md](review
 >
 > - 발견 (이 ADR 밖): Select 의 열린 목록도 바깥 클릭 뒤 focus 가 `body` 로 간다 (같은 공용 Popover 의 FocusScope — Chrome · WebKit). 사용자에게 보고.
 
+> **Phase 1 (G1) 닫힘 (2026-11-28)** — [breakdown §9](design/326-cascader-open-content-nodes-breakdown.md#9-phase-결과): 문서 구조 (원본 `Popover > SearchField + Breadcrumbs + 「뒤로」 + CascaderList > CascaderItem > Text · Icon` · `accepts.mode` · `bindingMaps.cascaderDrill` · contract 88) · 항목 읽기 한 함수 · 시작 경로 보존 (Builder 표본 창이 시작 값을 자르지 않음 · 단계별 원격 로드의 읽지 않은 가지도 두 쪽이 같은 판정 함수). 판독 1 (HIGH 9) + 수리 검증 1 (HIGH 5) 모두 재현 · 수리. HC4: 항목당 record 3 (결정 2) 이 드러낸 결함 — 연결된 Cascader 의 묶인 prop 쓰기가 record 마다 행 계층 전체를 해석 (3,917 record 67 s) → 같은 instance 아래 record 를 한 번에 해석 (0.37 s). 열기는 Select 1,000 대비 Chrome 1x ×0.31 ~ 0.35 · 4x ×0.21 ~ 0.24 · WebKit 1x ×0.35 ~ 0.58. G1: ADR-322 단위 · live G4 6/6 · G6 11/12 (3번만 실패 — Phase 1 이전 판에서도 실패) · preflight — guard · format · typecheck · registration · css-boundary · chart-contract · agent-catalog 통과, rule-size 만 실패 (`canvas-rendering.md` 55,244 > 55,100 · `panel-structure.md` 39,913 > 39,624 — 이 Phase 가 고치지 않은 규칙 파일, HEAD 그대로 · 보고). 다음 Phase 2 (DOM columns).
+
 - **출처**: 사용자 요청 `/create-adr` (2026-11-28). 방향을 정한 사용자 원문 (같은 날):
   - 「category컴퍼넌트도 select컴퍼넌트처럼 프러퍼티패널 value section 에서 value 선택과 open 이 되어야 하지않나?」
   - 「Canvas 에도 펼쳐 그림 — Select 처럼 Open 을 켜면 Canvas 에도 펼친 목록을 그려야 Preview · Publish 와 동일한 동작이지 않나」

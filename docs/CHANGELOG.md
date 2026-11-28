@@ -13,6 +13,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-326 Phase 1 — Cascader 열린 목록의 문서 구조 · 시작 경로 보존] - 2026-11-28
+
+ADR-326 (Cascader 열린 목록을 원본 노드로) Phase 1 닫힘. 화면 모양은 그대로다 — 열린 목록이 문서 노드가 됐고, Builder 와 Preview 가 시작 값을 같은 항목으로 읽는다.
+
+### Changed
+
+- Cascader 원본에 열린 내용 노드 — `Popover > SearchField + Breadcrumbs + 「뒤로」 + CascaderList > CascaderItem` (Select 의 `Popover > ListBox` 자리). 항목은 항목 원본의 instance 이고 이름 · chevron 은 Text · Icon 자식 노드다 (사용자 결정 2 — Layers 에서 글자를 따로 고른다). drill 부품은 방식이 drill 일 때만 선다. contract 88.
+  - 위치: `packages/shared/src/catalog/document/cascaderOrigins.ts` · `runtime/cascader.ts` (`catalogCascaderItems`)
+- 연결된 Cascader 의 시작 값이 Builder 의 표본 창 (뿌리 100) 밖이어도 Builder 가 그 항목과 경로를 읽는다 — 닫힌 필드의 값 글자 · Value 칸이 Preview 와 같다. 단계별로 불러오는 연결 (endpoint 가 `{{ parentKey }}` 를 읽는 것) 의 아직 읽지 않은 가지도 두 쪽이 같은 판정 함수로 가지로 본다.
+  - 위치: `runtime/dataBinding.ts` (`keepKeys` · `whole`) · `runtime/cascaderLevels.ts` (`cascaderBranchKeys`) · `apps/builder/src/builder/catalogRuntime/catalogDataRead.ts`
+
+### Fixed
+
+- 연결된 Cascader 의 label · description · size 같은 prop 을 쓰면 Builder 가 멈춘 듯 느려졌다 (항목 1,300 개에 7.8 초, 3,900 개에 67 초) — 그 Cascader 아래 record 마다 행 계층 전체를 다시 해석했다. 같은 instance 아래 record 를 한 번에 해석한다 (3,900 개 0.37 초).
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`bulkPruned`)
+
 ## [ADR-323 Phase 2 — Timeline] - 2026-11-28
 
 ADR-323 Phase 2 닫힘. 날짜 축 컴포넌트 셋 중 첫째인 Timeline 을 쓸 수 있다.

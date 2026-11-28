@@ -179,7 +179,12 @@ import { collectionSaveReasonText } from "./collectionSaveText";
 import { catalogSiteLanguage } from "../document/templateLocalizedProps";
 import { CATALOG_CHANGES_ROOT } from "./stateTemplate";
 import {
+  cascaderBranchKeys,
+  cascaderFieldKey,
+  cascaderLoadsLevels,
+  collectionRowKeyOf,
   correctCascaderSelection,
+  ROW_KEY_FIELDS,
   type CatalogCascaderLevels,
   type CatalogCascaderLevelState,
 } from "./cascaderLevels";
@@ -208,7 +213,7 @@ export function catalogPreviewDataServices(
 }
 
 /** The fields an item's key is read from (`getItemKey`) — an `update` never changes them. */
-const ITEM_KEY_FIELDS = ["id", "key", "value"] as const;
+const ITEM_KEY_FIELDS = ROW_KEY_FIELDS;
 
 /**
  * One `useListData` · `useTreeData` operation a rule ran on a collection (the Preview session's
@@ -1104,22 +1109,9 @@ export class CatalogPreviewSession {
   private dataKeyOf(
     collectionId: string,
   ): (row: Readonly<Record<string, unknown>>) => string | number | undefined {
-    const collection = this.collections.find(
-      (item) => item.id === collectionId,
+    return collectionRowKeyOf(
+      this.collections.find((item) => item.id === collectionId),
     );
-    const keyField = collection?.keyField
-      ? collection.schema?.find((field) => field.id === collection.keyField)
-          ?.key
-      : undefined;
-    const fields = keyField ? [keyField, ...ITEM_KEY_FIELDS] : ITEM_KEY_FIELDS;
-    return (row) => {
-      for (const field of fields) {
-        const value = row[field];
-        if ((typeof value === "string" && value) || typeof value === "number")
-          return value;
-      }
-      return undefined;
-    };
   }
   /** How a collection's rows nest (a Tree's children · parent field) for the overlay. */
   private shapeOf(
@@ -3059,6 +3051,16 @@ export class CatalogPreviewSession {
     };
     return visit(recordId, 3);
   }
+  /** ADR-326 §4.7 (4) — a collection whose levels load one by one (`cascaderLoadsLevels`). */
+  private loadsLevels(collectionId: string): boolean {
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    return cascaderLoadsLevels(
+      collection,
+      collection && this.endpointFilling(collection),
+    );
+  }
   private cascaderLevelEndpoint(collection: CollectionDataSource | undefined) {
     const endpoint =
       collection && !collection.useMockData
@@ -3097,13 +3099,8 @@ export class CatalogPreviewSession {
       return undefined;
     }
     // (A field map names a field by its document id `data:field:<schema id>`.)
-    const fieldKey = (ref: string | undefined) => {
-      if (!ref) return undefined;
-      const id = ref.startsWith("data:field:")
-        ? ref.slice("data:field:".length)
-        : ref;
-      return collection?.schema?.find((field) => field.id === id)?.key ?? id;
-    };
+    const fieldKey = (ref: string | undefined) =>
+      cascaderFieldKey(collection, ref);
     const parentField = fieldKey(binding.fieldMap.parentId) ?? "parentId";
     const flagField = fieldKey(binding.fieldMap.hasChildren);
     const states = this.levelStatesOf(collectionId);
@@ -3115,23 +3112,23 @@ export class CatalogPreviewSession {
       : (!collection!.useMockData && collection!.runtimeData) ||
         collection!.mockData ||
         [];
-    const branchKeys = new Set<string>();
+    // (ADR-326 §4.7 (4) — the Builder's row read asks the same with no level loaded.)
+    const branchKeys = cascaderBranchKeys(rows, dataKey, flagField, (key) =>
+      states.get(key),
+    );
     const broken = this.levelConflicts.get(collectionId);
     const conflicts = new Set<string>();
     const valueField = fieldKey(binding.fieldMap.value);
-    for (const [index, row] of (
-      rows as readonly Record<string, unknown>[]
-    ).entries()) {
-      const key = dataKey(row);
-      if (key === undefined) continue;
-      if (broken?.has(String(key)))
-        conflicts.add(
-          valueField ? itemKey(row, index, valueField) : String(key),
-        );
-      if (states.get(String(key)) === "loaded") continue;
-      if (flagField === undefined || row[flagField] === true)
-        branchKeys.add(String(key));
-    }
+    if (broken?.size)
+      for (const [index, row] of (
+        rows as readonly Record<string, unknown>[]
+      ).entries()) {
+        const key = dataKey(row);
+        if (key !== undefined && broken.has(String(key)))
+          conflicts.add(
+            valueField ? itemKey(row, index, valueField) : String(key),
+          );
+      }
     return {
       branchKeys,
       stateOf: (parentKey) => states.get(parentKey),
@@ -3521,9 +3518,7 @@ export class CatalogPreviewSession {
       slices,
       ownerId !== undefined &&
         this.readsLevelRows(ownerId) &&
-        this.cascaderLevelEndpoint(
-          this.collections.find((item) => item.id === id),
-        )?.responseMapping?.keysUnique === true,
+        this.loadsLevels(id),
     );
     if (!rows) return rows;
     if (ownerId !== undefined) {
